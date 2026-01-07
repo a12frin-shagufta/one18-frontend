@@ -72,8 +72,7 @@ const CategoryPage = () => {
           Our Products
         </h1>
         <p className="max-w-xl mx-auto text-sm md:text-base text-gray-600">
-          For more than 25 years, Magnolia Bakery has been making America’s
-          favorite baked goods the old-fashioned way.
+         100% Muslim Owned | Premium Ingredients | No Preservatives  
         </p>
       </div>
 
