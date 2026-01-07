@@ -11,7 +11,7 @@ const Hero = () => {
 
   // Mobile images (portrait – 1080x1920)
   const mobileImages = [
-    "/images/mobilebg.png",
+    "/images/13.png",
   ];
 
   const [current, setCurrent] = useState(0);
