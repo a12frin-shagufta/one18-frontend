@@ -46,10 +46,10 @@ const Hero = () => {
         <div className="absolute inset-0 bg-black/10" />
 
         {/* Mobile Order Now Button */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:hidden">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:hidden">
           <button
             onClick={() => navigate("/order")}
-            className="px-6 py-3 rounded-full bg-amber-600 text-white font-semibold text-sm shadow-lg active:scale-95 transition"
+            className="px-6 py-3 rounded-sm border  text-white font-semibold text-sm shadow-lg active:scale-95 transition"
           >
             Order Now
           </button>
