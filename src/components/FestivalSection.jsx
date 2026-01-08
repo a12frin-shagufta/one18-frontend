@@ -18,12 +18,20 @@ const FestivalSection = () => {
 
         const menu = branchId ? await getMenu(branchId) : [];
 
-        const data = activeFestivals.map(festival => ({
-          ...festival,
-          products: menu.filter(
-            item => String(item.festival?._id) === String(festival._id)
-          ).slice(0, 4),
-        }));
+       const data = await Promise.all(
+  activeFestivals.map(async (festival) => {
+    const products = branchId
+      ? await getMenu(branchId, festival._id)
+      : [];
+
+    return {
+      ...festival,
+      products: products.slice(0, 4),
+    };
+  })
+);
+
+setFestivals(data);
 
         setFestivals(data);
       } catch (err) {

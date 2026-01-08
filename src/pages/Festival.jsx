@@ -28,11 +28,12 @@ const Festival = () => {
         setFestival(f);
 
         if (branchId) {
-          const menu = await getMenu(branchId);
-          const items = menu.filter(
-            p => String(p.festival?._id) === String(f._id)
-          );
-          setProducts(items);
+         const items = branchId
+  ? await getMenu(branchId, f._id)
+  : [];
+
+setProducts(items);
+
         } else {
           setProducts([]);
         }
