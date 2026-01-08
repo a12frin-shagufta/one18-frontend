@@ -7,6 +7,8 @@ import Test from "../components/Taste"
 import CategoryPage from "./CategoryPage";
 import TreatsSection from "../components/TreatsSection";
 import Highlights from "../components/Highlights";
+import CateringSection from "../components/CateringSection";
+import AboutUsSection from "../components/AboutUsSection";
 
 
 const Home = () => {
@@ -15,13 +17,17 @@ const Home = () => {
  return (
     <div>
       <Hero />
-      <FestivalSection />
+     
       <CategoryPage />
+       <FestivalSection />
       <BestSellerSection />
       <TreatsSection />
       <Highlights />
+      <CateringSection />
+      <AboutUsSection />
+      
       <TestimonialSection />
-      <Test/>
+      {/* <Test/> */}
 
 
       {/* Load ONLY if branch is selected */}

@@ -7,7 +7,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="relative bg-[#183A8F] text-white overflow-hidden">
+    <footer className="relative bg-[#183A8F] text-white overflow-hidden mt-20">
       {/* 🌊 Wave Top */}
       <div className="absolute top-0 left-0 w-full overflow-hidden leading-none">
         <svg

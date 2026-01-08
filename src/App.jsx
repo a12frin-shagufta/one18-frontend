@@ -14,6 +14,8 @@ import BestSellers from "./pages/BestSellers";
 import CategoryPage from "./pages/CategoryPage";
 import FindUsSection from "./components/FindUsSection";
 import BranchSelect from "./components/BranchSelect";
+import CateringSection from "./components/CateringSection";
+import AboutUsSection from "./components/AboutUsSection";
 
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
 
@@ -55,6 +57,8 @@ function App() {
         <Route path="/products" element={<CategoryPage />} />
         <Route path="/find-us" element={<FindUsSection />} />
         <Route path="/order" element={<BranchSelect />} />
+        <Route path="/catering" element={<CateringSection />} />
+        <Route path="/about-us" element={<AboutUsSection />} />
       </Routes>
 
       {!shouldHideFooter && <Footer />}
