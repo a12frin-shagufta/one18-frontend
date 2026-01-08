@@ -50,7 +50,7 @@ const BestSellerSection = () => {
       <section className="py-8 md:py-12">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12">
-          <h2 className=" font-light text-4xl md:text-5xl font-serif text-gray-900 mb-2">
+          <h2 className=" font-light text-3xl md:text-5xl font-serif text-gray-900 mb-2">
              Best Sellers
           </h2>
           <p className="text-gray-600 text-base md:text-lg">

@@ -68,7 +68,7 @@ const CategoryPage = () => {
     <section className="max-w-7xl mx-auto px-4 py-10">
       {/* HEADER */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl md:text-5xl font-serif text-gray-900 mb-3">
+        <h1 className="text-3xl md:text-5xl font-serif text-gray-900 mb-3">
           Our Products
         </h1>
         <p className="max-w-xl mx-auto text-sm md:text-base text-gray-600">

@@ -56,7 +56,7 @@ setFestivals(data);
         <section key={festival._id} className="py-10">
 
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-serif text-gray-900">
+            <h2 className="text-3xl md:text-5xl font-serif text-gray-900">
               🎊 {festival.name} 🎊
             </h2>
           </div>
