@@ -3,9 +3,25 @@ import React from "react";
 import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/currency";
+import { useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 
 const CartDrawer = ({ isOpen, onClose }) => {
+
+  useEffect(() => {
+  if (isOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "";
+  }
+
+  return () => {
+    document.body.style.overflow = "";
+  };
+}, [isOpen]);
+
+
   const { orders, setOrders } = useCart();
   const navigate = useNavigate();
 
@@ -87,7 +103,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
           </div>
 
           {/* CONTENT */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 md:px-6 md:py-4">
+         <div className="flex-1 overflow-y-auto px-4 py-3 pb-32 md:pb-36">
+
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-10">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -168,32 +185,33 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
           {/* FOOTER */}
           {items.length > 0 && (
-            <div className="sticky bottom-0 bg-white border-t px-4 py-3 md:px-6 md:py-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 text-sm">Subtotal</span>
-                  <span className="font-bold text-lg text-gray-800">
-                    {formatPrice(total)}
-                  </span>
-                </div>
+  <div className="bg-white border-t px-4 py-3 md:px-6 md:py-4">
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-600 text-sm">Subtotal</span>
+        <span className="font-bold text-lg text-gray-800">
+          {formatPrice(total)}
+        </span>
+      </div>
 
-                <button
-                  onClick={handleCheckout}
-                  className="w-full bg-[#1E3A8A] text-white py-3 md:py-4 rounded-xl font-semibold flex items-center justify-center gap-2"
-                >
-                  Proceed to Checkout
-                  <ArrowRight className="w-5 h-5" />
-                </button>
+      <button
+        onClick={handleCheckout}
+        className="w-full bg-[#1E3A8A] text-white py-3 md:py-4 rounded-xl font-semibold flex items-center justify-center gap-2"
+      >
+        Proceed to Checkout
+        <ArrowRight className="w-5 h-5" />
+      </button>
 
-                <button
-                  onClick={onClose}
-                  className="w-full py-2 text-gray-600 text-sm"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          )}
+      <button
+        onClick={onClose}
+        className="w-full py-2 text-gray-600 text-sm"
+      >
+        Continue Shopping
+      </button>
+    </div>
+  </div>
+)}
+
         </div>
       </div>
     </>

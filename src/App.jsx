@@ -1,57 +1,64 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
-import Cart from "./pages/Cart";
-import Home from "./pages/Home";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+
+import Home from "./pages/Home";
+import Menu from "./pages/Menu";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import Festival from "./pages/Festival";
 import ProductDetail from "./pages/ProductDetail";
 import BestSellers from "./pages/BestSellers";
-import FindUsSection from "./components/FindUsSection";
-import Footer from "./components/Footer";
-import Checkout from "./pages/Checkout";
-import Menu from "./pages/Menu";
 import CategoryPage from "./pages/CategoryPage";
+import FindUsSection from "./components/FindUsSection";
 import BranchSelect from "./components/BranchSelect";
-import { useEffect } from "react";
+
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
 
-
 function App() {
-   useEffect(() => {
-    const savedBranch = localStorage.getItem("selectedBranch");
+  const location = useLocation();
 
+  useEffect(() => {
+    const savedBranch = localStorage.getItem("selectedBranch");
     if (!savedBranch) {
       localStorage.setItem("selectedBranch", DEFAULT_BRANCH.id);
     }
   }, []);
+
+  // ❌ Pages where footer should NOT appear
+  const hideFooterRoutes = [
+    "/menu",
+    "/cart",
+    "/checkout",
+    "/order",
+  ];
+
+  const shouldHideFooter = hideFooterRoutes.some((path) =>
+    location.pathname.startsWith(path)
+  );
+
   return (
-    
-      <>
-      
+    <>
+      <Navbar />
 
-       <Navbar/>
-        <Routes>
-           <Route path="/" element={<Home/>} />
-          <Route path="/menu" element={<Menu/>} /> 
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/festival/:slug" element={<Festival />} />
-          <Route path="/product/:slug" element={<ProductDetail />} />
-          <Route path="/best-sellers" element={<BestSellers />} />
-          <Route path="/find-us" element={<FindUsSection />} />
-          <Route path="/checkout" element={<Checkout />} /> 
-          <Route path="/products" element={<CategoryPage />} />
-<Route path="/menu/:categoryId" element={<Menu />} />
-<Route path="/order" element={<BranchSelect />} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/menu" element={<Menu />} />
+        <Route path="/menu/:categoryId" element={<Menu />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/festival/:slug" element={<Festival />} />
+        <Route path="/product/:slug" element={<ProductDetail />} />
+        <Route path="/best-sellers" element={<BestSellers />} />
+        <Route path="/products" element={<CategoryPage />} />
+        <Route path="/find-us" element={<FindUsSection />} />
+        <Route path="/order" element={<BranchSelect />} />
+      </Routes>
 
-
-          
-
-
-        </Routes>
-        <Footer/>
-        
-     
-     </>
+      {!shouldHideFooter && <Footer />}
+    </>
   );
 }
 
