@@ -246,7 +246,7 @@ const Menu = () => {
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
         {/* MOBILE TOP BAR */}
-<div className="md:hidden  z-30 bg-white border-b px-4 py-3 flex items-center gap-3">
+<div className="md:hidden  z-30 bg-white  px-4 py-3 flex items-center gap-3">
   <button
     onClick={() => setShowSidebar(true)}
     className="bg-gray-100 p-2 rounded-md"
@@ -256,7 +256,7 @@ const Menu = () => {
 
   <div className="flex items-center gap-2">
     <span className="font-semibold text-gray-900 text-sm">
-      one18bakery
+  Open Menu
     </span>
   </div>
 </div>
