@@ -153,12 +153,12 @@ const Menu = () => {
   return (
     <div className="h-screen flex bg-gray-50 overflow-hidden">
       {/* MOBILE MENU BUTTON */}
-      <button
+      {/* <button
         onClick={() => setShowSidebar(true)}
         className="md:hidden fixed top-3 left-3 z-40 bg-white/90 backdrop-blur border p-2 rounded-md"
       >
         <FiMenu size={20} />
-      </button>
+      </button> */}
 
       {/* MOBILE OVERLAY */}
       {showSidebar && (
@@ -245,6 +245,71 @@ const Menu = () => {
 
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
+        {/* MOBILE TOP BAR */}
+<div className="md:hidden sticky top-0 z-30 bg-white border-b px-4 py-3 flex items-center gap-3">
+  <button
+    onClick={() => setShowSidebar(true)}
+    className="bg-gray-100 p-2 rounded-md"
+  >
+    <FiMenu size={20} />
+  </button>
+
+  <div className="flex items-center gap-2">
+    <span className="font-semibold text-gray-900 text-sm">
+      one18bakery
+    </span>
+  </div>
+</div>
+
+{/* MOBILE FILTER BAR */}
+{/* MOBILE FILTER BAR */}
+{/* MOBILE FILTER BAR */}
+<div className="md:hidden sticky top-[56px] z-20 bg-gray-50 border-b">
+  <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto no-scrollbar">
+
+    {/* ALL BUTTON */}
+    <button
+      onClick={() => handleCategoryClick("all")}
+      className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap border transition
+        ${
+          activeCategory === "all"
+            ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
+            : "bg-white text-gray-700 border-gray-300"
+        }`}
+    >
+      All
+    </button>
+
+    {/* CATEGORY PILLS */}
+    {categoryStructure
+      .filter((c) => c.id !== "all")
+      .map((cat) => (
+        <button
+          key={cat.id}
+          onClick={() => handleCategoryClick(cat.id)}
+          className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap border transition
+            ${
+              activeCategory === cat.id
+                ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
+                : "bg-white text-gray-700 border-gray-300"
+            }`}
+        >
+          {cat.name}
+        </button>
+      ))}
+
+    {/* FILTER ICON */}
+    {/* <button
+      onClick={() => setShowSidebar(true)}
+      className="ml-auto flex items-center justify-center w-9 h-9 rounded-full border border-gray-300"
+    >
+      <FiMenu size={18} />
+    </button> */}
+  </div>
+</div>
+
+
+
         {/* BRANCH INFO */}
         {branchInfo && (
   <div className="px-6 py-4">
