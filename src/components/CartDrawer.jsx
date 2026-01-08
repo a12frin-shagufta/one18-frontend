@@ -87,7 +87,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
       >
         <div className="flex flex-col h-full">
           {/* HEADER - FIXED FOR MOBILE */}
-          <div className="sticky top-0 bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between z-10">
+         <div className="sticky top-0 h-[76px] bg-white border-b px-4 py-3 md:px-6 md:py-4 flex items-center justify-between z-20">
+
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <ShoppingBag className="w-5 h-5 text-[#1E3A8A] flex-shrink-0" />
               <div className="min-w-0 flex-1">
@@ -110,7 +111,8 @@ const CartDrawer = ({ isOpen, onClose }) => {
           </div>
 
           {/* CONTENT - IMPROVED SCROLLING ON MOBILE */}
-          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 pb-32 md:pb-36 overscroll-contain">
+       <div className="flex-1 overflow-y-auto px-3 sm:px-4 pt-[76px] pb-32 md:pb-36 overscroll-contain">
+
             {items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-10 px-4">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
