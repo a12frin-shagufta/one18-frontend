@@ -35,7 +35,7 @@ const Highlights = () => {
             return (
               <div key={index} className="flex flex-col items-center gap-4">
                 <Icon className="text-[#E06B3C]" size={40} />
-                <h3 className="text-[#1E2A5A] font-serif text-xl md:text-2xl tracking-wide uppercase">
+                <h3 className="text-[#1E2A5A] font-serif text-md  tracking-wide uppercase">
                   {item.title}
                 </h3>
               </div>
