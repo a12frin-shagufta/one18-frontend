@@ -92,7 +92,7 @@ if (loading) {
       <div>
         <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
-        <p className="text-xl font-semibold mb-4">
+        <p className="text-xl font-md mb-4">
            {formatPrice(selectedVariant.price)}
         </p>
 
