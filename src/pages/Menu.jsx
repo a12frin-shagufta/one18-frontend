@@ -246,7 +246,7 @@ const Menu = () => {
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
         {/* MOBILE TOP BAR */}
-<div className="md:hidden sticky top-0 z-30 bg-white border-b px-4 py-3 flex items-center gap-3">
+<div className="md:hidden  z-30 bg-white border-b px-4 py-3 flex items-center gap-3">
   <button
     onClick={() => setShowSidebar(true)}
     className="bg-gray-100 p-2 rounded-md"
@@ -264,7 +264,7 @@ const Menu = () => {
 {/* MOBILE FILTER BAR */}
 {/* MOBILE FILTER BAR */}
 {/* MOBILE FILTER BAR */}
-<div className="md:hidden sticky top-[56px] z-20 bg-gray-50 border-b">
+<div className="md:hidden  top-[56px] z-20 bg-gray-50 border-b">
   <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto no-scrollbar">
 
     {/* ALL BUTTON */}
