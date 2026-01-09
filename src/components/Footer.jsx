@@ -58,23 +58,40 @@ const Footer = () => {
         </div>
 
         {/* RIGHT */}
-        <div>
-          <h3 className="text-2xl font-semibold mb-2">Stay Updated</h3>
-          <p className="text-white/70 mb-5">
-            Subscribe for exclusive offers and the latest updates
-          </p>
+       {/* RIGHT */}
+{/* RIGHT */}
+<div>
+  <h3 className="text-2xl font-semibold mb-2">Stay Updated</h3>
+  <p className="text-white/70 mb-5">
+    Subscribe for exclusive offers and the latest updates
+  </p>
 
-          <div className="flex items-center bg-white/10 rounded-full overflow-hidden max-w-lg">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="flex-1 bg-transparent px-6 py-4 outline-none placeholder:text-white/60"
-            />
-            <button className="bg-[#F59E0B] text-white px-8 py-4 font-medium flex items-center gap-2 hover:bg-[#e18c07] transition">
-              Subscribe →
-            </button>
-          </div>
-        </div>
+  {/* DESKTOP (unchanged) */}
+  <div className="hidden md:flex items-center bg-white/10 rounded-full overflow-hidden max-w-lg">
+    <input
+      type="email"
+      placeholder="your@email.com"
+      className="flex-1 bg-transparent px-6 py-4 outline-none placeholder:text-white/60 text-white"
+    />
+    <button className="bg-[#F59E0B] text-white px-8 py-4 font-medium hover:bg-[#e18c07] transition">
+      Subscribe →
+    </button>
+  </div>
+
+  {/* MOBILE (new clean layout) */}
+  <div className="md:hidden space-y-3">
+    <input
+      type="email"
+      placeholder="your@email.com"
+      className="w-full bg-white/10 px-5 py-4 rounded-xl outline-none placeholder:text-white/60 text-white"
+    />
+    <button className="w-full bg-[#F59E0B] text-white py-4 rounded-xl font-medium hover:bg-[#e18c07] transition">
+      Subscribe →
+    </button>
+  </div>
+</div>
+
+
       </div>
 
       {/* BOTTOM BAR */}
