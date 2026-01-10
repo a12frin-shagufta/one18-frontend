@@ -337,8 +337,10 @@ const Menu = () => {
   <div className="mx-3 md:mx-6 mb-4">
     <div className=" rounded-lg px-4 py-3 text-center">
       <p className="text-sm md:text-base  text-gray-800">
-        Kindly place your orders at least{" "}
-        <span className="font-semibold text-amber-700">2 days</span> in advance.🥐
+     Same-day orders: Please allow at least 2 hours for preparation.
+     <br />
+Pre-orders: Kindly place your order 2 days in advance 🥐
+       
       </p>
     </div>
   </div>

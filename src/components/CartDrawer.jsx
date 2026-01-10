@@ -23,6 +23,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
   const items = Object.values(orders);
+  const hasPreorderItem = items.some(
+  (item) => item.preorder?.enabled === true
+);
+
 
   const total = items.reduce(
     (sum, item) => sum + Number(item.price) * Number(item.qty),
@@ -198,7 +202,23 @@ const CartDrawer = ({ isOpen, onClose }) => {
           {items.length > 0 && (
             <div className="sticky bottom-0 bg-white border-t px-4 py-4 sm:px-6 md:py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
               <div className="space-y-3">
+                {/* ORDER NOTICE */}
+<div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+  {hasPreorderItem ? (
+    <>
+      This order contains <strong>pre-order items</strong>. <br />
+      Please place your order at least <strong>3 days in advance</strong>.
+    </>
+  ) : (
+    <>
+      Same-day order available. <br />
+      Please allow a minimum of <strong>2 hours preparation</strong>.
+    </>
+  )}
+</div>
+
                 <div className="flex justify-between items-center">
+                  
                   <span className="text-gray-600 text-sm sm:text-base">Subtotal</span>
                   <span className="font-bold text-lg sm:text-xl text-gray-800">
                     {formatPrice(total)}

@@ -29,7 +29,8 @@ const Checkout = () => {
   /* =====================
      ORDER TYPE
   ====================== */
-  const [orderType, setOrderType] = useState("delivery");
+  const [fulfillmentType, setFulfillmentType] = useState("delivery");
+
 
   /* =====================
      CUSTOMER
@@ -59,40 +60,54 @@ const Checkout = () => {
     );
   }, [items]);
 
-  const deliveryFee = orderType === "delivery" ? DELIVERY_FEE : 0;
+  const hasPreorderItem = useMemo(() => {
+  return items.some(item => item.preorder?.enabled);
+}, [items]);
+
+const computedOrderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
+
+
+
+  const deliveryFee = fulfillmentType === "delivery" ? DELIVERY_FEE : 0;
+
   const totalAmount = subtotal + deliveryFee;
 
   /* =====================
      PLACE ORDER
   ====================== */
   const placeOrder = async () => {
-    if (orderType === "pickup" && !pickupTime) {
-      alert("Please select pickup time");
-      return;
-    }
+    if (fulfillmentType === "pickup" && !pickupTime) {
+  alert("Please select pickup time");
+  return;
+}
+
 
     if (!customer.name || !customer.phone) {
       alert("Please enter name and phone number");
       return;
     }
 
-    if (orderType === "delivery" && !deliveryAddress.address) {
+   if (fulfillmentType === "delivery" && !deliveryAddress.address) {
+
       alert("Please enter delivery address");
       return;
     }
 
     try {
       await axios.post(`${BACKEND_URL}/api/orders`, {
-        orderType,
-        customer,
-        deliveryAddress: orderType === "delivery" ? deliveryAddress : null,
-        pickupLocation:
-          orderType === "pickup"
-            ? {
-                name: "One18 Bakery - Main Outlet",
-                pickupTime,
-              }
-            : null,
+  orderType: computedOrderType,            // 🔥 PREORDER or WALK_IN
+  fulfillmentType,                          // 🔥 pickup or delivery
+  customer,
+  deliveryAddress:
+    fulfillmentType === "delivery" ? deliveryAddress : null,
+  pickupLocation:
+    fulfillmentType === "pickup"
+      ? {
+          name: "One18 Bakery - Main Outlet",
+          pickupTime,
+        }
+      : null,
+
         items: items.map((item) => ({
           productId: item.itemId,
           name: item.name,
@@ -135,10 +150,12 @@ const Checkout = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={() => setOrderType("delivery")}
+          onClick={() => setFulfillmentType("delivery")}
+
             className={`flex items-center gap-4 px-6 py-5 rounded-2xl border transition
               ${
-                orderType === "delivery"
+               fulfillmentType === "delivery"
+
                   ? "border-[#1E3A8A] bg-gray-50"
                   : "border-[#1E3A8A] bg-white hover:bg-[#fffaf4]"
               }`}
@@ -151,10 +168,11 @@ const Checkout = () => {
           </button>
 
           <button
-            onClick={() => setOrderType("pickup")}
+           onClick={() => setFulfillmentType("pickup")}
+
             className={`flex items-center gap-4 px-6 py-5 rounded-2xl border transition
               ${
-                orderType === "pickup"
+                fulfillmentType === "pickup"
                   ? "border-[#5c3a21] bg-[#fffaf4]"
                   : "border-[#e8d8c3] bg-white hover:bg-[#fffaf4]"
               }`}
@@ -204,13 +222,31 @@ const Checkout = () => {
         </div>
       </section>
 
+      {/* ORDER NOTICE */}
+<div className="rounded-2xl border px-4 py-3 bg-amber-50 border-amber-200 text-amber-800">
+  {hasPreorderItem ? (
+    <p className="text-sm">
+      This order contains <strong>pre-order items</strong>. <br />
+      Pickup / delivery available after{" "}
+      <strong>{items[0]?.preorder?.minDays || 3} days</strong>.
+    </p>
+  ) : (
+    <p className="text-sm">
+      Same-day order available. <br />
+      Please allow a minimum of <strong>2 hours preparation</strong>.
+    </p>
+  )}
+</div>
+
+
       {/* ADDRESS / PICKUP */}
       <section>
         <h2 className="text-xl font-serif text-gray-900 mb-4">
-          {orderType === "delivery" ? "Delivery Address" : "Pickup Details"}
+       {fulfillmentType === "delivery" ? "Delivery Address" : "Pickup Details"}
+
         </h2>
 
-        {orderType === "delivery" ? (
+        {fulfillmentType === "delivery" ? (
           <div className="grid sm:grid-cols-2 gap-4">
             <input
               placeholder="Full Address"

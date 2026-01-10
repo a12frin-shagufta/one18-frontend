@@ -22,15 +22,22 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
       }
 
       return {
-        ...prev,
-        [key]: {
-          itemId: item._id,
-          name: item.name,
-          variant: variant.label,
-          qty: newQty,
-          price: variant.price,
-        },
-      };
+  ...prev,
+  [key]: {
+    itemId: item._id,
+    name: item.name,
+    variant: variant.label,
+    qty: newQty,
+    price: variant.price,
+
+    // 🔥 ADD THIS
+    preorder: {
+      enabled: item.preorder?.enabled || false,
+      minDays: item.preorder?.minDays || 0,
+    },
+  },
+};
+
     });
 
     if (type === "inc") openCart();
