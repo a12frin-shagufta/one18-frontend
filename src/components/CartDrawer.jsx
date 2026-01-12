@@ -273,7 +273,8 @@ const getAvailableDeliveryTimes = () => {
           </div>
 
           {/* SCROLLABLE CONTENT */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 overscroll-contain">
+        <div className="flex-1 overflow-y-auto px-4 py-4 overflow-visible">
+
             {/* CART ITEMS */}
             {items.map((item) => (
               <div
@@ -428,12 +429,25 @@ const getAvailableDeliveryTimes = () => {
                         <label className="text-sm font-medium block mb-2">
                           Choose delivery date
                         </label>
-                        <input
+                       <input
   type="date"
   min={getMinFulfillmentDate()}
   value={deliveryDate}
   onChange={(e) => setDeliveryDate(e.target.value)}
+  className="
+    w-full
+    border
+    border-gray-300
+    rounded-xl
+    p-4
+    text-base
+    bg-white
+    relative
+    z-50
+    appearance-auto
+  "
 />
+
 
 {items[0]?.preorder?.enabled && (
   <div className="bg-yellow-50 border border-yellow-200 p-3 rounded text-sm">
