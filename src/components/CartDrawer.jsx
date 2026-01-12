@@ -430,23 +430,14 @@ const getAvailableDeliveryTimes = () => {
                           Choose delivery date
                         </label>
                        <input
+  key={getMinFulfillmentDate()}   // 🔥 FORCE REMOUNT
   type="date"
   min={getMinFulfillmentDate()}
   value={deliveryDate}
   onChange={(e) => setDeliveryDate(e.target.value)}
-  className="
-    w-full
-    border
-    border-gray-300
-    rounded-xl
-    p-4
-    text-base
-    bg-white
-    relative
-    z-50
-    appearance-auto
-  "
+  className="w-full border rounded-xl p-4 text-base bg-white"
 />
+
 
 
 {items[0]?.preorder?.enabled && (
@@ -516,11 +507,14 @@ const getAvailableDeliveryTimes = () => {
                       Choose pickup date
                     </label>
                    <input
+  key={`pickup-${getMinFulfillmentDate()}`}
   type="date"
   min={getMinFulfillmentDate()}
   value={pickupDate}
   onChange={(e) => setPickupDate(e.target.value)}
+  className="w-full border rounded-xl p-4 text-base bg-white"
 />
+
 
                   </div>
 
