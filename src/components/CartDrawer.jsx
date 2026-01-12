@@ -168,8 +168,11 @@ const getMinFulfillmentDate = () => {
  const handlePostalCodeCheck = async () => {
   if (!postalCode) return;
 
+  // ✅ FORCE string + trim spaces
+  const cleanedPostalCode = String(postalCode).trim();
+
   // ✅ Singapore postal code validation
-  if (!/^\d{6}$/.test(postalCode)) {
+  if (!/^\d{6}$/.test(cleanedPostalCode)) {
     alert("Please enter a valid 6-digit Singapore postal code");
     setDeliveryChecked(false);
     return;
@@ -179,7 +182,7 @@ const getMinFulfillmentDate = () => {
     const res = await axios.post(
       `${BACKEND_URL}/api/delivery/check`,
       {
-        postalCode,
+        postalCode: cleanedPostalCode,
         subtotal: total,
       }
     );
@@ -188,7 +191,7 @@ const getMinFulfillmentDate = () => {
     setDeliveryChecked(true);
 
     setAddress({
-      text: `Postal code ${postalCode}, Singapore`,
+      text: `Postal code ${cleanedPostalCode}, Singapore`,
     });
 
   } catch (err) {
@@ -197,6 +200,7 @@ const getMinFulfillmentDate = () => {
     setDeliveryChecked(false);
   }
 };
+
 
 const getAvailableDeliveryTimes = () => {
   const now = new Date();
