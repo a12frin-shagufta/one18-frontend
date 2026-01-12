@@ -64,19 +64,21 @@ if (loading) {
 
 
   const addToCart = () => {
-    const key = `${product._id}_${selectedVariant.label}`;
+  const key = `${product._id}_${selectedVariant.label}`;
 
-    setOrders(prev => ({
-      ...prev,
-      [key]: {
-        itemId: product._id,
-        name: product.name,
-        variant: selectedVariant.label,
-        price: selectedVariant.price,
-        qty,
-      }
-    }));
-  };
+  setOrders(prev => ({
+    ...prev,
+    [key]: {
+      itemId: product._id,
+      name: product.name,
+      variant: selectedVariant.label,
+      price: selectedVariant.price,
+      qty,
+      image: product.images?.[0], // ✅ ADD THIS
+    }
+  }));
+};
+
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-10">

@@ -3,8 +3,7 @@ import axios from "axios";
 import MenuCard from "../components/MenuCard";
 import { FiChevronDown, FiChevronUp, FiMenu, FiX } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
-import { DELIVERY_FEE } from "../utils/currency";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import CartDrawer from "../components/CartDrawer";
 
 const Menu = () => {
@@ -23,7 +22,6 @@ const Menu = () => {
     searchParams.get("branch") || localStorage.getItem("selectedBranch");
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-  const navigate = useNavigate();
 
   /* ======================
      FETCH MENU
@@ -101,33 +99,6 @@ const Menu = () => {
     });
   }, [menu, activeCategory, activeSubcategory]);
 
-
-  const hasPreorderItems = useMemo(() => {
-  return menu.some(item => item.preorder?.enabled);
-}, [menu]);
-
-
-  /* ======================
-     TOTALS
-  ====================== */
-  const totalItems = useMemo(
-    () =>
-      Object.values(orders).reduce((sum, item) => sum + item.qty, 0),
-    [orders]
-  );
-
-  const subtotal = useMemo(
-    () =>
-      Object.values(orders).reduce(
-        (sum, item) => sum + Number(item.price) * Number(item.qty),
-        0
-      ),
-    [orders]
-  );
-
-  const shipping = totalItems > 0 ? DELIVERY_FEE : 0;
-  const total = subtotal + shipping;
-
   /* ======================
      HANDLERS
   ====================== */
@@ -152,14 +123,6 @@ const Menu = () => {
 
   return (
     <div className="h-screen flex bg-gray-50 overflow-hidden">
-      {/* MOBILE MENU BUTTON */}
-      {/* <button
-        onClick={() => setShowSidebar(true)}
-        className="md:hidden fixed top-3 left-3 z-40 bg-white/90 backdrop-blur border p-2 rounded-md"
-      >
-        <FiMenu size={20} />
-      </button> */}
-
       {/* MOBILE OVERLAY */}
       {showSidebar && (
         <div
@@ -177,10 +140,7 @@ const Menu = () => {
       >
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">one18bakery</h2>
-          <button
-            onClick={() => setShowSidebar(false)}
-            className="md:hidden"
-          >
+          <button onClick={() => setShowSidebar(false)} className="md:hidden">
             <FiX size={22} />
           </button>
         </div>
@@ -246,116 +206,36 @@ const Menu = () => {
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
         {/* MOBILE TOP BAR */}
-<div className="md:hidden  z-30 bg-white  px-4 py-3 flex items-center gap-3">
-  <button
-    onClick={() => setShowSidebar(true)}
-    className="bg-gray-100 p-2 rounded-md"
-  >
-    <FiMenu size={20} />
-  </button>
-
-  <div className="flex items-center gap-2">
-    <span className="font-semibold text-gray-900 text-sm">
-  Open Menu
-    </span>
-  </div>
-</div>
-
-{/* MOBILE FILTER BAR */}
-{/* MOBILE FILTER BAR */}
-{/* MOBILE FILTER BAR */}
-<div className="md:hidden  top-[56px] z-20 bg-gray-50 border-b">
-  <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto no-scrollbar">
-
-    {/* ALL BUTTON */}
-    <button
-      onClick={() => handleCategoryClick("all")}
-      className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap border transition
-        ${
-          activeCategory === "all"
-            ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
-            : "bg-white text-gray-700 border-gray-300"
-        }`}
-    >
-      All
-    </button>
-
-    {/* CATEGORY PILLS */}
-    {categoryStructure
-      .filter((c) => c.id !== "all")
-      .map((cat) => (
-        <button
-          key={cat.id}
-          onClick={() => handleCategoryClick(cat.id)}
-          className={`px-4 py-1.5 rounded-full text-sm whitespace-nowrap border transition
-            ${
-              activeCategory === cat.id
-                ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
-                : "bg-white text-gray-700 border-gray-300"
-            }`}
-        >
-          {cat.name}
-        </button>
-      ))}
-
-    {/* FILTER ICON */}
-    {/* <button
-      onClick={() => setShowSidebar(true)}
-      className="ml-auto flex items-center justify-center w-9 h-9 rounded-full border border-gray-300"
-    >
-      <FiMenu size={18} />
-    </button> */}
-  </div>
-</div>
-
-
+        <div className="md:hidden bg-white px-4 py-3 flex items-center gap-3">
+          <button
+            onClick={() => setShowSidebar(true)}
+            className="bg-gray-100 p-2 rounded-md"
+          >
+            <FiMenu size={20} />
+          </button>
+          <span className="font-semibold text-gray-900 text-sm">Menu</span>
+        </div>
 
         {/* BRANCH INFO */}
         {branchInfo && (
-  <div className="px-6 py-4">
-    <div className="flex items-center gap-3">
-      {branchInfo.image && (
-        <img
-          src={branchInfo.image}
-          alt={branchInfo.name}
-          className="w-10 h-10 rounded-md object-cover"
-        />
-      )}
-      <div className="leading-tight">
-        <h2 className="text-sm font-semibold text-gray-900">
-          {branchInfo.name}
-        </h2>
-        <p className="text-xs text-gray-500">
-          {branchInfo.address}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-{/* PREORDER NOTICE */}
-{hasPreorderItems && (
-  <div className="mx-3 md:mx-6 mb-4">
-    <div className=" rounded-lg px-4 py-3 text-center">
-      {/* <p className="text-sm md:text-base  text-gray-800">
-     Same-day orders: Please allow at least 2 hours for preparation.
-     <br />
-Pre-orders: Kindly place your order 2 days in advance 🥐
-       
-      </p> */}
-    </div>
-  </div>
-)}
-
-
-
-        {/* HEADER */}
-        {/* <div className="bg-white border-b px-4 py-3">
-          <h1 className="text-lg font-semibold">
-            {activeCategory === "all"
-              ? "Menu"
-              : categoryStructure.find((c) => c.id === activeCategory)?.name}
-          </h1>
-        </div> */}
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-3">
+              {branchInfo.image && (
+                <img
+                  src={branchInfo.image}
+                  alt={branchInfo.name}
+                  className="w-10 h-10 rounded-md object-cover"
+                />
+              )}
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {branchInfo.name}
+                </h2>
+                <p className="text-xs text-gray-500">{branchInfo.address}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MENU GRID */}
         <div className="p-3 md:p-6">

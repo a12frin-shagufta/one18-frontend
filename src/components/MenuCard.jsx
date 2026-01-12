@@ -29,6 +29,8 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
     variant: variant.label,
     qty: newQty,
     price: variant.price,
+     image: item.images?.[0],        // REQUIRED
+  categoryId: item.category?._id, // REQUIRED
 
     // 🔥 ADD THIS
     preorder: {
@@ -56,11 +58,11 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
           />
 
           {/* PREORDER BADGE */}
-          {item.preorder?.enabled && (
+          {/* {item.preorder?.enabled && (
             <span className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
               Preorder
             </span>
-          )}
+          )} */}
         </div>
       </Link>
 
@@ -79,11 +81,11 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
           </p>
         )}
 
-        {item.preorder?.enabled && (
+        {/* {item.preorder?.enabled && (
           <p className="text-[11px] text-amber-700 mb-2">
             Baked fresh • {item.preorder.minDays} days advance notice
           </p>
-        )}
+        )} */}
 
         <div className="space-y-2">
           {item.variants.map((variant) => {
@@ -93,7 +95,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
             return (
               <div key={variant.label} className="flex justify-between items-center">
                 <div>
-                  <span className="text-sm text-gray-900">{variant.label}</span>
+                  {/* <span className="text-sm text-gray-900">{variant.label}</span> */}
                   <span className="block text-xs text-gray-500">
                     {formatPrice(variant.price)}
                   </span>
@@ -101,11 +103,12 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
 
                 {qty === 0 ? (
                   <button
-                    onClick={(e) => updateQty(variant, "inc", e)}
-                    className="bg-[#1E3A8A] text-white px-3 py-1.5 rounded text-xs font-medium"
-                  >
-                    {item.preorder?.enabled ? "PREORDER" : "ADD"}
-                  </button>
+  onClick={(e) => updateQty(variant, "inc", e)}
+  className="bg-[#1E3A8A] text-white px-3 py-1.5 rounded text-xs font-medium"
+>
+  ADD
+</button>
+
                 ) : (
                   <div className="flex items-center gap-2">
                     <button
