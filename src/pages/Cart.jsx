@@ -11,6 +11,8 @@ const Cart = () => {
 
   const [note, setNote] = useState("");
   const [fulfillmentType, setFulfillmentType] = useState("delivery");
+  const [postalCode, setPostalCode] = useState("");
+
 
   const fulfillmentData = {
   type: fulfillmentType, // "delivery" | "pickup"

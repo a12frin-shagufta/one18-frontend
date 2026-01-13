@@ -80,56 +80,56 @@ if (loading) {
 };
 
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-10">
+return (
+  <div className="max-w-6xl mx-auto px-4 py-10">
+    <div className="grid md:grid-cols-2 gap-10 items-start">
       
-      {/* IMAGE */}
-      <img
-        src={product.images?.[0]}
-        alt={product.name}
-        className="rounded-xl w-full object-cover"
-      />
+      {/* ✅ LEFT IMAGE */}
+      <div className="w-full">
+        <img
+          src={product.images?.[0]}
+          alt={product.name}
+          className="w-full h-[420px] md:h-[520px] object-cover rounded-xl block"
+        />
+      </div>
 
-      {/* DETAILS */}
-      <div>
+      {/* ✅ RIGHT DETAILS */}
+      <div className="w-full">
         <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
 
         <p className="text-xl font-md mb-4">
-           {formatPrice(selectedVariant.price)}
+          {formatPrice(selectedVariant.price)}
         </p>
 
         <p className="text-gray-600 mb-6">
           {product.description}
         </p>
+
         {/* PREORDER NOTICE */}
-{product.preorder?.enabled && (
-  <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-    <p className="text-sm text-amber-800 font-medium">
-      Kindly place your orders at least{" "}
-      <span className="font-semibold">
-        {product.preorder.minDays} day(s)
-      </span>{" "}
-      in advance.
-    </p>
-  </div>
-)}
-
-
-
-
+        {product.preorder?.enabled && (
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm text-amber-800 font-medium">
+              *Kindly place your order at least{" "}
+              <span className="font-semibold">
+                {product.preorder.minDays} days
+              </span>{" "}
+              in advance.
+            </p>
+          </div>
+        )}
 
         {/* VARIANTS */}
         <div className="mb-6">
           <p className="font-medium mb-2">Select Variant</p>
           <div className="flex flex-wrap gap-2">
-            {product.variants.map(v => (
+            {product.variants.map((v) => (
               <button
                 key={v.label}
                 onClick={() => setSelectedVariant(v)}
-                className={`px-4 py-2 rounded-full border text-sm ${
+                className={`px-4 py-2 rounded-full border text-sm transition ${
                   selectedVariant.label === v.label
-                    ? "bg-[#1E3A8A] text-white"
-                    : "bg-white"
+                    ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
+                    : "bg-white hover:border-gray-400"
                 }`}
               >
                 {v.label}
@@ -141,7 +141,7 @@ if (loading) {
         {/* QTY */}
         <div className="flex items-center gap-4 mb-6">
           <button
-            onClick={() => setQty(q => Math.max(1, q - 1))}
+            onClick={() => setQty((q) => Math.max(1, q - 1))}
             className="border p-2 rounded"
           >
             <FiMinus />
@@ -150,7 +150,7 @@ if (loading) {
           <span className="font-medium">{qty}</span>
 
           <button
-            onClick={() => setQty(q => q + 1)}
+            onClick={() => setQty((q) => q + 1)}
             className="border p-2 rounded"
           >
             <FiPlus />
@@ -165,9 +165,13 @@ if (loading) {
           ADD TO CART
         </button>
       </div>
-       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* ✅ Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </div>
-  );
+  </div>
+);
+
 };
 
 export default ProductDetail;
