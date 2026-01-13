@@ -16,6 +16,7 @@ import FindUsSection from "./components/FindUsSection";
 import BranchSelect from "./components/BranchSelect";
 import CateringSection from "./components/CateringSection";
 import AboutUsSection from "./components/AboutUsSection";
+import Confirmation from "./pages/Confirmation";
 
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
 
@@ -59,6 +60,8 @@ function App() {
         <Route path="/order" element={<BranchSelect />} />
         <Route path="/catering" element={<CateringSection />} />
         <Route path="/about-us" element={<AboutUsSection />} />
+        <Route path="/confirmation" element={<Confirmation />} />
+        
       </Routes>
 
       {!shouldHideFooter && <Footer />}

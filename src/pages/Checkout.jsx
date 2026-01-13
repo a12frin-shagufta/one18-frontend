@@ -206,7 +206,7 @@ const Checkout = () => {
                     className={`w-full border rounded-xl px-4 py-3.5 pl-14 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
                       errors.phone ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="9123 4567"
+                    placeholder="1234 5678"
                   />
                 </div>
                 {errors.phone && (
