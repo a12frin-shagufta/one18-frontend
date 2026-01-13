@@ -3,6 +3,8 @@ import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
 import { CheckCircle, ChevronLeft, AlertCircle, Loader } from "lucide-react";
+import { useLocation } from "react-router-dom";
+
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -10,6 +12,8 @@ const Checkout = () => {
   const items = Object.values(orders);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
+  const location = useLocation();
+
 
   const fulfillment = useMemo(() => {
     const data = localStorage.getItem("fulfillmentData");
@@ -86,8 +90,13 @@ const Checkout = () => {
   };
 
   const goBack = () => {
-    navigate(-1);
-  };
+  if (location.state?.from) {
+    navigate(location.state.from);
+  } else {
+    navigate("/menu"); // fallback if no history
+  }
+};
+
 
   // Auto-save form data to localStorage
   useEffect(() => {
