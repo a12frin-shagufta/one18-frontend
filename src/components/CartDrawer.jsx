@@ -699,14 +699,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
             {items.length === 0 ? (
   <button
     onClick={onClose}
-    className="flex-1 rounded-none bg-[#1E3A8A] py-4 font-semibold text-yellow-400"
+    className="flex-1 rounded-none bg-[#1E3A8A] py-4 font-semibold text-white"
   >
     Select your dining preference
   </button>
 ) : (
   <button
     onClick={saveFulfillmentAndCheckout}
-    className="flex-1 rounded-full py-3 font-medium transition bg-[#1E3A8A] text-yellow-400 hover:bg-gray-800"
+    className="flex-1 rounded-full py-3 font-medium transition bg-[#1E3A8A] text-white hover:bg-gray-800"
   >
     Check Out
   </button>

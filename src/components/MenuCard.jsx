@@ -104,9 +104,9 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
                 {qty === 0 ? (
                   <button
   onClick={(e) => updateQty(variant, "inc", e)}
-  className="bg-[#1E3A8A] text-yellow-400 px-3 py-1.5 rounded text-xs font-medium"
+  className="bg-[#1E3A8A] text-white px-3 py-1.5 rounded text-xs font-medium"
 >
-  ADD
+  Add
 </button>
 
                 ) : (
