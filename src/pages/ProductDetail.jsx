@@ -95,15 +95,22 @@ return (
 
       {/* ✅ RIGHT DETAILS */}
       <div className="w-full">
-        <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
+        <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
 
         <p className="text-xl font-md mb-4">
           {formatPrice(selectedVariant.price)}
         </p>
 
-        <p className="text-gray-600 mb-6">
-          {product.description}
-        </p>
+        <p className="text-gray-600 mb-2">
+  {product.description}
+</p>
+
+{/* ✅ SERVING INFO (from backend) */}
+{product.servingInfo && (
+  <p className="text-sm  text-gray-500 mb-5 whitespace-pre-line">
+    {product.servingInfo}
+  </p>
+)}
 
         {/* PREORDER NOTICE */}
         {product.preorder?.enabled && (
