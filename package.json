@@ -15,6 +15,7 @@
     "framer-motion": "^12.19.2",
     "icons": "^1.0.0",
     "lucide-react": "^0.562.0",
+    "moment-timezone": "^0.6.0",
     "nodemailer": "^7.0.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

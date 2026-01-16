@@ -5,6 +5,8 @@ import { formatPrice } from "../utils/currency";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaSearch } from "react-icons/fa";
+import moment from "moment-timezone";
+
 
 const CartDrawer = ({ isOpen, onClose }) => {
   const { orders, setOrders } = useCart();
@@ -57,16 +59,20 @@ const CartDrawer = ({ isOpen, onClose }) => {
   }, [branchId]);
 
   const getMinFulfillmentDate = () => {
-    const today = new Date();
-    const item = items[0];
+  const today = new Date();
 
-    if (!item?.preorder?.enabled) {
-      return today.toISOString().split("T")[0];
+  // ✅ if ANY product is preorder -> take max minDays (example 3 days)
+  const minDays = items.reduce((max, item) => {
+    if (item?.preorder?.enabled) {
+      return Math.max(max, item.preorder?.minDays || 3);
     }
+    return max;
+  }, 0);
 
-    today.setDate(today.getDate() + item.preorder.minDays);
-    return today.toISOString().split("T")[0];
-  };
+  today.setDate(today.getDate() + minDays);
+  return today.toISOString().split("T")[0];
+};
+
 
  const saveFulfillmentAndCheckout = () => {
   if (fulfillmentType === "delivery") {
@@ -96,7 +102,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
   };
 
   localStorage.setItem("fulfillmentData", JSON.stringify(fulfillmentData));
-
+  localStorage.setItem("orderNote", note || "");
   onClose();              // ✅ CLOSE CART DRAWER
   navigate("/checkout");  // ✅ GO CHECKOUT
 };
@@ -186,30 +192,39 @@ const CartDrawer = ({ isOpen, onClose }) => {
     }
   };
 
-  const getAvailableDeliveryTimes = () => {
-    const now = new Date();
-    const isToday = deliveryDate === new Date().toISOString().split("T")[0];
-    const allSlots = [
-      "08:00", "09:00", "10:00", "11:00", "12:00",
-      "13:00", "14:00", "15:00", "16:00", "17:00"
-    ];
+  const SG_TZ = "Asia/Singapore";
 
-    if (items[0]?.preorder?.enabled) {
-      return allSlots;
-    }
+const getAvailableDeliveryTimes = () => {
+  const nowSG = moment().tz(SG_TZ);
 
-    if (!isToday) {
-      return allSlots;
-    }
+  const isToday =
+    deliveryDate === nowSG.format("YYYY-MM-DD");
 
-    return allSlots.filter((time) => {
-      const [h, m] = time.split(":").map(Number);
-      const slotTime = new Date();
-      slotTime.setHours(h, m, 0, 0);
-      const diffInHours = (slotTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      return diffInHours >= 2;
-    });
-  };
+  const allSlots = [
+    "08:00", "09:00", "10:00", "11:00", "12:00",
+    "13:00", "14:00", "15:00", "16:00", "17:00",
+    "18:00", "19:00", "20:00"
+  ];
+
+  // ✅ If preorder item -> allow all slots
+  const hasPreorder = items.some((i) => i?.preorder?.enabled);
+  if (hasPreorder) return allSlots;
+
+  // ✅ If not today -> allow all slots
+  if (!isToday) return allSlots;
+
+  // ✅ If today -> must be 2 hours later (Singapore time)
+  return allSlots.filter((time) => {
+    const selected = moment.tz(
+      `${deliveryDate} ${time}`,
+      "YYYY-MM-DD HH:mm",
+      SG_TZ
+    );
+
+    return selected.diff(nowSG, "minutes") >= 120;
+  });
+};
+
 
   // Format date for display
   const formatDisplayDate = (dateString) => {

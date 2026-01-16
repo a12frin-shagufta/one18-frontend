@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
 import { CheckCircle, ChevronLeft, AlertCircle, Loader } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import axios from "axios";
 
 
 const Checkout = () => {
@@ -71,23 +72,106 @@ const Checkout = () => {
   };
 
   const placeOrder = async () => {
-    if (!validateForm()) {
-      // Scroll to first error
-      const firstErrorField = Object.keys(errors)[0];
-      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    
+  if (!validateForm()) return;
+
+  setIsProcessing(true);
+
+  try {
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+    const fulfillment = JSON.parse(localStorage.getItem("fulfillmentData") || "{}");
+    const orderNote = localStorage.getItem("orderNote") || "";
+
+    if (!fulfillment?.type) {
+      alert("Fulfillment details missing, please go back");
+      setIsProcessing(false);
       return;
     }
+// ✅ if any item is preorder product, orderType should be PREORDER
+const selectedDate =
+  fulfillment.type === "pickup" ? fulfillment.pickupDate : fulfillment.deliveryDate;
 
-    setIsProcessing(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    alert("Order placed successfully!");
+const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
+const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
+
+
+    const payload = {
+      branch: fulfillment?.branch?._id || null,
+
+      // ✅ YOU CAN CHANGE THIS LOGIC IF YOU WANT PREORDER ALSO
+orderType,
+
+
+      fulfillmentType: fulfillment.type, // "delivery" or "pickup"
+
+      // ✅ date/time stored cleanly
+      fulfillmentDate:
+        fulfillment.type === "pickup" ? fulfillment.pickupDate : fulfillment.deliveryDate,
+
+      fulfillmentTime:
+        fulfillment.type === "pickup" ? fulfillment.pickupTime : fulfillment.deliveryTime,
+
+      // ✅ store all checkout fields
+      customer: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        company: customer.company,
+        phone: customer.phone,
+        address: customer.address,
+        apartment: customer.apartment,
+        postalCode: customer.postalCode,
+        message: orderNote, // ✅ instructions from cart drawer
+      },
+
+      // ✅ delivery only
+      deliveryAddress:
+        fulfillment.type === "delivery"
+          ? {
+              addressText: fulfillment.address || customer.address,
+              postalCode: fulfillment.postalCode || customer.postalCode,
+            }
+          : null,
+
+      // ✅ pickup only
+      pickupLocation:
+        fulfillment.type === "pickup"
+          ? {
+              name: fulfillment?.branch?.name || "Pickup",
+              address: fulfillment?.branch?.address || "",
+            }
+          : null,
+
+      items: items.map((i) => ({
+        productId: i.itemId,
+        name: i.name,
+        variant: i.variant,
+        price: i.price,
+        qty: i.qty,
+      })),
+
+      subtotal,
+      deliveryFee,
+      totalAmount,
+    };
+
+   await axios.post(`${BACKEND_URL}/api/orders`, payload);
+
+
+    // ✅ clear after success
     setOrders({});
-    setIsProcessing(false);
+    localStorage.removeItem("fulfillmentData");
+    localStorage.removeItem("orderNote");
+    localStorage.removeItem("checkoutCustomer");
+
     navigate("/confirmation");
-  };
+  } catch (err) {
+    alert(err.response?.data?.message || "Order failed, try again");
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
 
   const goBack = () => {
   if (location.state?.from) {
