@@ -182,7 +182,12 @@ const requiredFields = useMemo(() => {
     );
 
     // ✅ Redirect to Stripe Checkout page
-    window.location.href = res.data.url;
+    if (!res.data?.url) {
+  alert("Stripe URL not received");
+  return;
+}
+window.location.assign(res.data.url);
+
   } catch (err) {
     alert(err.response?.data?.message || "Payment failed, try again");
     setIsProcessing(false);
