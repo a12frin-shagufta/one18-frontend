@@ -24,6 +24,7 @@ const Checkout = () => {
   const [customer, setCustomer] = useState({
     firstName: "",
     lastName: "",
+    email: "", 
     company: "",
     address: "",
     apartment: "",
@@ -48,11 +49,10 @@ const Checkout = () => {
   // Required fields validation
 const requiredFields = useMemo(() => {
   if (fulfillment?.type === "pickup") {
-    return ["firstName", "lastName", "phone"];
+    return ["firstName", "lastName", "email", "phone"]; // ✅ add email
   }
-  return ["firstName", "lastName", "phone", "address", "postalCode"];
+  return ["firstName", "lastName", "email", "phone", "address", "postalCode"]; // ✅ add email
 }, [fulfillment?.type]);
-
 
   const validateForm = () => {
     const newErrors = {};
@@ -61,6 +61,12 @@ const requiredFields = useMemo(() => {
         newErrors[field] = "This field is required";
       }
     });
+
+    // Email validation
+if (customer.email && !/^\S+@\S+\.\S+$/.test(customer.email)) {
+  newErrors.email = "Please enter a valid email address";
+}
+
     
     // Phone validation
     if (customer.phone && !/^\d{8,}$/.test(customer.phone.replace(/\D/g, ""))) {
@@ -134,6 +140,7 @@ const requiredFields = useMemo(() => {
       customer: {
         firstName: customer.firstName,
         lastName: customer.lastName,
+         email: customer.email,
         company: customer.company,
         phone: customer.phone,
         address: customer.address,
@@ -295,7 +302,34 @@ window.location.assign(res.data.url);
                     </p>
                   )}
                 </div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Email address *
+  </label>
+
+  <input
+    id="email"
+    type="email"
+    value={customer.email}
+    onChange={(e) => handleInputChange("email", e.target.value)}
+    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+      errors.email ? "border-red-500" : "border-gray-300"
+    }`}
+    placeholder="example@gmail.com"
+  />
+
+  {errors.email && (
+    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+      <AlertCircle className="w-4 h-4" />
+      {errors.email}
+    </p>
+  )}
+</div>
+
+                
               </div>
+
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
