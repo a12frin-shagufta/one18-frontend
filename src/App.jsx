@@ -17,7 +17,7 @@ import BranchSelect from "./components/BranchSelect";
 import CateringSection from "./components/CateringSection";
 import AboutUsSection from "./components/AboutUsSection";
 import Confirmation from "./pages/Confirmation";
-
+import PaymentSuccess from "./pages/PaymentSuccess";
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
 
 function App() {
@@ -61,6 +61,9 @@ function App() {
         <Route path="/catering" element={<CateringSection />} />
         <Route path="/about-us" element={<AboutUsSection />} />
         <Route path="/confirmation" element={<Confirmation />} />
+       <Route path="/payment-success" element={<PaymentSuccess />} />
+
+
         
       </Routes>
 
