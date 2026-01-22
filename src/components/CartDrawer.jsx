@@ -139,6 +139,15 @@ const CartDrawer = ({ isOpen, onClose }) => {
       .slice(0, 2);
   }, [menu, items]);
 
+  useEffect(() => {
+  setDeliveryChecked(false);
+  setDeliveryFee(0);
+  setAddress(null);
+  setDeliveryDate("");
+  setDeliveryTime("");
+}, [postalCode]);
+
+
   /* =====================
      CART HANDLERS
   ====================== */
@@ -164,33 +173,38 @@ const CartDrawer = ({ isOpen, onClose }) => {
     });
   };
 
-  const handlePostalCodeCheck = async () => {
-    if (!postalCode) return;
-    const cleanedPostalCode = String(postalCode).trim();
+const handlePostalCodeCheck = async () => {
+  if (!postalCode) return;
 
-    if (!/^\d{6}$/.test(cleanedPostalCode)) {
-      alert("Please enter a valid 6-digit Singapore postal code");
-      setDeliveryChecked(false);
-      return;
-    }
+  const cleanedPostalCode = String(postalCode).trim();
 
-    try {
-      const res = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
-        postalCode: cleanedPostalCode,
-        subtotal: total,
-      });
+  if (!/^\d{6}$/.test(cleanedPostalCode)) {
+    alert("Please enter a valid 6-digit Singapore postal code");
+    setDeliveryChecked(false);
+    return;
+  }
 
-      setDeliveryFee(res.data.deliveryFee);
-      setDeliveryChecked(true);
-      setAddress({
-        text: `Postal code ${cleanedPostalCode}, Singapore`,
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Delivery not available for this postal code");
-      setDeliveryChecked(false);
-    }
-  };
+  try {
+    const res = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
+      postalCode: cleanedPostalCode,
+      subtotal: total,
+    });
+
+    setDeliveryFee(res.data.deliveryFee);
+    setDeliveryChecked(true);
+
+    // ✅ just display text (no OneMap address)
+    setAddress({
+      text: `Singapore (${cleanedPostalCode})`,
+    });
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.message || "Delivery not available");
+    setDeliveryChecked(false);
+  }
+};
+
+
 
   const SG_TZ = "Asia/Singapore";
 
@@ -579,9 +593,11 @@ const getAvailableDeliveryTimes = () => {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={postalCode}
-                  onChange={(e) =>
-                    setPostalCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
+                 onChange={(e) => {
+  const onlyNumbers = e.target.value.replace(/\D/g, "").slice(0, 6);
+  setPostalCode(onlyNumbers);
+}}
+
                   placeholder=""
                   className="flex-1 border border-gray-300 rounded-xl p-4 text-base"
                 />

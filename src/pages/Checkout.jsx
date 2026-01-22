@@ -31,8 +31,28 @@ const Checkout = () => {
     phone: "",
   });
 
+  useEffect(() => {
+  if (!fulfillment) return;
+
+  // ✅ DELIVERY: use validated cart drawer data
+  if (fulfillment.type === "delivery") {
+    setCustomer((prev) => ({
+      ...prev,
+      postalCode: fulfillment.postalCode || prev.postalCode,
+      address: fulfillment.address || prev.address,
+    }));
+  }
+}, [fulfillment]);
+
+
   // Required fields validation
-  const requiredFields = ["firstName", "lastName", "phone", "address", "postalCode"];
+const requiredFields = useMemo(() => {
+  if (fulfillment?.type === "pickup") {
+    return ["firstName", "lastName", "phone"];
+  }
+  return ["firstName", "lastName", "phone", "address", "postalCode"];
+}, [fulfillment?.type]);
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -72,7 +92,6 @@ const Checkout = () => {
   };
 
   const placeOrder = async () => {
-    
   if (!validateForm()) return;
 
   setIsProcessing(true);
@@ -80,7 +99,10 @@ const Checkout = () => {
   try {
     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-    const fulfillment = JSON.parse(localStorage.getItem("fulfillmentData") || "{}");
+    const fulfillment = JSON.parse(
+      localStorage.getItem("fulfillmentData") || "{}"
+    );
+
     const orderNote = localStorage.getItem("orderNote") || "";
 
     if (!fulfillment?.type) {
@@ -88,31 +110,27 @@ const Checkout = () => {
       setIsProcessing(false);
       return;
     }
-// ✅ if any item is preorder product, orderType should be PREORDER
-const selectedDate =
-  fulfillment.type === "pickup" ? fulfillment.pickupDate : fulfillment.deliveryDate;
 
-const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
-const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
+    // ✅ PREORDER logic
+    const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
+    const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
 
-
+    // ✅ ORDER PAYLOAD (we send this to backend inside Stripe metadata)
     const payload = {
       branch: fulfillment?.branch?._id || null,
+      orderType,
+      fulfillmentType: fulfillment.type,
 
-      // ✅ YOU CAN CHANGE THIS LOGIC IF YOU WANT PREORDER ALSO
-orderType,
-
-
-      fulfillmentType: fulfillment.type, // "delivery" or "pickup"
-
-      // ✅ date/time stored cleanly
       fulfillmentDate:
-        fulfillment.type === "pickup" ? fulfillment.pickupDate : fulfillment.deliveryDate,
+        fulfillment.type === "pickup"
+          ? fulfillment.pickupDate
+          : fulfillment.deliveryDate,
 
       fulfillmentTime:
-        fulfillment.type === "pickup" ? fulfillment.pickupTime : fulfillment.deliveryTime,
+        fulfillment.type === "pickup"
+          ? fulfillment.pickupTime
+          : fulfillment.deliveryTime,
 
-      // ✅ store all checkout fields
       customer: {
         firstName: customer.firstName,
         lastName: customer.lastName,
@@ -121,10 +139,9 @@ orderType,
         address: customer.address,
         apartment: customer.apartment,
         postalCode: customer.postalCode,
-        message: orderNote, // ✅ instructions from cart drawer
+        message: orderNote,
       },
 
-      // ✅ delivery only
       deliveryAddress:
         fulfillment.type === "delivery"
           ? {
@@ -133,7 +150,6 @@ orderType,
             }
           : null,
 
-      // ✅ pickup only
       pickupLocation:
         fulfillment.type === "pickup"
           ? {
@@ -155,22 +171,24 @@ orderType,
       totalAmount,
     };
 
-   await axios.post(`${BACKEND_URL}/api/orders`, payload);
+    // ✅ STRIPE CHECKOUT SESSION API
+    const res = await axios.post(
+      `${BACKEND_URL}/api/payment/create-checkout-session`,
+      {
+        items: payload.items,         // ✅ for Stripe line_items
+        deliveryFee: payload.deliveryFee,
+        orderPayload: payload,        // ✅ send full order data (metadata)
+      }
+    );
 
-
-    // ✅ clear after success
-    setOrders({});
-    localStorage.removeItem("fulfillmentData");
-    localStorage.removeItem("orderNote");
-    localStorage.removeItem("checkoutCustomer");
-
-    navigate("/confirmation");
+    // ✅ Redirect to Stripe Checkout page
+    window.location.href = res.data.url;
   } catch (err) {
-    alert(err.response?.data?.message || "Order failed, try again");
-  } finally {
+    alert(err.response?.data?.message || "Payment failed, try again");
     setIsProcessing(false);
   }
 };
+
 
 
   const goBack = () => {
@@ -363,16 +381,23 @@ orderType,
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Postal Code *
                   </label>
-                  <input
-                    id="postalCode"
-                    value={customer.postalCode}
-                    onChange={(e) => handleInputChange("postalCode", e.target.value)}
-                    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.postalCode ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="123456"
-                    maxLength="6"
-                  />
+                 <input
+  id="postalCode"
+  value={customer.postalCode}
+  onChange={(e) =>
+    handleInputChange(
+      "postalCode",
+      e.target.value.replace(/\D/g, "").slice(0, 6)
+    )
+  }
+  disabled={fulfillment?.type === "delivery"} // ✅ LOCK it in delivery mode
+  className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+    errors.postalCode ? "border-red-500" : "border-gray-300"
+  } ${fulfillment?.type === "delivery" ? "bg-gray-100 cursor-not-allowed" : ""}`}
+  placeholder="123456"
+  maxLength="6"
+/>
+
                   {errors.postalCode && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
