@@ -72,7 +72,7 @@ setFestivals(data);
               <div className="flex justify-center mt-8">
                 <Link
                   to={`/festival/${festival.slug}`}
-                  className="px-8 py-3 bg-[#1E3A8A] text-yellow-400 rounded-full"
+                  className="px-8 py-3 bg-[#1E3A8A] text-white rounded-full"
                 >
                   View All
                 </Link>

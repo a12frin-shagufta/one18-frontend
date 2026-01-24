@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useCart } from "../context/CartContext"; // ✅ ADD
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const { clearCart } = useCart(); // ✅ ADD
 
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,10 @@ const PaymentSuccess = () => {
 
         setMsg(res.data.message || "Payment successful ✅");
 
-        // ✅ clear cart etc (optional)
+        // ✅ clear cart ✅✅✅
+        clearCart();
+
+        // ✅ clear checkout temp storage
         localStorage.removeItem("fulfillmentData");
         localStorage.removeItem("orderNote");
         localStorage.removeItem("checkoutCustomer");
@@ -44,7 +50,7 @@ const PaymentSuccess = () => {
     };
 
     verifyPayment();
-  }, [sessionId, navigate]);
+  }, [sessionId, navigate, clearCart]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
