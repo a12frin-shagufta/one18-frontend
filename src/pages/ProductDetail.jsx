@@ -17,6 +17,8 @@ const ProductDetail = () => {
 
   const [product, setProduct] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
+  const [activeImage, setActiveImage] = useState(0);
+
   const [qty, setQty] = useState(1);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [offers, setOffers] = useState([]);
@@ -28,6 +30,8 @@ const ProductDetail = () => {
         setLoading(true);
         const res = await axios.get(`${BACKEND_URL}/api/menu/slug/${slug}`);
         setProduct(res.data);
+        setActiveImage(0);
+
 
         if (res.data.variants?.length) {
           setSelectedVariant(res.data.variants[0]);
@@ -126,12 +130,39 @@ const ProductDetail = () => {
       <div className="grid md:grid-cols-2 gap-10 items-start">
         {/* ✅ LEFT IMAGE */}
         <div className="w-full">
+  {/* ✅ Main Image */}
+  <div className="w-full">
+    <img
+      src={product.images?.[activeImage] || product.images?.[0]}
+      alt={product.name}
+      className="w-full h-[420px] md:h-[520px] object-cover rounded-xl block"
+    />
+  </div>
+
+  {/* ✅ Thumbnails */}
+  {product.images?.length > 1 && (
+    <div className="flex gap-3 mt-4 overflow-x-auto">
+      {product.images.map((img, index) => (
+        <button
+          key={index}
+          onClick={() => setActiveImage(index)}
+          className={`border rounded-lg overflow-hidden shrink-0 w-20 h-20 ${
+            activeImage === index
+              ? "border-[#1E3A8A] ring-2 ring-[#1E3A8A]"
+              : "border-gray-200"
+          }`}
+        >
           <img
-            src={product.images?.[0]}
-            alt={product.name}
-            className="w-full h-[420px] md:h-[520px] object-cover rounded-xl block"
+            src={img}
+            alt={`thumb-${index}`}
+            className="w-full h-full object-cover"
           />
-        </div>
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
 
         {/* ✅ RIGHT DETAILS */}
         <div className="w-full">
