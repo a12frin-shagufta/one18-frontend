@@ -25,7 +25,7 @@ const Festival = () => {
           return;
         }
 
-        setFestival(f);
+        setFestival(f); 
 
         if (branchId) {
          const items = branchId

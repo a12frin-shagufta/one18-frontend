@@ -5,6 +5,11 @@ import { FiChevronDown, FiChevronUp, FiMenu, FiX } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 import { useParams, useSearchParams } from "react-router-dom";
 import CartDrawer from "../components/CartDrawer";
+  import {
+  getBestOfferForItem,
+  calculateDiscountedPrice,
+} from "../utils/applyOffer";
+
 
 const Menu = () => {
   const { categoryId } = useParams();
@@ -16,6 +21,8 @@ const Menu = () => {
   const [showSidebar, setShowSidebar] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [branchInfo, setBranchInfo] = useState(null);
+  const [offers, setOffers] = useState([]);
+
 
   const [searchParams] = useSearchParams();
   const branchId =
@@ -41,6 +48,14 @@ const Menu = () => {
   }, []);
 
   useEffect(() => {
+  axios
+    .get(`${BACKEND_URL}/api/offers`)
+    .then((res) => setOffers(res.data || []))
+    .catch(console.error);
+}, []);
+
+
+  useEffect(() => {
     if (categoryId) {
       setActiveCategory(categoryId);
       setActiveSubcategory("all");
@@ -50,10 +65,36 @@ const Menu = () => {
   /* ======================
      CATEGORY STRUCTURE
   ====================== */
+
+
+const menuWithOffers = useMemo(() => {
+  return menu.map((item) => {
+    const bestOffer = getBestOfferForItem(item, offers);
+
+    // ✅ your item has variants, so each variant must be discounted
+    const updatedVariants = (item.variants || []).map((v) => {
+      const originalPrice = v.price;
+      const discountedPrice = calculateDiscountedPrice(originalPrice, bestOffer);
+
+      return {
+        ...v,
+        originalPrice,
+        discountedPrice,
+      };
+    });
+
+    return {
+      ...item,
+      offer: bestOffer || null,
+      variants: updatedVariants,
+    };
+  });
+}, [menu, offers]);
+
   const categoryStructure = useMemo(() => {
     const map = new Map();
 
-    menu.forEach((item) => {
+    menuWithOffers.forEach((item) => {
       if (!item.category) return;
 
       const cid = item.category._id;
@@ -85,19 +126,26 @@ const Menu = () => {
     ];
   }, [menu]);
 
+
+
+
+  
+
+
   /* ======================
      FILTER MENU
   ====================== */
-  const filteredMenu = useMemo(() => {
-    return menu.filter((item) => {
-      const catMatch =
-        activeCategory === "all" || item.category?._id === activeCategory;
-      const subMatch =
-        activeSubcategory === "all" ||
-        item.subcategory?._id === activeSubcategory;
-      return catMatch && subMatch;
-    });
-  }, [menu, activeCategory, activeSubcategory]);
+ const filteredMenu = useMemo(() => {
+  return menuWithOffers.filter((item) => {
+    const catMatch =
+      activeCategory === "all" || item.category?._id === activeCategory;
+    const subMatch =
+      activeSubcategory === "all" ||
+      item.subcategory?._id === activeSubcategory;
+    return catMatch && subMatch;
+  });
+}, [menuWithOffers, activeCategory, activeSubcategory]);
+
 
   /* ======================
      HANDLERS

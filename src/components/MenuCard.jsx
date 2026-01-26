@@ -28,7 +28,12 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
     name: item.name,
     variant: variant.label,
     qty: newQty,
-    price: variant.price,
+   price: variant.discountedPrice ?? variant.price,
+originalPrice: variant.originalPrice ?? variant.price, // optional but very useful
+offerTitle: item.offer?.title || null, // optional
+offerType: item.offer?.type || null,
+offerValue: item.offer?.value || null,
+
      image: item.images?.[0],        // REQUIRED
   categoryId: item.category?._id, // REQUIRED
 
@@ -92,14 +97,38 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
             const key = `${item._id}_${variant.label}`;
             const qty = orders[key]?.qty || 0;
 
+            const original = variant.originalPrice ?? variant.price;
+  const discounted = variant.discountedPrice ?? variant.price;
+  const hasDiscount = discounted < original;
+
             return (
               <div key={variant.label} className="flex justify-between items-center">
                 <div>
-                  {/* <span className="text-sm text-gray-900">{variant.label}</span> */}
-                  <span className="block text-xs text-gray-500">
-                    {formatPrice(variant.price)}
-                  </span>
-                </div>
+  {hasDiscount ? (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-semibold text-green-700">
+        {formatPrice(discounted)}
+      </span>
+
+      <span className="text-[11px] text-gray-400 line-through">
+        {formatPrice(original)}
+      </span>
+
+      {item.offer && (
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">
+          {item.offer.type === "percent"
+            ? `${item.offer.value}% OFF`
+            : `₹${item.offer.value} OFF`}
+        </span>
+      )}
+    </div>
+  ) : (
+    <span className="block text-xs text-gray-500">
+      {formatPrice(original)}
+    </span>
+  )}
+</div>
+
 
                 {qty === 0 ? (
                   <button
