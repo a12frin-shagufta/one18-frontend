@@ -58,7 +58,7 @@ const CategoryPage = () => {
       (item) => item.category?._id === category._id
     );
 
-    return product?.images?.[0] || "/placeholder.jpg";
+     return category.coverImage || "/placeholder.jpg";
   };
 
   /* ======================
