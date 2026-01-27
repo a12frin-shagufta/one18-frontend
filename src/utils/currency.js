@@ -4,15 +4,18 @@ export const CURRENCY = "$";
 export const DELIVERY_FEE = 5;
 
 /**
- * Format price with 2 decimals
- * @example formatPrice(5)     => $5.00
- * @example formatPrice(5.2)   => $5.20
- * @example formatPrice(10.99) => $10.99
+ * Smart price formatter
+ * - Whole numbers → $2
+ * - Decimals → $2.50
  */
 export const formatPrice = (price) => {
   if (price === null || price === undefined || isNaN(price)) {
-    return `${CURRENCY}0.00`;
+    return `${CURRENCY}0`;
   }
 
-  return `${CURRENCY}${Number(price).toFixed(2)}`;
+  const num = Number(price);
+
+  return Number.isInteger(num)
+    ? `${CURRENCY}${num}`
+    : `${CURRENCY}${num.toFixed(2)}`;
 };

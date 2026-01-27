@@ -1,14 +1,18 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiMinus } from "react-icons/fi";
-import { formatPrice } from "../utils/currency";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
-  const updateQty = (variant, type, e) => {
-    e.stopPropagation(); // 🔥 IMPORTANT
-    e.preventDefault();  // 🔥 IMPORTANT
+  const navigate = useNavigate();
 
-    const key = `${item._id}_${variant.label}`;
+  const hasMultipleVariants = item.variants.length > 1;
+  const variant = item.variants[0]; // first variant for price display
+  const key = `${item._id}_${variant.label}`;
+  const qty = orders[key]?.qty || 0;
+
+  const addSingleVariantToCart = (e, type) => {
+    e.stopPropagation();
+    e.preventDefault();
 
     setOrders((prev) => {
       const currentQty = prev[key]?.qty || 0;
@@ -22,145 +26,96 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
       }
 
       return {
-  ...prev,
-  [key]: {
-    itemId: item._id,
-    name: item.name,
-    variant: variant.label,
-    qty: newQty,
-   price: variant.discountedPrice ?? variant.price,
-originalPrice: variant.originalPrice ?? variant.price, // optional but very useful
-offerTitle: item.offer?.title || null, // optional
-offerType: item.offer?.type || null,
-offerValue: item.offer?.value || null,
-
-     image: item.images?.[0],        // REQUIRED
-  categoryId: item.category?._id, // REQUIRED
-
-    // 🔥 ADD THIS
-    preorder: {
-      enabled: item.preorder?.enabled || false,
-      minDays: item.preorder?.minDays || 0,
-    },
-  },
-};
-
+        ...prev,
+        [key]: {
+          itemId: item._id,
+          name: item.name,
+          variant: variant.label,
+          qty: newQty,
+          price: variant.discountedPrice ?? variant.price,
+          image: item.images?.[0],
+        },
+      };
     });
 
     if (type === "inc") openCart();
   };
 
+  const handleAddClick = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // 🔥 MULTI VARIANT → GO TO PRODUCT PAGE
+    if (hasMultipleVariants) {
+      navigate(`/product/${item.slug}`);
+      return;
+    }
+
+    // 🔥 SINGLE VARIANT → DIRECT ADD
+    addSingleVariantToCart(e, "inc");
+  };
+
   return (
-    <div className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition">
-      
-      {/* IMAGE → PRODUCT DETAIL */}
-      <Link to={`/product/${item.slug}`} className="block">
-        <div className="aspect-square bg-gray-100 relative">
+    <div className="bg-white rounded-xl border shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
+      {/* IMAGE */}
+      <Link to={`/product/${item.slug}`}>
+        <div className="aspect-[4/3] bg-gray-100">
           <img
             src={item.images?.[0]}
             alt={item.name}
             className="w-full h-full object-cover"
           />
-
-          {/* PREORDER BADGE */}
-          {/* {item.preorder?.enabled && (
-            <span className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-              Preorder
-            </span>
-          )} */}
         </div>
       </Link>
 
       {/* CONTENT */}
-      <div className="p-3">
-        {/* NAME → PRODUCT DETAIL */}
-        <Link to={`/product/${item.slug}`}>
-          <h3 className="font-semibold text-gray-900 text-sm mb-1 hover:underline">
-            {item.name}
-          </h3>
-        </Link>
+      <div className="p-5 flex flex-col flex-1">
+        {/* NAME */}
+        <h3 className="text-lg font-semibold text-gray-900 leading-snug">
+          {item.name}
+        </h3>
 
+        {/* DESCRIPTION */}
         {item.description && (
-          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+          <p className="text-blue-700 text-sm mt-2 line-clamp-2">
             {item.description}
           </p>
         )}
 
-        {/* {item.preorder?.enabled && (
-          <p className="text-[11px] text-amber-700 mb-2">
-            Baked fresh • {item.preorder.minDays} days advance notice
-          </p>
-        )} */}
-
-        <div className="space-y-2">
-          {item.variants.map((variant) => {
-            const key = `${item._id}_${variant.label}`;
-            const qty = orders[key]?.qty || 0;
-
-            const original = variant.originalPrice ?? variant.price;
-  const discounted = variant.discountedPrice ?? variant.price;
-  const hasDiscount = discounted < original;
-
-            return (
-              <div key={variant.label} className="flex justify-between items-center">
-                <div>
-  {hasDiscount ? (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-semibold text-green-700">
-        {formatPrice(discounted)}
-      </span>
-
-      <span className="text-[11px] text-gray-400 line-through">
-        {formatPrice(original)}
-      </span>
-
-      {item.offer && (
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">
-          {item.offer.type === "percent"
-            ? `${item.offer.value}% OFF`
-            : `₹${item.offer.value} OFF`}
-        </span>
-      )}
-    </div>
-  ) : (
-    <span className="block text-xs text-gray-500">
-      {formatPrice(original)}
-    </span>
-  )}
-</div>
-
-
-                {qty === 0 ? (
-                  <button
-  onClick={(e) => updateQty(variant, "inc", e)}
-  className="bg-[#1E3A8A] text-white px-3 py-1.5 rounded text-xs font-medium"
->
-  Add
-</button>
-
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => updateQty(variant, "dec", e)}
-                      className="bg-gray-200 w-7 h-7 rounded flex items-center justify-center"
-                    >
-                      <FiMinus size={12} />
-                    </button>
-
-                    <span className="font-bold text-sm w-6 text-center">{qty}</span>
-
-                    <button
-                      onClick={(e) => updateQty(variant, "inc", e)}
-                      className="bg-gray-200 w-7 h-7 rounded flex items-center justify-center"
-                    >
-                      <FiPlus size={12} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        {/* PRICE */}
+        <div className="mt-4 mb-4">
+          <span className="text-xl font-bold text-gray-900">
+            S${Number(variant.discountedPrice ?? variant.price).toFixed(2)}
+          </span>
         </div>
+
+        {/* ACTION */}
+        {qty === 0 ? (
+          <button
+            onClick={handleAddClick}
+            className="mt-auto w-full bg-[#233A95] text-yellow-400 text-lg font-semibold py-3 rounded-md hover:bg-[#1c2f7a] transition"
+          >
+            Add
+          </button>
+        ) : (
+          <div className="mt-auto flex items-center justify-between border rounded-md px-4 py-2">
+            <button
+              onClick={(e) => addSingleVariantToCart(e, "dec")}
+              className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded"
+            >
+              <FiMinus />
+            </button>
+
+            <span className="font-semibold text-lg">{qty}</span>
+
+            <button
+              onClick={(e) => addSingleVariantToCart(e, "inc")}
+              className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded"
+            >
+              <FiPlus />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

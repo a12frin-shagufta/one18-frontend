@@ -16,7 +16,7 @@ const BestSellerSection = () => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const branchId = localStorage.getItem("selectedBranch");
+  // const branchId = localStorage.getItem("selectedBranch");
 
   /* ======================
      FETCH OFFERS
@@ -32,25 +32,25 @@ const BestSellerSection = () => {
      FETCH BEST SELLERS
   ====================== */
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const menu = await getMenu(branchId);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const menu = await getMenu(); // ✅ NO branch
 
-        const bestSellers = menu
-          .filter((p) => p.isBestSeller)
-          .slice(0, 4);
+      const bestSellers = menu
+        .filter((p) => p.isBestSeller)
+        .slice(0, 4);
 
-        setProducts(bestSellers);
-      } catch (err) {
-        console.error("Failed to load best sellers", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setProducts(bestSellers);
+    } catch (err) {
+      console.error("Failed to load best sellers", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
-  }, [branchId]);
+  load();
+}, []);
 
   /* ======================
      APPLY OFFER LOGIC ✅

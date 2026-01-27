@@ -12,30 +12,29 @@ const CategoryPage = () => {
   const navigate = useNavigate();
   const sliderRef = useRef(null);
 
-  const branchId = localStorage.getItem("selectedBranch");
+  // const branchId = localStorage.getItem("selectedBranch");
 
   /* ======================
      FETCH DATA
   ====================== */
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [catRes, menuRes] = await Promise.all([
-          axios.get(`${BACKEND_URL}/api/categories`),
-          axios.get(`${BACKEND_URL}/api/menu`, {
-            params: branchId ? { branch: branchId } : {},
-          }),
-        ]);
+ useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [catRes, menuRes] = await Promise.all([
+        axios.get(`${BACKEND_URL}/api/categories`),
+        axios.get(`${BACKEND_URL}/api/menu`),
+      ]);
 
-        setCategories(catRes.data);
-        setMenu(menuRes.data);
-      } catch (err) {
-        console.error("CategoryPage error:", err);
-      }
-    };
+      setCategories(catRes.data);
+      setMenu(menuRes.data);
+    } catch (err) {
+      console.error("CategoryPage error:", err);
+    }
+  };
 
-    fetchData();
-  }, [branchId]);
+  fetchData();
+}, []);
+
 
   /* ======================
      SLIDER CONTROLS
@@ -52,14 +51,14 @@ const CategoryPage = () => {
      IMAGE LOGIC
   ====================== */
   const getCategoryImage = (category) => {
-    if (category.coverImage) return category.coverImage;
+  if (category.coverImage) return category.coverImage;
 
-    const product = menu.find(
-      (item) => item.category?._id === category._id
-    );
+  const product = menu.find(
+    (item) => item.category?._id === category._id && item.images?.length
+  );
 
-     return category.coverImage || "/placeholder.jpg";
-  };
+  return product?.images?.[0] || "/placeholder.jpg";
+};
 
   /* ======================
      UI
@@ -107,9 +106,9 @@ const CategoryPage = () => {
           <div
             key={cat._id}
             onClick={() => {
-              if (!branchId) return;
-              navigate(`/menu/${cat._id}?branch=${branchId}`);
-            }}
+  navigate(`/menu/${cat._id}`);
+}}
+
             className="
               flex-shrink-0 cursor-pointer 
               flex flex-col items-center 

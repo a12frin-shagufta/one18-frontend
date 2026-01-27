@@ -9,13 +9,16 @@ export const getFestivals = async () => {
 
 /**
  * Get menu items
- * @param {string} branchId  - selected branch id
+ /**
+ * Get menu items (branch-independent)
  * @param {string} festivalId - optional festival id
  */
-export const getMenu = async (branchId, festivalId) => {
+
+ 
+export const getMenu = async (festivalId) => {
   const params = {};
 
-  if (branchId) params.branch = branchId;
+  // ✅ Festival filter is allowed
   if (festivalId) params.festival = festivalId;
 
   const res = await axios.get(`${BASE_URL}/api/menu`, { params });

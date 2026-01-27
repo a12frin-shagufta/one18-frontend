@@ -9,6 +9,8 @@ import CartDrawer from "../components/CartDrawer";
   getBestOfferForItem,
   calculateDiscountedPrice,
 } from "../utils/applyOffer";
+import FulfillmentModal from "../components/FulfillmentModal";
+
 
 
 const Menu = () => {
@@ -20,32 +22,32 @@ const Menu = () => {
   const [expandedCategories, setExpandedCategories] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [branchInfo, setBranchInfo] = useState(null);
+  // const [branchInfo, setBranchInfo] = useState(null);
   const [offers, setOffers] = useState([]);
+const [showFulfillment, setShowFulfillment] = useState(false);
 
-
-  const [searchParams] = useSearchParams();
-  const branchId =
-    searchParams.get("branch") || localStorage.getItem("selectedBranch");
+  // const [searchParams] = useSearchParams();
+  // const branchId =
+  //   searchParams.get("branch") || localStorage.getItem("selectedBranch");
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   /* ======================
      FETCH MENU
   ====================== */
-  useEffect(() => {
-    if (!branchId) return;
+ useEffect(() => {
+  axios
+    .get(`${BACKEND_URL}/api/menu`)
+    .then((res) => setMenu(res.data))
+    .catch(console.error);
+}, []);
 
-    axios
-      .get(`${BACKEND_URL}/api/menu`, { params: { branch: branchId } })
-      .then((res) => setMenu(res.data))
-      .catch(console.error);
-  }, [branchId]);
+  
 
-  useEffect(() => {
-    const stored = localStorage.getItem("selectedBranchData");
-    if (stored) setBranchInfo(JSON.parse(stored));
-  }, []);
+  // useEffect(() => {
+  //   const stored = localStorage.getItem("selectedBranchData");
+  //   if (stored) setBranchInfo(JSON.parse(stored));
+  // }, []);
 
   useEffect(() => {
   axios
@@ -333,7 +335,7 @@ const filteredMenu = useMemo(() => {
         </div>
 
         {/* BRANCH INFO */}
-        {branchInfo && (
+        {/* {branchInfo && (
           <div className="px-6 py-4">
             <div className="flex items-center gap-3">
               {branchInfo.image && (
@@ -351,7 +353,7 @@ const filteredMenu = useMemo(() => {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* MENU GRID */}
         <div className="p-3 md:p-6">
@@ -363,12 +365,13 @@ const filteredMenu = useMemo(() => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
               {filteredMenu.map((item) => (
                 <MenuCard
-                  key={item._id}
-                  item={item}
-                  orders={orders}
-                  setOrders={setOrders}
-                  openCart={() => setIsCartOpen(true)}
-                />
+  key={item._id}
+  item={item}
+  orders={orders}
+  setOrders={setOrders}
+  openCart={() => setShowFulfillment(true)}
+/>
+
               ))}
             </div>
           )}
@@ -376,10 +379,10 @@ const filteredMenu = useMemo(() => {
       </main>
 
       {/* CART */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-      />
+     <FulfillmentModal
+  open={showFulfillment}
+  onClose={() => setShowFulfillment(false)}
+/>
     </div>
   );
 };

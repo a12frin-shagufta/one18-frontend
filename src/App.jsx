@@ -19,6 +19,7 @@ import AboutUsSection from "./components/AboutUsSection";
 import Confirmation from "./pages/Confirmation";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
+import FulfillmentModal from "./components/FulfillmentModal";
 
 function App() {
   const location = useLocation();
@@ -57,11 +58,13 @@ function App() {
         <Route path="/best-sellers" element={<BestSellers />} />
         <Route path="/products" element={<CategoryPage />} />
         <Route path="/find-us" element={<FindUsSection />} />
-        <Route path="/order" element={<BranchSelect />} />
+        <Route path="/order" element={<Menu />} />
+
         <Route path="/catering" element={<CateringSection />} />
         <Route path="/about-us" element={<AboutUsSection />} />
         <Route path="/confirmation" element={<Confirmation />} />
        <Route path="/payment-success" element={<PaymentSuccess />} />
+       <Route path="/fulfillment" element={<FulfillmentModal />} />
 
 
         
