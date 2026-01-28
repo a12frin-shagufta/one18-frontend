@@ -339,8 +339,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
           </div>
 
           {/* FOOTER - ONLY SHOW WHEN ITEMS EXIST */}
-          {items.length > 0 && (
-            <div className="border-t border-gray-100 bg-white p-4 sm:p-6 space-y-4">
+         {items.length > 0 && (
+  <div className="border-t border-gray-100 bg-white p-4 sm:p-6 space-y-4">
+
               {/* PRICE BREAKDOWN */}
               <div className="space-y-2">
   <div className="flex justify-between">
@@ -365,15 +366,32 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
 
               {/* CHECKOUT BUTTON */}
-              <button
-                onClick={() => {
-                  onClose();
-                  navigate("/checkout");
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                Proceed to Checkout · {formatPrice(total)}
-              </button>
+              {/* NO fulfillment → only yellow button */}
+{!fulfillment && (
+  <button
+    onClick={() => {
+      onClose();
+      window.dispatchEvent(new Event("open-fulfillment"));
+    }}
+    className="w-full bg-[#1E3A8A]  text-white py-3 rounded-xl font-semibold"
+  >
+    Continue with selection
+  </button>
+)}
+
+{/* fulfillment exists → only checkout */}
+{fulfillment && (
+  <button
+    onClick={() => {
+      onClose();
+      navigate("/checkout");
+    }}
+    className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold"
+  >
+    Proceed to Checkout · {formatPrice(total)}
+  </button>
+)}
+
             </div>
           )}
         </div>

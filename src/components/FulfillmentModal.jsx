@@ -54,7 +54,7 @@ const [deliveryFee, setDeliveryFee] = useState(null);
 
   if (!open) return null;
 
-  const saveAndClose = () => {
+ const saveAndClose = () => {
   if (step === "pickup" && (!branch || !pickupDate || !pickupTime)) return;
   if (
     step === "delivery" &&
@@ -62,23 +62,22 @@ const [deliveryFee, setDeliveryFee] = useState(null);
   ) return;
 
   localStorage.setItem(
-  "fulfillmentData",
-  JSON.stringify({
-    type: step,
-    branch,
-    pickupDate,
-    pickupTime,
-    postalCode,
-    deliveryDate,
-    deliveryTime,
-    deliveryFee, // ✅ ADD THIS
-  })
-);
+    "fulfillmentData",
+    JSON.stringify({
+      type: step,
+      branch,
+      pickupDate,
+      pickupTime,
+      postalCode,
+      deliveryDate,
+      deliveryTime,
+      deliveryFee,
+    })
+  );
 
-
-  onClose();
-  navigate("/checkout");
+  onClose(); // ✅ JUST CLOSE
 };
+
 
 
   const checkPostalCode = async () => {

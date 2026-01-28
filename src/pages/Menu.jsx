@@ -166,6 +166,21 @@ return {
     ];
   }, [menuWithOffers]);
 
+
+  useEffect(() => {
+  const open = () => setShowFulfillment(true);
+  const edit = () => setShowFulfillment(true);
+
+  window.addEventListener("open-fulfillment", open);
+  window.addEventListener("edit-fulfillment", edit);
+
+  return () => {
+    window.removeEventListener("open-fulfillment", open);
+    window.removeEventListener("edit-fulfillment", edit);
+  };
+}, []);
+
+
   /* ======================
      FILTER MENU
   ====================== */
@@ -339,7 +354,7 @@ return {
             </div>
             
             {/* DESKTOP CART BUTTON */}
-            {cartTotalItems > 0 && (
+            {/* {cartTotalItems > 0 && (
               <button
                 onClick={() => setShowFulfillment(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -351,7 +366,7 @@ return {
                 </span>
                 <span className="font-bold">S${cartTotalPrice.toFixed(2)}</span>
               </button>
-            )}
+            )} */}
           </div>
 
           {/* MENU GRID */}

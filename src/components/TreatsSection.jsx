@@ -6,19 +6,19 @@ const TreatsSection = () => {
   const treats = [
     {
       title: "Presents",
-      image: "https://i.pinimg.com/736x/fd/91/fc/fd91fc8376b9f51ffae533ee91739e72.jpg",
+      image: "/images/button.jpg",
     },
     {
       title: "Birthday",
-      image: "https://i.pinimg.com/736x/4c/88/63/4c886333d1bbbe14e57b7408e657a5fb.jpg",
+      image: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/03645a17219bb167bf48ab7d9376b35c.jpg",
     },
     {
       title: "Wedding",
-      image: "https://i.pinimg.com/736x/8f/af/89/8faf89d5a9f5f1f6bd88e6a4942f2103.jpg",
+      image: "https://i.pinimg.com/1200x/82/59/f0/8259f05c19992e4c30d0240fa51dd10e.jpg",
     },
     {
       title: "Parties",
-      image: "https://i.pinimg.com/736x/d7/64/a9/d764a9920fe094fbbd76febbfc9aa9fd.jpg",
+      image: "https://i.pinimg.com/1200x/61/03/6f/61036fb62c1f669ea75159294268f9b5.jpg",
     },
   ];
 
@@ -56,7 +56,7 @@ const TreatsSection = () => {
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
 

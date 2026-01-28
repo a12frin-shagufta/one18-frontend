@@ -156,7 +156,7 @@ export default function Navbar() {
               {/* ORDER NOW BUTTON */}
               <Link
                 to="/order"
-                className="hidden md:inline-block px-5 py-2.5 bg-[#1E3A8A] text-white text-sm uppercase tracking-wider font-semibold hover:shadow-lg hover:shadow-amber-200 transition-all duration-300 transform hover:-translate-y-0.5 rounded-full"
+                className="hidden md:inline-block px-5 py-2.5 bg-[#1E3A8A] text-white text-sm uppercase tracking-wider font-semibold hover:shadow-lg hover:shadow-amber-200 transition-all duration-300 transform hover:-translate-y-0.5 rounded-sm"
               >
                 Order Now
               </Link>

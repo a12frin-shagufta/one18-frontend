@@ -180,7 +180,7 @@ const ProductDetail = () => {
             {product.name}
           </h1>
 
-          <p className="text-lg text-blue-700 font-semibold mb-4">
+          <p className="text-lg text-[#1E3A8A] font-semibold mb-4">
             From {formatPrice(basePrice)}
           </p>
 
@@ -258,7 +258,7 @@ const ProductDetail = () => {
           {/* ================= ADD TO CART ================= */}
           <button
             onClick={addToCart}
-            className="w-full bg-[#1E3A8A] text-white py-4 rounded-full text-lg font-semibold"
+            className="w-full bg-[#1E3A8A] text-white py-4 rounded-sm text-lg font-semibold"
           >
             ADD TO CART
           </button>

@@ -89,32 +89,29 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
         </h3>
 
         {/* DESCRIPTION - Hidden on mobile, shown on tablet+ */}
-        {item.description && (
-          <p className="text-blue-600 text-xs mt-1 line-clamp-2 hidden sm:block">
-            {item.description}
-          </p>
-        )}
+        <div className="hidden sm:block mt-1 min-h-[32px]">
+  <p className="text-[#1E3A8A] text-xs line-clamp-2">
+    {item.description || ""}
+  </p>
+</div>
+
 
         {/* PRICE - Mobile optimized */}
-        <div className="mt-2 mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-gray-900">
-              S${Number(variant.discountedPrice ?? variant.price).toFixed(2)}
-            </span>
-            {variant.discountedPrice !== null &&
-  variant.discountedPrice < variant.originalPrice && (
-    <span className="text-xs text-gray-500 line-through">
-      S${Number(variant.originalPrice).toFixed(2)}
+        <div className="mt-2 mb-3 min-h-[40px]">
+  <div className="flex items-center gap-2">
+    <span className="text-base font-bold text-gray-900">
+      S${Number(variant.discountedPrice ?? variant.price).toFixed(2)}
     </span>
-)}
 
-          </div>
-          {/* {variant.discountedPrice && (
-            <div className="text-xs text-red-500 font-medium mt-0.5">
-              Save S${(variant.originalPrice - variant.discountedPrice).toFixed(2)}
-            </div>
-          )} */}
-        </div>
+    {variant.discountedPrice !== null &&
+      variant.discountedPrice < variant.originalPrice && (
+        <span className="text-xs text-gray-500 line-through">
+          S${Number(variant.originalPrice).toFixed(2)}
+        </span>
+    )}
+  </div>
+</div>
+
 
         {/* ACTION BUTTONS - Mobile optimized */}
         <div className="mt-auto">

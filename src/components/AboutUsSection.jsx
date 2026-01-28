@@ -88,7 +88,7 @@ const AboutUs = () => {
   {/* Image 3 */}
   <div className="group relative col-span-2 md:col-span-1 h-[260px] md:h-[300px] overflow-hidden rounded-2xl">
     <img
-      src="/images/preorder.png"
+      src="https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/e0c3d0101d44992a9971baa72f6192f2.jpg"
       alt="Pre Orders"
       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
     />
