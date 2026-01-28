@@ -274,6 +274,7 @@ const ProductDetail = () => {
   onClose={() => setShowFulfillment(false)}
 />
 
+
     </div>
   );
 };
