@@ -6,7 +6,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const navigate = useNavigate();
 
   const hasMultipleVariants = item.variants.length > 1;
-  const variant = item.variants[0]; // first variant for price display
+  const variant = item.variants[0];
   const key = `${item._id}_${variant.label}`;
   const qty = orders[key]?.qty || 0;
 
@@ -45,77 +45,113 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
     e.stopPropagation();
     e.preventDefault();
 
-    // 🔥 MULTI VARIANT → GO TO PRODUCT PAGE
     if (hasMultipleVariants) {
       navigate(`/product/${item.slug}`);
       return;
     }
 
-    // 🔥 SINGLE VARIANT → DIRECT ADD
     addSingleVariantToCart(e, "inc");
   };
 
   return (
-    <div className="bg-white rounded-xl border shadow-sm hover:shadow-md transition overflow-hidden flex flex-col">
-      {/* IMAGE */}
-      <Link to={`/product/${item.slug}`}>
-        <div className="aspect-[4/3] bg-gray-100">
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
+      {/* IMAGE - Optimized for mobile */}
+      <Link to={`/product/${item.slug}`} className="block">
+        <div className="relative pt-[75%] bg-gray-100 overflow-hidden">
           <img
             src={item.images?.[0]}
             alt={item.name}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
           />
+          {/* Badges */}
+         {item.offer && (
+  <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+    {item.offer.type === "percentage"
+      ? `-${item.offer.value}%`
+      : `Save $${item.offer.value}`}
+  </div>
+)}
+
+          {item.isBestSeller && (
+            <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">
+               Best Seller
+            </div>
+          )}
         </div>
       </Link>
 
-      {/* CONTENT */}
-      <div className="p-5 flex flex-col flex-1">
-        {/* NAME */}
-        <h3 className="text-lg font-semibold text-gray-900 leading-snug">
+      {/* CONTENT - Compact for mobile */}
+      <div className="p-3 flex flex-col flex-1">
+        {/* NAME - Mobile optimized */}
+        <h3 className="text-sm font-semibold text-gray-900 leading-tight line-clamp-2">
           {item.name}
         </h3>
 
-        {/* DESCRIPTION */}
+        {/* DESCRIPTION - Hidden on mobile, shown on tablet+ */}
         {item.description && (
-          <p className="text-blue-700 text-sm mt-2 line-clamp-2">
+          <p className="text-blue-600 text-xs mt-1 line-clamp-2 hidden sm:block">
             {item.description}
           </p>
         )}
 
-        {/* PRICE */}
-        <div className="mt-4 mb-4">
-          <span className="text-xl font-bold text-gray-900">
-            S${Number(variant.discountedPrice ?? variant.price).toFixed(2)}
-          </span>
+        {/* PRICE - Mobile optimized */}
+        <div className="mt-2 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-gray-900">
+              S${Number(variant.discountedPrice ?? variant.price).toFixed(2)}
+            </span>
+            {variant.discountedPrice !== null &&
+  variant.discountedPrice < variant.originalPrice && (
+    <span className="text-xs text-gray-500 line-through">
+      S${Number(variant.originalPrice).toFixed(2)}
+    </span>
+)}
+
+          </div>
+          {/* {variant.discountedPrice && (
+            <div className="text-xs text-red-500 font-medium mt-0.5">
+              Save S${(variant.originalPrice - variant.discountedPrice).toFixed(2)}
+            </div>
+          )} */}
         </div>
 
-        {/* ACTION */}
-        {qty === 0 ? (
-          <button
-            onClick={handleAddClick}
-            className="mt-auto w-full bg-[#233A95] text-yellow-400 text-lg font-semibold py-3 rounded-md hover:bg-[#1c2f7a] transition"
-          >
-            Add
-          </button>
-        ) : (
-          <div className="mt-auto flex items-center justify-between border rounded-md px-4 py-2">
+        {/* ACTION BUTTONS - Mobile optimized */}
+        <div className="mt-auto">
+          {qty === 0 ? (
             <button
-              onClick={(e) => addSingleVariantToCart(e, "dec")}
-              className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded"
+              onClick={handleAddClick}
+              className="w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-md transition-colors duration-200 active:scale-95"
             >
-              <FiMinus />
+              {hasMultipleVariants ? "View Options" : "Add to Cart"}
             </button>
+          ) : (
+            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+              <button
+                onClick={(e) => addSingleVariantToCart(e, "dec")}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-gray-300 rounded-full active:bg-gray-100"
+                aria-label="Decrease quantity"
+              >
+                <FiMinus size={14} />
+              </button>
 
-            <span className="font-semibold text-lg">{qty}</span>
+              <div className="flex flex-col items-center">
+                <span className="font-bold text-gray-900">{qty}</span>
+                <span className="text-xs text-gray-500">
+                  in cart
+                </span>
+              </div>
 
-            <button
-              onClick={(e) => addSingleVariantToCart(e, "inc")}
-              className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded"
-            >
-              <FiPlus />
-            </button>
-          </div>
-        )}
+              <button
+                onClick={(e) => addSingleVariantToCart(e, "inc")}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-gray-300 rounded-full active:bg-gray-100"
+                aria-label="Increase quantity"
+              >
+                <FiPlus size={14} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

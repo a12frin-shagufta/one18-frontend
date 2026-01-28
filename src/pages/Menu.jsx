@@ -1,17 +1,15 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import MenuCard from "../components/MenuCard";
-import { FiChevronDown, FiChevronUp, FiMenu, FiX } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiMenu, FiX, FiShoppingCart } from "react-icons/fi";
 import { useCart } from "../context/CartContext";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import CartDrawer from "../components/CartDrawer";
-  import {
+import {
   getBestOfferForItem,
   calculateDiscountedPrice,
 } from "../utils/applyOffer";
 import FulfillmentModal from "../components/FulfillmentModal";
-
-
 
 const Menu = () => {
   const { categoryId } = useParams();
@@ -22,53 +20,31 @@ const Menu = () => {
   const [expandedCategories, setExpandedCategories] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  // const [branchInfo, setBranchInfo] = useState(null);
   const [offers, setOffers] = useState([]);
-const [showFulfillment, setShowFulfillment] = useState(false);
-const [isFiltering, setIsFiltering] = useState(false);
-const [isMenuLoading, setIsMenuLoading] = useState(true);
-
-
-
-
-  // const [searchParams] = useSearchParams();
-  // const branchId =
-  //   searchParams.get("branch") || localStorage.getItem("selectedBranch");
+  const [showFulfillment, setShowFulfillment] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isMenuLoading, setIsMenuLoading] = useState(true);
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   /* ======================
-     FETCH MENU
+     FETCH DATA
   ====================== */
-useEffect(() => {
-  setIsMenuLoading(true);
-
-  axios
-    .get(`${BACKEND_URL}/api/menu`)
-    .then((res) => {
-      setMenu(res.data);
-    })
-    .catch(console.error)
-    .finally(() => {
-      setIsMenuLoading(false);
-    });
-}, []);
-;
-
-  
-
-  // useEffect(() => {
-  //   const stored = localStorage.getItem("selectedBranchData");
-  //   if (stored) setBranchInfo(JSON.parse(stored));
-  // }, []);
+  useEffect(() => {
+    setIsMenuLoading(true);
+    axios
+      .get(`${BACKEND_URL}/api/menu`)
+      .then((res) => setMenu(res.data))
+      .catch(console.error)
+      .finally(() => setIsMenuLoading(false));
+  }, []);
 
   useEffect(() => {
-  axios
-    .get(`${BACKEND_URL}/api/offers`)
-    .then((res) => setOffers(res.data || []))
-    .catch(console.error);
-}, []);
-
+    axios
+      .get(`${BACKEND_URL}/api/offers`)
+      .then((res) => setOffers(res.data || []))
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (categoryId) {
@@ -78,192 +54,209 @@ useEffect(() => {
   }, [categoryId]);
 
   /* ======================
-     CATEGORY STRUCTURE
+     CALCULATE TOTALS
   ====================== */
+  const cartTotalItems = useMemo(() => {
+    return Object.values(orders).reduce((sum, item) => sum + item.qty, 0);
+  }, [orders]);
 
+  const cartTotalPrice = useMemo(() => {
+    return Object.values(orders).reduce((sum, item) => sum + (item.price * item.qty), 0);
+  }, [orders]);
 
-const menuWithOffers = useMemo(() => {
-  return menu.map((item) => {
-    const bestOffer = getBestOfferForItem(item, offers);
+  /* ======================
+     APPLY OFFERS
+  ====================== */
+  const menuWithOffers = useMemo(() => {
+    return menu.map((item) => {
+      const bestOffer = getBestOfferForItem(item, offers);
+      const updatedVariants = (item.variants || []).map((v) => {
+        const originalPrice = v.price;
+        const discountedPrice = bestOffer
+  ? calculateDiscountedPrice(originalPrice, bestOffer)
+  : null;
 
-    // ✅ your item has variants, so each variant must be discounted
-    const updatedVariants = (item.variants || []).map((v) => {
-      const originalPrice = v.price;
-      const discountedPrice = calculateDiscountedPrice(originalPrice, bestOffer);
+return {
+  ...v,
+  originalPrice,
+  discountedPrice,
+};
+
+      });
 
       return {
-        ...v,
-        originalPrice,
-        discountedPrice,
+        ...item,
+        offer: bestOffer || null,
+        variants: updatedVariants,
+      };
+    });
+  }, [menu, offers]);
+
+  /* ======================
+     CATEGORY STRUCTURE
+  ====================== */
+  const categoryStructure = useMemo(() => {
+    const map = new Map();
+
+    menuWithOffers.forEach((item) => {
+      if (!item.category) return;
+
+      const cid = item.category._id;
+      if (!map.has(cid)) {
+        map.set(cid, {
+          id: cid,
+          name: item.category.name,
+          subcategories: new Map(),
+        });
+      }
+
+      if (item.subcategory) {
+        map.get(cid).subcategories.set(
+          item.subcategory._id,
+          item.subcategory.name
+        );
+      }
+    });
+
+    const CATEGORY_ORDER = [
+      "croissants",
+      "whole cakes",
+      "slice cakes",
+      "dessert pastries",
+      "breads",
+      "bundles",
+    ];
+
+    const CROISSANT_SUB_ORDER = ["sweet", "savoury"];
+
+    let categories = Array.from(map.values()).map((c) => {
+      let subs = Array.from(c.subcategories, ([id, name]) => ({ id, name }));
+
+      if (c.name.toLowerCase() === "croissants") {
+        subs.sort((a, b) => {
+          const aIndex = CROISSANT_SUB_ORDER.indexOf(a.name.toLowerCase());
+          const bIndex = CROISSANT_SUB_ORDER.indexOf(b.name.toLowerCase());
+          if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
+          return aIndex - bIndex;
+        });
+      } else {
+        subs.sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      return {
+        ...c,
+        subcategories: subs,
       };
     });
 
-    return {
-      ...item,
-      offer: bestOffer || null,
-      variants: updatedVariants,
-    };
-  });
-}, [menu, offers]);
+    categories.sort((a, b) => {
+      const aIndex = CATEGORY_ORDER.indexOf(a.name.toLowerCase());
+      const bIndex = CATEGORY_ORDER.indexOf(b.name.toLowerCase());
+      if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
 
-  const categoryStructure = useMemo(() => {
-  const map = new Map();
-
-  menuWithOffers.forEach((item) => {
-    if (!item.category) return;
-
-    const cid = item.category._id;
-    if (!map.has(cid)) {
-      map.set(cid, {
-        id: cid,
-        name: item.category.name,
-        subcategories: new Map(),
-      });
-    }
-
-    if (item.subcategory) {
-      map.get(cid).subcategories.set(
-        item.subcategory._id,
-        item.subcategory.name
-      );
-    }
-  });
-
-  // ✅ your preferred category order
-  const CATEGORY_ORDER = [
-    "croissants",
-    "whole cakes",
-    "slice cakes",
-    "dessert pastries",
-    "breads",
-    "bundles",
-  ];
-
-  // ✅ croissants subcategory order (Sweet first)
-  const CROISSANT_SUB_ORDER = ["sweet", "savoury"];
-
-  // ✅ convert map -> array
-  let categories = Array.from(map.values()).map((c) => {
-    let subs = Array.from(c.subcategories, ([id, name]) => ({ id, name }));
-
-    // ✅ if category is croissants, apply subcategory ordering
-    if (c.name.toLowerCase() === "croissants") {
-      subs.sort((a, b) => {
-        const aIndex = CROISSANT_SUB_ORDER.indexOf(a.name.toLowerCase());
-        const bIndex = CROISSANT_SUB_ORDER.indexOf(b.name.toLowerCase());
-
-        if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-        return aIndex - bIndex;
-      });
-    } else {
-      // ✅ normal sorting for other categories
-      subs.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    return {
-      ...c,
-      subcategories: subs,
-    };
-  });
-
-  // ✅ force category ordering
-  categories.sort((a, b) => {
-    const aIndex = CATEGORY_ORDER.indexOf(a.name.toLowerCase());
-    const bIndex = CATEGORY_ORDER.indexOf(b.name.toLowerCase());
-
-    if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
-    return aIndex - bIndex;
-  });
-
-  return [
-    { id: "all", name: "All", subcategories: [] },
-    ...categories,
-  ];
-}, [menuWithOffers]);
-
-
-
-
-
-  
-
+    return [
+      { id: "all", name: "All", subcategories: [] },
+      ...categories,
+    ];
+  }, [menuWithOffers]);
 
   /* ======================
      FILTER MENU
   ====================== */
-const filteredMenu = useMemo(() => {
-  const result = menuWithOffers.filter((item) => {
-    const catMatch =
-      activeCategory === "all" || item.category?._id === activeCategory;
-    const subMatch =
-      activeSubcategory === "all" ||
-      item.subcategory?._id === activeSubcategory;
-    return catMatch && subMatch;
-  });
+  const filteredMenu = useMemo(() => {
+    const result = menuWithOffers.filter((item) => {
+      const catMatch =
+        activeCategory === "all" || item.category?._id === activeCategory;
+      const subMatch =
+        activeSubcategory === "all" ||
+        item.subcategory?._id === activeSubcategory;
+      return catMatch && subMatch;
+    });
 
-  // ✅ custom ordering logic
-  return result.sort((a, b) => {
-    // 1️⃣ Best sellers first
-    if (a.isBestSeller !== b.isBestSeller) {
-      return a.isBestSeller ? -1 : 1;
-    }
-
-    // 2️⃣ Croissants: sweet first, savoury second
-    if (a.category?.name?.toLowerCase() === "croissants") {
-      const order = ["sweet flavours", "savoury flavours"];
-
-      const aIndex = order.indexOf(a.subcategory?.name?.toLowerCase());
-      const bIndex = order.indexOf(b.subcategory?.name?.toLowerCase());
-
-      if (aIndex !== -1 || bIndex !== -1) {
-        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+    return result.sort((a, b) => {
+      if (a.isBestSeller !== b.isBestSeller) {
+        return a.isBestSeller ? -1 : 1;
       }
-    }
 
-    // 3️⃣ Fallback: newest first
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-}, [menuWithOffers, activeCategory, activeSubcategory]);
+      if (a.category?.name?.toLowerCase() === "croissants") {
+        const order = ["sweet flavours", "savoury flavours"];
+        const aIndex = order.indexOf(a.subcategory?.name?.toLowerCase());
+        const bIndex = order.indexOf(b.subcategory?.name?.toLowerCase());
+        if (aIndex !== -1 || bIndex !== -1) {
+          return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+        }
+      }
 
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [menuWithOffers, activeCategory, activeSubcategory]);
 
   /* ======================
      HANDLERS
   ====================== */
   const handleCategoryClick = (id) => {
-  setIsFiltering(true);
+    setIsFiltering(true);
+    setActiveCategory(id);
+    setActiveSubcategory("all");
 
-  setActiveCategory(id);
-  setActiveSubcategory("all");
+    if (id !== "all") {
+      setExpandedCategories((prev) => ({
+        ...prev,
+        [id]: !prev[id],
+      }));
+    }
 
-  if (id !== "all") {
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  }
+    if (window.innerWidth < 768) setShowSidebar(false);
+    setTimeout(() => setIsFiltering(false), 200);
+  };
 
-  if (window.innerWidth < 768) setShowSidebar(false);
-
-  setTimeout(() => setIsFiltering(false), 200); // 👈 smooth UX
-};
-
-const handleSubcategoryClick = (id) => {
-  setIsFiltering(true);
-
-  setActiveSubcategory(id);
-
-  if (window.innerWidth < 768) setShowSidebar(false);
-
-  setTimeout(() => setIsFiltering(false), 200);
-};
+  const handleSubcategoryClick = (id) => {
+    setIsFiltering(true);
+    setActiveSubcategory(id);
+    if (window.innerWidth < 768) setShowSidebar(false);
+    setTimeout(() => setIsFiltering(false), 200);
+  };
 
   return (
-    <div className="h-screen flex bg-gray-50 overflow-hidden">
-      {/* MOBILE OVERLAY */}
+    <div className="min-h-screen bg-gray-50">
+      {/* MOBILE TOP BAR */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between md:hidden">
+        <button
+          onClick={() => setShowSidebar(true)}
+          className="p-2 rounded-lg bg-gray-100 active:bg-gray-200"
+        >
+          <FiMenu size={20} className="text-gray-700" />
+        </button>
+        
+        <div className="flex-1 text-center">
+          <h1 className="font-bold text-gray-900 text-sm">Menu</h1>
+          {filteredMenu.length > 0 && (
+            <p className="text-xs text-gray-500">{filteredMenu.length} items</p>
+          )}
+        </div>
+
+        {/* CART BUTTON */}
+        <button
+          onClick={() => setShowFulfillment(true)}
+          className="relative p-2"
+          aria-label="View cart"
+        >
+          <FiShoppingCart size={22} className="text-gray-700" />
+          {cartTotalItems > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {cartTotalItems}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* SIDEBAR OVERLAY */}
       {showSidebar && (
         <div
           onClick={() => setShowSidebar(false)}
@@ -271,149 +264,144 @@ const handleSubcategoryClick = (id) => {
         />
       )}
 
-      {/* SIDEBAR */}
-      <aside
-        className={`fixed md:relative z-40 h-full w-64 bg-white border-r
-        transform transition-transform duration-300
-        ${showSidebar ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0`}
-      >
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">one18bakery</h2>
-          <button onClick={() => setShowSidebar(false)} className="md:hidden">
-            <FiX size={22} />
-          </button>
-        </div>
-
-        <div className="p-3 overflow-y-auto h-full">
-          {categoryStructure.map((cat) => (
-            <div key={cat.id} className="mb-1">
-              <button
-                onClick={() => handleCategoryClick(cat.id)}
-                className={`w-full flex justify-between items-center px-3 py-2.5 rounded-md text-sm
-                  ${
-                    activeCategory === cat.id
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
-                  }`}
-              >
-                {cat.name}
-                {cat.subcategories.length > 0 &&
-                  (expandedCategories[cat.id] ? (
-                    <FiChevronUp size={14} />
-                  ) : (
-                    <FiChevronDown size={14} />
-                  ))}
-              </button>
-
-              {cat.id !== "all" &&
-                expandedCategories[cat.id] &&
-                cat.subcategories.length > 0 && (
-                  <div className="ml-3 mt-1 space-y-1">
-                    {/* <button
-                      onClick={() => handleSubcategoryClick("all")}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm
-                        ${
-                          activeSubcategory === "all"
-                            ? "bg-gray-100 font-medium"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                    >
-                      All {cat.name}
-                    </button> */}
-
-                    {cat.subcategories.map((sub) => (
-                      <button
-                        key={sub.id}
-                        onClick={() => handleSubcategoryClick(sub.id)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm
-                          ${
-                            activeSubcategory === sub.id
-                              ? "bg-gray-100 font-medium"
-                              : "text-gray-600 hover:bg-gray-50"
-                          }`}
-                      >
-                        {sub.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto">
-        {/* MOBILE TOP BAR */}
-        <div className="md:hidden bg-white px-4 py-3 flex items-center gap-3">
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="bg-gray-100 p-2 rounded-md"
-          >
-            <FiMenu size={20} />
-          </button>
-          <span className="font-semibold text-gray-900 text-sm">Menu</span>
-        </div>
-
-        {/* BRANCH INFO */}
-        {/* {branchInfo && (
-          <div className="px-6 py-4">
-            <div className="flex items-center gap-3">
-              {branchInfo.image && (
-                <img
-                  src={branchInfo.image}
-                  alt={branchInfo.name}
-                  className="w-10 h-10 rounded-md object-cover"
-                />
-              )}
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {branchInfo.name}
-                </h2>
-                <p className="text-xs text-gray-500">{branchInfo.address}</p>
-              </div>
-            </div>
+      <div className="flex">
+        {/* SIDEBAR */}
+        <aside
+          className={`fixed md:sticky md:top-0 z-40 h-screen md:h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200
+          transform transition-transform duration-300 ease-out
+          ${showSidebar ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 md:block`}
+        >
+          <div className="p-4 border-b flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">Menu Categories</h2>
+            <button 
+              onClick={() => setShowSidebar(false)} 
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <FiX size={20} />
+            </button>
           </div>
-        )} */}
 
-        {/* MENU GRID */}
-     <div className="p-3 md:p-6">
-  {isMenuLoading || isFiltering ? (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          className="animate-pulse bg-gray-200 rounded-xl h-48"
-        />
-      ))}
-    </div>
-  ) : filteredMenu.length === 0 ? (
-    <div className="text-center text-gray-500 py-16 text-sm">
-      No items available
-    </div>
-  ) : (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-      {filteredMenu.map((item) => (
-        <MenuCard
-          key={item._id}
-          item={item}
-          orders={orders}
-          setOrders={setOrders}
-          openCart={() => setShowFulfillment(true)}
-        />
-      ))}
-    </div>
-  )}
-</div>
+          <div className="p-3 overflow-y-auto h-[calc(100%-80px)]">
+            {categoryStructure.map((cat) => (
+              <div key={cat.id} className="mb-1">
+                <button
+                  onClick={() => handleCategoryClick(cat.id)}
+                  className={`w-full flex justify-between items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors
+                    ${activeCategory === cat.id
+                      ? "bg-blue-50 text-blue-700 border border-blue-100"
+                      : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                >
+                  <span className="truncate">{cat.name}</span>
+                  {cat.subcategories.length > 0 && (
+                    expandedCategories[cat.id] ? (
+                      <FiChevronUp size={16} className="flex-shrink-0" />
+                    ) : (
+                      <FiChevronDown size={16} className="flex-shrink-0" />
+                    )
+                  )}
+                </button>
 
-      </main>
+                {cat.id !== "all" &&
+                  expandedCategories[cat.id] &&
+                  cat.subcategories.length > 0 && (
+                    <div className="ml-4 mt-1 space-y-1 border-l border-gray-100 pl-2">
+                      {cat.subcategories.map((sub) => (
+                        <button
+                          key={sub.id}
+                          onClick={() => handleSubcategoryClick(sub.id)}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors
+                            ${activeSubcategory === sub.id
+                              ? "bg-gray-100 text-gray-900 font-medium"
+                              : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                          {sub.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+              </div>
+            ))}
+          </div>
+        </aside>
 
-      {/* CART */}
-     <FulfillmentModal
-  open={showFulfillment}
-  onClose={() => setShowFulfillment(false)}
-/>
+        {/* MAIN CONTENT */}
+        <main className="flex-1 overflow-y-auto md:pl-0">
+          {/* DESKTOP HEADER */}
+          <div className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Our Menu</h1>
+              <p className="text-sm text-gray-500">
+                {filteredMenu.length} {filteredMenu.length === 1 ? 'item' : 'items'} available
+              </p>
+            </div>
+            
+            {/* DESKTOP CART BUTTON */}
+            {cartTotalItems > 0 && (
+              <button
+                onClick={() => setShowFulfillment(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <FiShoppingCart size={18} />
+                <span className="font-semibold">View Cart</span>
+                <span className="bg-white text-blue-600 px-2 py-0.5 rounded-full text-sm font-bold">
+                  {cartTotalItems}
+                </span>
+                <span className="font-bold">S${cartTotalPrice.toFixed(2)}</span>
+              </button>
+            )}
+          </div>
+
+          {/* MENU GRID */}
+          <div className="p-3 md:p-4 lg:p-6">
+            {isMenuLoading || isFiltering ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-200 rounded-lg aspect-[3/4] mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredMenu.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-6xl mb-4">🍰</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No items found</h3>
+                <p className="text-gray-500 text-sm">
+                  Try selecting a different category
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                {filteredMenu.map((item) => (
+                  <MenuCard
+                    key={item._id}
+                    item={item}
+                    orders={orders}
+                    setOrders={setOrders}
+                    openCart={() => setShowFulfillment(true)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* CART DRAWER */}
+      <CartDrawer 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+      />
+
+      {/* FULFILLMENT MODAL */}
+      <FulfillmentModal
+        open={showFulfillment}
+        onClose={() => setShowFulfillment(false)}
+      />
     </div>
   );
 };
