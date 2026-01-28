@@ -155,7 +155,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     onClose();
                     window.dispatchEvent(new Event("open-fulfillment"));
                   }}
-                  className="w-full max-w-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                  className="w-full max-w-xs bg-[#1E3A8A] hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 >
                   Select Dining Preference
                 </button>
