@@ -12,40 +12,35 @@ const Festival = () => {
 
   const branchId = localStorage.getItem("selectedBranch");
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const festivals = await getFestivals();
-        const f = festivals.find(x => x.slug === slug);
+ useEffect(() => {
+  const load = async () => {
+    setLoading(true);
+    try {
+      const festivals = await getFestivals();
+      const f = festivals.find(x => x.slug === slug);
 
-        if (!f) {
-          setFestival(null);
-          setProducts([]);
-          return;
-        }
-
-        setFestival(f); 
-
-        if (branchId) {
-         const items = branchId
-  ? await getMenu(branchId, f._id)
-  : [];
-
-setProducts(items);
-
-        } else {
-          setProducts([]);
-        }
-      } catch (err) {
-        console.error("Error loading festival:", err);
-      } finally {
-        setLoading(false);
+      if (!f) {
+        setFestival(null);
+        setProducts([]);
+        return;
       }
-    };
 
-    load();
-  }, [slug, branchId]);
+      setFestival(f);
+
+      // ✅ NO branch, same as best seller
+      const items = await getMenu(f._id);
+      setProducts(items);
+
+    } catch (err) {
+      console.error("Error loading festival:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [slug]);
+
 
   if (loading) {
     return <div className="py-20 text-center">Loading festival...</div>;
@@ -81,23 +76,18 @@ setProducts(items);
         </div>
 
         {/* Products */}
-        {branchId ? (
-          products.length ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {products.map(p => (
-                <FestivalCard key={p._id} product={p} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center text-gray-500">
-              No products for this festival
-            </div>
-          )
-        ) : (
-          <div className="text-center text-gray-500">
-            Select a bakery to see festival products
-          </div>
-        )}
+        {products.length ? (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+    {products.map(p => (
+      <FestivalCard key={p._id} product={p} />
+    ))}
+  </div>
+) : (
+  <div className="text-center text-gray-500">
+    No products for this festival
+  </div>
+)}
+
       </div>
     </>
   );

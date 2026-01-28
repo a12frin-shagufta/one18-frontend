@@ -9,40 +9,36 @@ const FestivalSection = () => {
 
   const branchId = localStorage.getItem("selectedBranch");
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const allFestivals = await getFestivals();
-        const activeFestivals = allFestivals.filter(f => f.isActive);
+useEffect(() => {
+  const load = async () => {
+    setLoading(true);
+    try {
+      const allFestivals = await getFestivals();
+      const activeFestivals = allFestivals.filter(f => f.isActive);
 
-        const menu = branchId ? await getMenu(branchId) : [];
+      const data = await Promise.all(
+        activeFestivals.map(async (festival) => {
+          const products = await getMenu(festival._id); // ✅ ONLY festival
 
-       const data = await Promise.all(
-  activeFestivals.map(async (festival) => {
-    const products = branchId
-      ? await getMenu(branchId, festival._id)
-      : [];
+          return {
+            ...festival,
+            products: products.slice(0, 4),
+          };
+        })
+      );
 
-    return {
-      ...festival,
-      products: products.slice(0, 4),
-    };
-  })
-);
+      setFestivals(data);
+    } catch (err) {
+      console.error("Error loading festivals:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-setFestivals(data);
+  load();
+}, []);
 
-        setFestivals(data);
-      } catch (err) {
-        console.error("Error loading festivals:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    load();
-  }, [branchId]);
 
   if (loading) {
     return <div className="text-center py-12">Loading festivals...</div>;
