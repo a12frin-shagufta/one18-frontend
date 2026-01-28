@@ -25,6 +25,11 @@ const Menu = () => {
   // const [branchInfo, setBranchInfo] = useState(null);
   const [offers, setOffers] = useState([]);
 const [showFulfillment, setShowFulfillment] = useState(false);
+const [isFiltering, setIsFiltering] = useState(false);
+const [isMenuLoading, setIsMenuLoading] = useState(true);
+
+
+
 
   // const [searchParams] = useSearchParams();
   // const branchId =
@@ -35,12 +40,20 @@ const [showFulfillment, setShowFulfillment] = useState(false);
   /* ======================
      FETCH MENU
   ====================== */
- useEffect(() => {
+useEffect(() => {
+  setIsMenuLoading(true);
+
   axios
     .get(`${BACKEND_URL}/api/menu`)
-    .then((res) => setMenu(res.data))
-    .catch(console.error);
+    .then((res) => {
+      setMenu(res.data);
+    })
+    .catch(console.error)
+    .finally(() => {
+      setIsMenuLoading(false);
+    });
 }, []);
+;
 
   
 
@@ -221,23 +234,32 @@ const filteredMenu = useMemo(() => {
      HANDLERS
   ====================== */
   const handleCategoryClick = (id) => {
-    setActiveCategory(id);
-    setActiveSubcategory("all");
+  setIsFiltering(true);
 
-    if (id !== "all") {
-      setExpandedCategories((prev) => ({
-        ...prev,
-        [id]: !prev[id],
-      }));
-    }
+  setActiveCategory(id);
+  setActiveSubcategory("all");
 
-    if (window.innerWidth < 768) setShowSidebar(false);
-  };
+  if (id !== "all") {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }
 
-  const handleSubcategoryClick = (id) => {
-    setActiveSubcategory(id);
-    if (window.innerWidth < 768) setShowSidebar(false);
-  };
+  if (window.innerWidth < 768) setShowSidebar(false);
+
+  setTimeout(() => setIsFiltering(false), 200); // 👈 smooth UX
+};
+
+const handleSubcategoryClick = (id) => {
+  setIsFiltering(true);
+
+  setActiveSubcategory(id);
+
+  if (window.innerWidth < 768) setShowSidebar(false);
+
+  setTimeout(() => setIsFiltering(false), 200);
+};
 
   return (
     <div className="h-screen flex bg-gray-50 overflow-hidden">
@@ -356,26 +378,35 @@ const filteredMenu = useMemo(() => {
         )} */}
 
         {/* MENU GRID */}
-        <div className="p-3 md:p-6">
-          {filteredMenu.length === 0 ? (
-            <div className="text-center text-gray-500 py-16 text-sm">
-              No items available
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
-              {filteredMenu.map((item) => (
-                <MenuCard
-  key={item._id}
-  item={item}
-  orders={orders}
-  setOrders={setOrders}
-  openCart={() => setShowFulfillment(true)}
-/>
+     <div className="p-3 md:p-6">
+  {isMenuLoading || isFiltering ? (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="animate-pulse bg-gray-200 rounded-xl h-48"
+        />
+      ))}
+    </div>
+  ) : filteredMenu.length === 0 ? (
+    <div className="text-center text-gray-500 py-16 text-sm">
+      No items available
+    </div>
+  ) : (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5">
+      {filteredMenu.map((item) => (
+        <MenuCard
+          key={item._id}
+          item={item}
+          orders={orders}
+          setOrders={setOrders}
+          openCart={() => setShowFulfillment(true)}
+        />
+      ))}
+    </div>
+  )}
+</div>
 
-              ))}
-            </div>
-          )}
-        </div>
       </main>
 
       {/* CART */}

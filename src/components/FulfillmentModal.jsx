@@ -41,6 +41,10 @@ const FulfillmentModal = ({ open, onClose }) => {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const [pickupDateError, setPickupDateError] = useState("");
+  const [deliveryDateError, setDeliveryDateError] = useState("");
+
+
 
 const [postalStatus, setPostalStatus] = useState("idle"); 
 // idle | error | success | checking
@@ -101,6 +105,56 @@ const [deliveryFee, setDeliveryFee] = useState(null);
     setPostalMessage("Delivery not available to this postal code");
   }
 };
+
+
+const isBeforeMinDate = (selectedDate, minDate) => {
+  if (!selectedDate) return false;
+  return new Date(selectedDate) < new Date(minDate);
+};
+
+const minPickupDate = getMinDate();
+
+const handlePickupDateChange = (e) => {
+  const selected = e.target.value;
+
+  if (!selected) {
+    setPickupDate("");
+    setPickupDateError("");
+    return;
+  }
+
+  if (new Date(selected) < new Date(minPickupDate)) {
+    setPickupDate("");
+    setPickupDateError("Pickup date must be at least 3 days from today");
+    return;
+  }
+
+  setPickupDate(selected);
+  setPickupDateError("");
+};
+
+
+const minDeliveryDate = getMinDate();
+
+const handleDeliveryDateChange = (e) => {
+  const selected = e.target.value;
+
+  if (!selected) {
+    setDeliveryDate("");
+    setDeliveryDateError("");
+    return;
+  }
+
+  if (new Date(selected) < new Date(minDeliveryDate)) {
+    setDeliveryDate("");
+    setDeliveryDateError("Delivery date must be at least 3 days from today");
+    return;
+  }
+
+  setDeliveryDate(selected);
+  setDeliveryDateError("");
+};
+
 
 
   return (
@@ -208,15 +262,25 @@ const [deliveryFee, setDeliveryFee] = useState(null);
               ))}
 
               <div>
-                <label className="text-sm font-medium">Pickup Date</label>
-                <input
-                  type="date"
-                  min={getMinDate()}
-                  value={pickupDate}
-                  onChange={(e) => setPickupDate(e.target.value)}
-                  className="mt-1 w-full border rounded-lg p-2"
-                />
-              </div>
+  <label className="text-sm font-medium">Pickup Date</label>
+
+  <input
+    type="date"
+    min={minPickupDate}
+    value={pickupDate}
+    onChange={handlePickupDateChange}
+    className={`mt-1 w-full border rounded-lg p-2
+      ${pickupDateError ? "border-red-500" : ""}
+    `}
+  />
+
+  {pickupDateError && (
+    <p className="mt-1 text-sm text-red-600">
+      {pickupDateError}
+    </p>
+  )}
+</div>
+
 
               <div>
                 <label className="text-sm font-medium">Pickup Time</label>
@@ -288,16 +352,26 @@ const [deliveryFee, setDeliveryFee] = useState(null);
 
     {/* DELIVERY DATE */}
     <div>
-      <label className="text-sm font-medium">Delivery Date</label>
-      <input
-        type="date"
-        min={getMinDate()}
-        value={deliveryDate}
-        disabled={postalStatus !== "success"}
-        onChange={(e) => setDeliveryDate(e.target.value)}
-        className="mt-1 w-full border rounded-lg p-2 disabled:bg-gray-100"
-      />
-    </div>
+  <label className="text-sm font-medium">Delivery Date</label>
+
+  <input
+    type="date"
+    min={minDeliveryDate}
+    value={deliveryDate}
+    disabled={postalStatus !== "success"}
+    onChange={handleDeliveryDateChange}
+    className={`mt-1 w-full border rounded-lg p-2 disabled:bg-gray-100
+      ${deliveryDateError ? "border-red-500" : ""}
+    `}
+  />
+
+  {deliveryDateError && (
+    <p className="mt-1 text-sm text-red-600">
+      {deliveryDateError}
+    </p>
+  )}
+</div>
+
 
     {/* DELIVERY TIME */}
     <div>
