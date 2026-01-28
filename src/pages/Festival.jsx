@@ -53,13 +53,13 @@ const Festival = () => {
   return (
     <>
       {/* ✅ FULL WIDTH BANNER */}
-      <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+      {/* <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
         <img
           src={festival.bannerImage}
           alt={festival.name}
           className="w-full h-[350px] md:h-[400px] object-cover"
         />
-      </div>
+      </div> */}
 
       {/* ✅ NORMAL PAGE CONTENT */}
       <div className="max-w-7xl mx-auto px-4 py-12">
