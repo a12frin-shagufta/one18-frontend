@@ -413,10 +413,12 @@ return {
       />
 
       {/* FULFILLMENT MODAL */}
-      <FulfillmentModal
-        open={showFulfillment}
-        onClose={() => setShowFulfillment(false)}
-      />
+     <FulfillmentModal
+  open={showFulfillment}
+  onClose={() => setShowFulfillment(false)}
+  redirectToCheckout
+/>
+
     </div>
   );
 };

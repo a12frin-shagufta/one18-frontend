@@ -30,7 +30,8 @@ const getMinDate = () => {
   return d.toISOString().split("T")[0];
 };
 
-const FulfillmentModal = ({ open, onClose }) => {
+const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
+
   const [step, setStep] = useState("select");
   const navigate = useNavigate();
 
@@ -75,8 +76,14 @@ const [deliveryFee, setDeliveryFee] = useState(null);
     })
   );
 
-  onClose(); // ✅ JUST CLOSE
+  onClose();
+
+  // ✅ THIS WAS MISSING
+  if (redirectToCheckout) {
+    navigate("/checkout");
+  }
 };
+
 
 
 
