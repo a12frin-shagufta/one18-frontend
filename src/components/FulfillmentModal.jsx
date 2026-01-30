@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+
 import { X, Store, Truck, ArrowLeft, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Search, AlertCircle } from "lucide-react";
 import axios from "axios";
+
+
 
 
 const branches = [
@@ -24,13 +27,11 @@ const timeSlots = [
   "15:30","16:30","17:30","18:30","19:00",
 ];
 
-const getMinDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 3);
-  return d.toISOString().split("T")[0];
-};
+
 
 const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
+  if (!open) return null;
+
 
   const [step, setStep] = useState("select");
   const navigate = useNavigate();
@@ -44,6 +45,12 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [pickupDateError, setPickupDateError] = useState("");
   const [deliveryDateError, setDeliveryDateError] = useState("");
+  const [noResults, setNoResults] = useState(false);
+
+  
+  const postalInputRef = useRef(null);
+
+  
 
 
 
@@ -53,14 +60,20 @@ const [postalMessage, setPostalMessage] = useState("");
 const [deliveryFee, setDeliveryFee] = useState(null);
 
 
-  if (!open) return null;
+
 
  const saveAndClose = () => {
   if (step === "pickup" && (!branch || !pickupDate || !pickupTime)) return;
+
   if (
     step === "delivery" &&
     (!postalCode || !deliveryDate || !deliveryTime || postalStatus !== "success")
   ) return;
+
+  // Extract area name cleanly
+  const area = postalMessage?.includes("Delivering to ")
+    ? postalMessage.replace("Delivering to ", "")
+    : "";
 
   localStorage.setItem(
     "fulfillmentData",
@@ -73,44 +86,128 @@ const [deliveryFee, setDeliveryFee] = useState(null);
       deliveryDate,
       deliveryTime,
       deliveryFee,
+      area,               // ← add this
     })
   );
 
   onClose();
 
-  // ✅ THIS WAS MISSING
   if (redirectToCheckout) {
     navigate("/checkout");
   }
 };
 
+const getMinDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  return d.toISOString().split("T")[0];
+};
 
 
 
-  const checkPostalCode = async () => {
-  if (postalCode.length < 6) {
+// useEffect(() => {
+//   if (!postalInputRef.current || !window.google) return;
+
+//   const autocomplete = new window.google.maps.places.Autocomplete(
+//     postalInputRef.current,
+//     {
+//       types: ["postal_code"],
+//       componentRestrictions: { country: "sg" },
+//     }
+//   );
+
+//   autocomplete.addListener("place_changed", () => {
+//     const place = autocomplete.getPlace();
+
+//     const postal = place.address_components?.find(c =>
+//       c.types.includes("postal_code")
+//     )?.long_name;
+
+//     const area =
+//       place.address_components?.find(c =>
+//         c.types.includes("neighborhood") ||
+//         c.types.includes("sublocality")
+//       )?.long_name ||
+//       place.address_components?.find(c =>
+//         c.types.includes("locality")
+//       )?.long_name;
+
+//     if (postal) {
+//       setPostalCode(postal);
+//       setPostalStatus("success");
+//       setPostalMessage(area ? `Delivering to ${area}` : "Postal code selected");
+//     }
+//   });
+
+
+// const fetchAddressFromPostal = async (postal) => {
+//   try {
+//     const res = await fetch(
+//       `https://maps.googleapis.com/maps/api/geocode/json?address=${postal}&components=country:SG&key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}`
+//     );
+
+//     const data = await res.json();
+//     if (!data.results?.length) return null;
+
+//     const components = data.results[0].address_components;
+
+//     // SG-specific priority
+//     const area =
+//       components.find(c => c.types.includes("sublocality_level_1"))?.long_name ||
+//       components.find(c => c.types.includes("neighborhood"))?.long_name ||
+//       components.find(c => c.types.includes("administrative_area_level_3"))?.long_name ||
+//       components.find(c => c.types.includes("administrative_area_level_2"))?.long_name;
+
+//     return area || null;
+//   } catch {
+//     return null;
+//   }
+// };
+
+
+
+ const checkPostalCode = async () => {
+  if (postalCode.length !== 6) {
     setPostalStatus("error");
     setPostalMessage("Postal code must be 6 digits");
+    setDeliveryFee(null);
     return;
   }
 
   try {
     setPostalStatus("checking");
-    setPostalMessage("");
 
-    const res = await axios.post(
+    // 1️⃣ REAL validation (Google via backend)
+    const postalRes = await axios.post(
+      `${BACKEND_URL}/api/postal/validate`,
+      { postalCode }
+    );
+
+    if (!postalRes.data.valid) {
+      setPostalStatus("error");
+      setPostalMessage("Invalid Singapore postal code");
+      setDeliveryFee(null);
+      return;
+    }
+
+    // 2️⃣ Delivery fee check
+    const feeRes = await axios.post(
       `${BACKEND_URL}/api/delivery/check`,
       { postalCode }
     );
 
-    setDeliveryFee(res.data.deliveryFee);
+    setDeliveryFee(feeRes.data.deliveryFee);
     setPostalStatus("success");
-    setPostalMessage("Postal code available for delivery");
-  } catch (err) {
+    setPostalMessage(`Delivering to ${postalRes.data.area}`);
+
+  } catch {
     setPostalStatus("error");
     setPostalMessage("Delivery not available to this postal code");
+    setDeliveryFee(null);
   }
 };
+
+
 
 
 const isBeforeMinDate = (selectedDate, minDate) => {
@@ -159,6 +256,56 @@ const handleDeliveryDateChange = (e) => {
 
   setDeliveryDate(selected);
   setDeliveryDateError("");
+};
+
+const handlePostalChange = async (e) => {
+  let value = e.target.value.replace(/\D/g, "").slice(0, 6);
+  setPostalCode(value);
+
+  // Reset states
+  setPostalStatus("idle");
+  setPostalMessage("");
+  setDeliveryFee(null);
+  setNoResults(false);
+
+  if (value.length !== 6) return;
+
+  try {
+    setPostalStatus("checking");
+
+    const res = await axios.post(
+      `${BACKEND_URL}/api/postal/validate`,
+      { postalCode: value }
+    );
+
+    if (res.data.valid) {
+      setPostalStatus("success");
+      setPostalMessage(
+        res.data.area
+          ? `Delivering to ${res.data.area}`
+          : "Postal code accepted"
+      );
+
+      // Optional: also get fee (if you want to show fee immediately)
+      try {
+        const feeRes = await axios.post(
+          `${BACKEND_URL}/api/delivery/check`,
+          { postalCode: value }
+        );
+        setDeliveryFee(feeRes.data.deliveryFee);
+      } catch (feeErr) {
+        console.warn("Fee check failed", feeErr);
+        setDeliveryFee(10); // fallback – or leave null
+      }
+    } else {
+      setPostalStatus("error");
+      setPostalMessage("Invalid or undeliverable postal code");
+    }
+  } catch (err) {
+    console.error(err);
+    setPostalStatus("error");
+    setPostalMessage("Cannot check postal code right now");
+  }
 };
 
 
@@ -306,108 +453,112 @@ const handleDeliveryDateChange = (e) => {
 
           {/* DELIVERY */}
           {/* DELIVERY */}
-{step === "delivery" && (
-  <div className="space-y-4">
 
-    {/* POSTAL CODE */}
-    <div>
-      <label className="text-sm font-medium">Postal Code</label>
 
-      <div className="relative mt-1">
+          {step === "delivery" && (
+  <div className="space-y-5">
+
+    {/* POSTAL CODE INPUT + STATUS */}
+    <div className="space-y-1">
+      <label className="text-sm font-medium text-gray-700">
+        Postal Code
+      </label>
+      
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+        
         <input
           type="text"
           placeholder="Enter 6-digit postal code"
           value={postalCode}
-          onChange={(e) => {
-            setPostalCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-            setPostalStatus("idle");
-            setPostalMessage("");
-          }}
-          className={`w-full border rounded-lg p-2 pr-10
-            ${postalStatus === "error" ? "border-red-500" : ""}
-            ${postalStatus === "success" ? "border-green-500" : ""}
+          onChange={handlePostalChange}
+          maxLength={6}
+          className={`w-full pl-9 pr-9 py-2.5 border rounded-lg text-sm
+            focus:outline-none focus:ring-1 focus:ring-blue-500
+            ${postalStatus === "error"   ? "border-red-500 bg-red-50" : ""}
+            ${postalStatus === "success" ? "border-green-500 bg-green-50" : ""}
+            ${postalStatus === "checking" ? "border-yellow-500" : "border-gray-300"}
           `}
         />
 
-        {/* SEARCH ICON */}
-        <button
-          type="button"
-          onClick={checkPostalCode}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500"
-        >
-          <Search size={18} />
-        </button>
+        {postalCode && (
+          <button
+            onClick={() => {
+              setPostalCode("");
+              setPostalStatus("idle");
+              setPostalMessage("");
+              setDeliveryFee(null);
+              setNoResults(false);
+            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
-      {/* STATUS MESSAGE */}
-      {postalMessage && (
-        <div
-          className={`flex items-center gap-2 mt-2 text-sm
-            ${postalStatus === "error" ? "text-red-600" : "text-green-600"}
-          `}
-        >
-          {postalStatus === "error" ? (
-            <AlertCircle size={16} />
-          ) : (
-            <CheckCircle size={16} />
-          )}
-          {postalMessage}
-        </div>
+      {/* Status messages */}
+      {postalStatus === "checking" && (
+        <p className="text-xs text-yellow-600 pl-1">Checking availability...</p>
+      )}
+
+      {postalStatus === "success" && postalMessage && (
+        <p className="text-xs text-green-700 pl-1 font-medium">{postalMessage}</p>
+      )}
+
+      {postalStatus === "error" && (
+        <p className="text-xs text-red-600 pl-1">
+          {postalMessage || "Delivery not available to this postal code"}
+        </p>
+      )}
+
+      {noResults && postalStatus !== "error" && (
+        <p className="text-xs text-red-600 pl-1">No results found</p>
       )}
     </div>
 
-    {/* DELIVERY DATE */}
-    <div>
-  <label className="text-sm font-medium">Delivery Date</label>
+    {/* Delivery Date */}
+    <div className="space-y-1">
+      <label className="text-sm font-medium text-gray-700">Delivery Date</label>
+      <input
+        type="date"
+        min={minDeliveryDate}
+        value={deliveryDate}
+        disabled={postalStatus !== "success"}
+        onChange={handleDeliveryDateChange}
+        className={`w-full border rounded-lg p-2.5 text-sm disabled:bg-gray-100
+          ${deliveryDateError ? "border-red-500" : "border-gray-300"}`}
+      />
+      {deliveryDateError && (
+        <p className="text-xs text-red-600">{deliveryDateError}</p>
+      )}
+    </div>
 
-  <input
-    type="date"
-    min={minDeliveryDate}
-    value={deliveryDate}
-    disabled={postalStatus !== "success"}
-    onChange={handleDeliveryDateChange}
-    className={`mt-1 w-full border rounded-lg p-2 disabled:bg-gray-100
-      ${deliveryDateError ? "border-red-500" : ""}
-    `}
-  />
-
-  {deliveryDateError && (
-    <p className="mt-1 text-sm text-red-600">
-      {deliveryDateError}
-    </p>
-  )}
-</div>
-
-
-    {/* DELIVERY TIME */}
-    <div>
-      <label className="text-sm font-medium">Delivery Time</label>
+    {/* Delivery Time */}
+    <div className="space-y-1">
+      <label className="text-sm font-medium text-gray-700">Delivery Time</label>
       <select
         value={deliveryTime}
         disabled={postalStatus !== "success"}
         onChange={(e) => setDeliveryTime(e.target.value)}
-        className="mt-1 w-full border rounded-lg p-2 disabled:bg-gray-100"
+        className="w-full border rounded-lg p-2.5 text-sm disabled:bg-gray-100"
       >
-        <option value="">Select time</option>
-        {timeSlots.map((t) => (
-          <option key={t}>{t}</option>
-        ))}
+        <option value="">Select time slot</option>
+        {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
       </select>
     </div>
 
-    {/* DELIVERY FEE */}
-    {postalStatus === "success" && (
-      <div className="text-sm text-gray-700">
-        Delivery Fee:{" "}
-        <span className="font-semibold">
-          {deliveryFee === 0 ? "Free" : `$${deliveryFee}`}
+    {/* Fee display */}
+    {postalStatus === "success" && deliveryFee !== null && (
+      <div className="bg-gray-50 p-3 rounded-lg text-sm">
+        Delivery Fee: <span className="font-semibold">
+          {deliveryFee === 0 ? "Free" : `S$${deliveryFee}`}
         </span>
       </div>
     )}
+
   </div>
 )}
-
-          
         </div>
 
         {/* FOOTER */}

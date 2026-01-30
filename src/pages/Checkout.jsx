@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
 import { CheckCircle, ChevronLeft, AlertCircle, Loader } from "lucide-react";
 import { useLocation } from "react-router-dom";
+
 import axios from "axios";
 
 const Checkout = () => {
@@ -14,10 +15,12 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
   const location = useLocation();
 
+
   const fulfillment = useMemo(() => {
-    const data = localStorage.getItem("fulfillmentData");
-    return data ? JSON.parse(data) : null;
-  }, []);
+  const data = localStorage.getItem("fulfillmentData");
+  return data ? JSON.parse(data) : null;
+}, []);
+
 
   const [customer, setCustomer] = useState({
     firstName: "",
@@ -31,17 +34,38 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    if (!fulfillment) return;
+  const savedCustomer = localStorage.getItem("checkoutCustomer");
+  if (!savedCustomer) return;
 
-    // ✅ DELIVERY: use validated cart drawer data
-    if (fulfillment.type === "delivery") {
-      setCustomer((prev) => ({
-        ...prev,
-        postalCode: fulfillment.postalCode || prev.postalCode,
-        address: fulfillment.address || prev.address,
-      }));
-    }
-  }, [fulfillment]);
+  const parsed = JSON.parse(savedCustomer);
+
+  // 🚫 never override postalCode (comes from fulfillment)
+  delete parsed.postalCode;
+
+  setCustomer(prev => ({
+    ...prev,
+    ...parsed,
+  }));
+}, []);
+
+
+  
+
+  useEffect(() => {
+  if (!fulfillment) return;
+
+  console.log("Fulfillment data in checkout:", fulfillment); // debug
+
+  if (fulfillment.type === "delivery") {
+    setCustomer(prev => ({
+      ...prev,
+      postalCode: fulfillment.postalCode 
+        || fulfillment.postal // ← in case someone used different name
+        || fulfillment.zip 
+        || "", 
+    }));
+  }
+}, [fulfillment]);
 
   // ✅ Required fields validation (pickup should NOT require address/postal)
   const requiredFields = useMemo(() => {
@@ -214,16 +238,22 @@ const Checkout = () => {
   };
 
   // Auto-save form data to localStorage
-  useEffect(() => {
-    const savedCustomer = localStorage.getItem("checkoutCustomer");
-    if (savedCustomer) {
-      setCustomer(JSON.parse(savedCustomer));
-    }
-  }, []);
+  // useEffect(() => {
+  //   const savedCustomer = localStorage.getItem("checkoutCustomer");
+  //   if (savedCustomer) {
+  //     setCustomer(JSON.parse(savedCustomer));
+  //   }
+  // }, []);
 
   useEffect(() => {
-    localStorage.setItem("checkoutCustomer", JSON.stringify(customer));
-  }, [customer]);
+  const { postalCode, ...safeCustomer } = customer;
+
+  localStorage.setItem(
+    "checkoutCustomer",
+    JSON.stringify(safeCustomer)
+  );
+}, [customer]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
@@ -339,21 +369,30 @@ const Checkout = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Phone number *
                 </label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-                    +65
-                  </div>
-                  <input
-                    id="phone"
-                    type="tel"
-                    value={customer.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    className={`w-full border rounded-xl px-4 py-3.5 pl-14 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.phone ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="1234 5678"
-                  />
-                </div>
+                <div className="relative flex items-center">
+  {/* Flag + country code */}
+  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+    <span className="text-lg">🇸🇬</span>
+    <span className="text-gray-500 text-sm font-medium">+65</span>
+  </div>
+
+  <input
+    id="phone"
+    type="tel"
+    value={customer.phone}
+    onChange={(e) =>
+      handleInputChange(
+        "phone",
+        e.target.value.replace(/\D/g, "").slice(0, 8)
+      )
+    }
+    className={`w-full border rounded-xl px-4 py-3.5 pl-20 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+      errors.phone ? "border-red-500" : "border-gray-300"
+    }`}
+    placeholder="1234 5678"
+  />
+</div>
+
                 {errors.phone && (
                   <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                     <AlertCircle className="w-4 h-4" />
@@ -430,54 +469,41 @@ const Checkout = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Postal Code *
-                    </label>
-                    <input
-                      id="postalCode"
-                      value={customer.postalCode}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "postalCode",
-                          e.target.value.replace(/\D/g, "").slice(0, 6)
-                        )
-                      }
-                      disabled={fulfillment?.type === "delivery"}
-                      className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                        errors.postalCode ? "border-red-500" : "border-gray-300"
-                      } ${
-                        fulfillment?.type === "delivery"
-                          ? "bg-gray-100 cursor-not-allowed"
-                          : ""
-                      }`}
-                      placeholder="123456"
-                      maxLength="6"
-                    />
+                <div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Postal Code *
+  </label>
+  
+  <div className="relative">
+   <input
+  id="postalCode"
+  value={customer.postalCode || ""}
+  disabled
+  readOnly
+  className="w-full border border-gray-300 bg-gray-100 rounded-xl px-4 py-3.5"
+/>
 
-                    {errors.postalCode && (
-                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.postalCode}
-                      </p>
-                    )}
-                  </div>
+    
+    {/* Optional: small indicator that it's from previous step */}
+    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+      <CheckCircle className="w-5 h-5 text-green-600" />
+    </div>
+  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company (optional)
-                    </label>
-                    <input
-                      value={customer.company}
-                      onChange={(e) =>
-                        handleInputChange("company", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none"
-                      placeholder="Acme Inc."
-                    />
-                  </div>
-                </div>
+  {/* Optional: show the friendly area name if you saved it */}
+  {fulfillment?.area && (
+    <p className="mt-1.5 text-sm text-green-700">
+      Delivering to {fulfillment.area}
+    </p>
+  )}
+
+  {errors.postalCode && (
+    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+      <AlertCircle className="w-4 h-4" />
+      {errors.postalCode}
+    </p>
+  )}
+</div>
               </div>
             </section>
           )}
