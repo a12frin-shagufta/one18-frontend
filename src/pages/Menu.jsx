@@ -133,17 +133,25 @@ return {
       let subs = Array.from(c.subcategories, ([id, name]) => ({ id, name }));
 
       if (c.name.toLowerCase() === "croissants") {
-        subs.sort((a, b) => {
-          const aIndex = CROISSANT_SUB_ORDER.indexOf(a.name.toLowerCase());
-          const bIndex = CROISSANT_SUB_ORDER.indexOf(b.name.toLowerCase());
-          if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
-          if (aIndex === -1) return 1;
-          if (bIndex === -1) return -1;
-          return aIndex - bIndex;
-        });
-      } else {
-        subs.sort((a, b) => a.name.localeCompare(b.name));
-      }
+  subs.sort((a, b) => {
+    const normalize = (str = "") =>
+      str.toLowerCase().replace(/\s+/g, " ").trim();
+
+    const order = ["sweet", "savoury"];
+
+    const aName = normalize(a.name);
+    const bName = normalize(b.name);
+
+    const aIndex = order.findIndex(k => aName.includes(k));
+    const bIndex = order.findIndex(k => bName.includes(k));
+
+    if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+
+    return aIndex - bIndex;
+  });
+}
 
       return {
         ...c,
@@ -185,32 +193,47 @@ return {
      FILTER MENU
   ====================== */
   const filteredMenu = useMemo(() => {
-    const result = menuWithOffers.filter((item) => {
-      const catMatch =
-        activeCategory === "all" || item.category?._id === activeCategory;
-      const subMatch =
-        activeSubcategory === "all" ||
-        item.subcategory?._id === activeSubcategory;
-      return catMatch && subMatch;
-    });
+  const result = menuWithOffers.filter((item) => {
+    const catMatch =
+      activeCategory === "all" || item.category?._id === activeCategory;
 
-    return result.sort((a, b) => {
-      if (a.isBestSeller !== b.isBestSeller) {
-        return a.isBestSeller ? -1 : 1;
+    const subMatch =
+      activeSubcategory === "all" ||
+      item.subcategory?._id === activeSubcategory;
+
+    return catMatch && subMatch;
+  });
+
+  return result.sort((a, b) => {
+    // 🥐 CROISSANTS: Sweet → Savoury → Plain
+    if (a.category?.name?.toLowerCase() === "croissants") {
+      const normalize = (str = "") =>
+        str.toLowerCase().replace(/\s+/g, " ").trim();
+
+      const order = ["sweet", "savoury", "plain"];
+
+      const aSub = normalize(a.subcategory?.name || "plain");
+      const bSub = normalize(b.subcategory?.name || "plain");
+
+      const aIndex = order.findIndex((k) => aSub.includes(k));
+      const bIndex = order.findIndex((k) => bSub.includes(k));
+
+      if (aIndex !== bIndex) {
+        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
       }
+    }
 
-      if (a.category?.name?.toLowerCase() === "croissants") {
-        const order = ["sweet flavours", "savoury flavours"];
-        const aIndex = order.indexOf(a.subcategory?.name?.toLowerCase());
-        const bIndex = order.indexOf(b.subcategory?.name?.toLowerCase());
-        if (aIndex !== -1 || bIndex !== -1) {
-          return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
-        }
-      }
+    // ⭐ Best sellers AFTER croissant grouping
+    if (a.isBestSeller !== b.isBestSeller) {
+      return a.isBestSeller ? -1 : 1;
+    }
 
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }, [menuWithOffers, activeCategory, activeSubcategory]);
+    // 🕒 Default: newest first
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+}, [menuWithOffers, activeCategory, activeSubcategory]);
+
+
 
   /* ======================
      HANDLERS
