@@ -128,7 +128,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b shrink-0">
@@ -153,30 +153,43 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5">
 
           {step === "select" && (
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
-              <button
-                onClick={() => setStep("pickup")}
-                className="border-2 rounded-xl p-6 sm:p-7 text-center hover:border-blue-600 active:scale-[0.98] transition"
-              >
-                <Store className="mx-auto text-blue-700 mb-4" size={36} />
-                <h3 className="font-semibold text-lg">Pickup</h3>
-                <p className="text-sm text-gray-600 mt-1.5">Self-collect • Skip the queue</p>
-                <div className="mt-5 bg-blue-800 text-yellow-300 py-2.5 rounded-lg font-semibold">
-                  Select
-                </div>
-              </button>
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+             <button
+  onClick={() => setStep("pickup")}
+  className="border rounded-xl p-6 sm:p-8 text-center hover:shadow-md hover:border-blue-600 active:scale-[0.98] transition flex flex-col justify-between"
+>
+  <div>
+    <Store className="mx-auto text-blue-700 mb-4" size={40} />
+    <h3 className="font-semibold text-xl">Pickup</h3>
+    <p className="text-sm text-gray-600 mt-2">
+      Self-collect and beat the queue
+    </p>
+  </div>
+
+  <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
+    Select
+  </div>
+</button>
+
 
               <button
-                onClick={() => setStep("delivery")}
-                className="border-2 rounded-xl p-6 sm:p-7 text-center hover:border-blue-600 active:scale-[0.98] transition"
-              >
-                <Truck className="mx-auto text-blue-700 mb-4" size={36} />
-                <h3 className="font-semibold text-lg">Delivery</h3>
-                <p className="text-sm text-gray-600 mt-1.5">To your doorstep</p>
-                <div className="mt-5 bg-blue-800 text-yellow-300 py-2.5 rounded-lg font-semibold">
-                  Select
-                </div>
-              </button>
+  onClick={() => setStep("delivery")}
+  className="border rounded-xl p-6 sm:p-8 text-center hover:shadow-md hover:border-blue-600 active:scale-[0.98] transition flex flex-col justify-between"
+>
+  <div>
+    <Truck className="mx-auto text-blue-700 mb-4" size={40} />
+    <h3 className="font-semibold text-xl">Delivery</h3>
+    <p className="text-sm text-gray-600 mt-2">
+      Delivered right to your doorstep
+    </p>
+  </div>
+
+  <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
+    Select
+  </div>
+</button>
+
             </div>
           )}
 
