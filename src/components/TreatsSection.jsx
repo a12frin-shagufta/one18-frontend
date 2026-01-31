@@ -4,23 +4,33 @@ const TreatsSection = () => {
   const navigate = useNavigate();
 
   const treats = [
-    {
-      title: "Presents",
-      image: "/images/button.jpg",
-    },
-    {
-      title: "Birthday",
-      image: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/03645a17219bb167bf48ab7d9376b35c.jpg",
-    },
-    {
-      title: "Wedding",
-      image: "https://i.pinimg.com/1200x/82/59/f0/8259f05c19992e4c30d0240fa51dd10e.jpg",
-    },
-    {
-      title: "Parties",
-      image: "https://i.pinimg.com/1200x/61/03/6f/61036fb62c1f669ea75159294268f9b5.jpg",
-    },
-  ];
+     {
+    title: "Wedding",
+    image: "/images/w1.png",
+    pdf: "/pdfs/wedding.pdf", // ✅ PDF
+  },
+  
+  {
+    title: "Presents",
+    image: "/images/button.jpg",
+    link: "/menu",
+  },
+
+ 
+  
+  {
+    title: "Birthday",
+    image: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/03645a17219bb167bf48ab7d9376b35c.jpg",
+    link: "/menu",
+  },
+  
+  {
+    title: "Parties",
+    image: "https://i.pinimg.com/1200x/61/03/6f/61036fb62c1f669ea75159294268f9b5.jpg",
+    link: "/menu",
+  },
+];
+
 
   return (
     <section className="bg-[#1E3A8A] py-20 mt-10">
@@ -48,10 +58,17 @@ const TreatsSection = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {treats.map((item, index) => (
             <div
-              key={index}
-              className="group cursor-pointer"
-              onClick={() => navigate("/menu")}
-            >
+  key={index}
+  className="group cursor-pointer"
+  onClick={() => {
+    if (item.pdf) {
+      window.open(item.pdf, "_blank");
+    } else {
+      navigate(item.link || "/menu");
+    }
+  }}
+>
+
               <div className="overflow-hidden rounded-md">
                 <img
                   src={item.image}
