@@ -20,6 +20,7 @@ import Confirmation from "./pages/Confirmation";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import { DEFAULT_BRANCH } from "./config/defaultBranch";
 import FulfillmentModal from "./components/FulfillmentModal";
+import ThankYou from "./components/ThankYou";
 
 function App() {
   const location = useLocation();
@@ -65,6 +66,7 @@ function App() {
         <Route path="/confirmation" element={<Confirmation />} />
        <Route path="/payment-success" element={<PaymentSuccess />} />
        <Route path="/fulfillment" element={<FulfillmentModal />} />
+        <Route path="/thank-you" element={<ThankYou />} />
 
 
         

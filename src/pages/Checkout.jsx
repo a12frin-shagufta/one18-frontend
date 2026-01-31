@@ -2,25 +2,32 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
-import { CheckCircle, ChevronLeft, AlertCircle, Loader } from "lucide-react";
+import { CheckCircle, ChevronLeft, AlertCircle, Loader, X, Upload } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 import axios from "axios";
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { orders } = useCart();
+  const { orders, clearCart } = useCart();
+
   const items = Object.values(orders);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState("paynow");
+  const [showPayNowQR, setShowPayNowQR] = useState(false);
+  const [pendingOrderPayload, setPendingOrderPayload] = useState(null);
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const location = useLocation();
 
-
   const fulfillment = useMemo(() => {
-  const data = localStorage.getItem("fulfillmentData");
-  return data ? JSON.parse(data) : null;
-}, []);
-
+    const data = localStorage.getItem("fulfillmentData");
+    return data ? JSON.parse(data) : null;
+  }, []);
 
   const [customer, setCustomer] = useState({
     firstName: "",
@@ -31,43 +38,37 @@ const Checkout = () => {
     apartment: "",
     postalCode: "",
     phone: "",
+    phone: "65", // ✅ Singapore default
   });
 
   useEffect(() => {
-  const savedCustomer = localStorage.getItem("checkoutCustomer");
-  if (!savedCustomer) return;
+    const savedCustomer = localStorage.getItem("checkoutCustomer");
+    if (!savedCustomer) return;
 
-  const parsed = JSON.parse(savedCustomer);
+    const parsed = JSON.parse(savedCustomer);
+    delete parsed.postalCode;
 
-  // 🚫 never override postalCode (comes from fulfillment)
-  delete parsed.postalCode;
-
-  setCustomer(prev => ({
-    ...prev,
-    ...parsed,
-  }));
-}, []);
-
-
-  
+    setCustomer((prev) => ({
+      ...prev,
+      ...parsed,
+    }));
+  }, []);
 
   useEffect(() => {
-  if (!fulfillment) return;
+    if (!fulfillment) return;
 
-  console.log("Fulfillment data in checkout:", fulfillment); // debug
+    if (fulfillment.type === "delivery") {
+      setCustomer((prev) => ({
+        ...prev,
+        postalCode:
+          fulfillment.postalCode ||
+          fulfillment.postal ||
+          fulfillment.zip ||
+          "",
+      }));
+    }
+  }, [fulfillment]);
 
-  if (fulfillment.type === "delivery") {
-    setCustomer(prev => ({
-      ...prev,
-      postalCode: fulfillment.postalCode 
-        || fulfillment.postal // ← in case someone used different name
-        || fulfillment.zip 
-        || "", 
-    }));
-  }
-}, [fulfillment]);
-
-  // ✅ Required fields validation (pickup should NOT require address/postal)
   const requiredFields = useMemo(() => {
     if (fulfillment?.type === "pickup") {
       return ["firstName", "lastName", "email", "phone"];
@@ -83,17 +84,14 @@ const Checkout = () => {
       }
     });
 
-    // ✅ Email validation
     if (customer.email && !/^\S+@\S+\.\S+$/.test(customer.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // ✅ Phone validation
     if (customer.phone && !/^\d{8,}$/.test(customer.phone.replace(/\D/g, ""))) {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // ✅ Postal code validation ONLY for delivery
     if (fulfillment?.type === "delivery") {
       if (
         customer.postalCode &&
@@ -130,11 +128,9 @@ const Checkout = () => {
 
     try {
       const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
       const fulfillment = JSON.parse(
-        localStorage.getItem("fulfillmentData") || "{}"
+        localStorage.getItem("fulfillmentData") || "{}",
       );
-
       const orderNote = localStorage.getItem("orderNote") || "";
 
       if (!fulfillment?.type) {
@@ -143,41 +139,33 @@ const Checkout = () => {
         return;
       }
 
-      // ✅ PREORDER logic
       const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
       const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
 
-      // ✅ ORDER PAYLOAD
       const payload = {
         branch: fulfillment?.branch?._id || null,
         orderType,
         fulfillmentType: fulfillment.type,
-
         fulfillmentDate:
           fulfillment.type === "pickup"
             ? fulfillment.pickupDate
             : fulfillment.deliveryDate,
-
         fulfillmentTime:
           fulfillment.type === "pickup"
             ? fulfillment.pickupTime
             : fulfillment.deliveryTime,
-
         customer: {
           firstName: customer.firstName,
           lastName: customer.lastName,
           email: customer.email,
           company: customer.company,
           phone: customer.phone,
-
-          // ✅ ONLY include address/postal for delivery
           address: fulfillment.type === "delivery" ? customer.address : "",
           apartment: fulfillment.type === "delivery" ? customer.apartment : "",
-          postalCode: fulfillment.type === "delivery" ? customer.postalCode : "",
-
+          postalCode:
+            fulfillment.type === "delivery" ? customer.postalCode : "",
           message: orderNote,
         },
-
         deliveryAddress:
           fulfillment.type === "delivery"
             ? {
@@ -185,7 +173,6 @@ const Checkout = () => {
                 postalCode: fulfillment.postalCode || customer.postalCode,
               }
             : null,
-
         pickupLocation:
           fulfillment.type === "pickup"
             ? {
@@ -193,7 +180,6 @@ const Checkout = () => {
                 address: fulfillment?.branch?.address || "",
               }
             : null,
-
         items: items.map((i) => ({
           productId: i.itemId,
           name: i.name,
@@ -201,28 +187,38 @@ const Checkout = () => {
           price: i.price,
           qty: i.qty,
         })),
-
         subtotal,
         deliveryFee,
         totalAmount,
       };
 
-      // ✅ STRIPE CHECKOUT SESSION API
-      const res = await axios.post(
-        `${BACKEND_URL}/api/payment/create-checkout-session`,
-        {
-          items: payload.items,
-          deliveryFee: payload.deliveryFee,
-          orderPayload: payload,
-        }
-      );
-
-      if (!res.data?.url) {
-        alert("Stripe URL not received");
+      if (paymentMethod === "paynow") {
+        setPendingOrderPayload(payload);
+        setShowPayNowQR(true);
+        setIsProcessing(false);
         return;
       }
 
-      window.location.assign(res.data.url);
+      if (paymentMethod === "stripe") {
+        const res = await axios.post(
+          `${BACKEND_URL}/api/payment/create-checkout-session`,
+          {
+            items: payload.items,
+            deliveryFee: payload.deliveryFee,
+            orderPayload: {
+              ...payload,
+              paymentMethod: "stripe",
+            },
+          },
+        );
+
+        if (!res.data?.url) {
+          alert("Stripe URL not received");
+          return;
+        }
+
+        window.location.assign(res.data.url);
+      }
     } catch (err) {
       alert(err.response?.data?.message || "Payment failed, try again");
       setIsProcessing(false);
@@ -237,23 +233,49 @@ const Checkout = () => {
     }
   };
 
-  // Auto-save form data to localStorage
-  // useEffect(() => {
-  //   const savedCustomer = localStorage.getItem("checkoutCustomer");
-  //   if (savedCustomer) {
-  //     setCustomer(JSON.parse(savedCustomer));
-  //   }
-  // }, []);
-
   useEffect(() => {
-  const { postalCode, ...safeCustomer } = customer;
+    const { postalCode, ...safeCustomer } = customer;
+    localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
+  }, [customer]);
 
-  localStorage.setItem(
-    "checkoutCustomer",
-    JSON.stringify(safeCustomer)
-  );
-}, [customer]);
+  const handleFileUpload = async (file) => {
+    setIsUploading(true);
+    try {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+      const formData = new FormData();
+      formData.append("proof", file);
 
+      const uploadRes = await axios.post(
+        `${BACKEND_URL}/api/payment/upload-proof`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+      const proofUrl = uploadRes.data.url;
+
+      if (!pendingOrderPayload) {
+        alert("Order data not ready yet.");
+        return null;
+      }
+
+      const res = await axios.post(`${BACKEND_URL}/api/orders`, {
+        ...pendingOrderPayload,
+        paymentMethod: "paynow",
+        paymentProof: proofUrl,
+      });
+
+      clearCart();
+
+      navigate("/thank-you", {
+        state: { orderId: res.data.order._id },
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to place order");
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
@@ -272,17 +294,19 @@ const Checkout = () => {
               <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900">
                 Checkout
               </h1>
-              <p className="text-sm text-gray-500">Complete your order details</p>
+              <p className="text-sm text-gray-500">
+                Complete your order details
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
           {/* Contact Information */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
                 1
@@ -292,8 +316,8 @@ const Checkout = () => {
               </h2>
             </div>
 
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     First name *
@@ -304,7 +328,7 @@ const Checkout = () => {
                     onChange={(e) =>
                       handleInputChange("firstName", e.target.value)
                     }
-                    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
                       errors.firstName ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="John"
@@ -327,7 +351,7 @@ const Checkout = () => {
                     onChange={(e) =>
                       handleInputChange("lastName", e.target.value)
                     }
-                    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
                       errors.lastName ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="Doe"
@@ -339,23 +363,23 @@ const Checkout = () => {
                     </p>
                   )}
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Email address *
                   </label>
-
                   <input
                     id="email"
                     type="email"
                     value={customer.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
                       errors.email ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="example@gmail.com"
                   />
-
                   {errors.email && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                       <AlertCircle className="w-4 h-4" />
@@ -363,49 +387,40 @@ const Checkout = () => {
                     </p>
                   )}
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone number *
-                </label>
-                <div className="relative flex items-center">
-  {/* Flag + country code */}
-  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-    <span className="text-lg">🇸🇬</span>
-    <span className="text-gray-500 text-sm font-medium">+65</span>
-  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone number *
+                  </label>
+                  <PhoneInput
+  country="sg"
+  preferredCountries={["sg"]}
+  value={customer.phone}
+  onChange={(value) => handleInputChange("phone", value)}
+  enableSearch
+  inputClass={`!w-full !h-[50px] !rounded-xl !pl-14 !border ${
+    errors.phone ? "!border-red-500" : "!border-gray-300"
+  }`}
+  buttonClass="!border-gray-300 !rounded-l-xl"
+  containerClass="w-full"
+  dropdownClass="!rounded-xl"
+/>
 
-  <input
-    id="phone"
-    type="tel"
-    value={customer.phone}
-    onChange={(e) =>
-      handleInputChange(
-        "phone",
-        e.target.value.replace(/\D/g, "").slice(0, 8)
-      )
-    }
-    className={`w-full border rounded-xl px-4 py-3.5 pl-20 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-      errors.phone ? "border-red-500" : "border-gray-300"
-    }`}
-    placeholder="1234 5678"
-  />
-</div>
 
-                {errors.phone && (
-                  <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.phone}
-                  </p>
-                )}
+                  {errors.phone && (
+                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {errors.phone}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </section>
 
-          {/* ✅ Delivery Address section ONLY for delivery (UI unchanged) */}
+          {/* Delivery Address section */}
           {fulfillment?.type === "delivery" && (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
                   2
@@ -415,7 +430,7 @@ const Checkout = () => {
                 </h2>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -442,7 +457,7 @@ const Checkout = () => {
                     onChange={(e) =>
                       handleInputChange("address", e.target.value)
                     }
-                    className={`w-full border rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
+                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
                       errors.address ? "border-red-500" : "border-gray-300"
                     }`}
                     placeholder="123 Main Street"
@@ -455,73 +470,68 @@ const Checkout = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Apartment, suite, etc. (optional)
-                  </label>
-                  <input
-                    value={customer.apartment}
-                    onChange={(e) =>
-                      handleInputChange("apartment", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded-xl px-4 py-3.5 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none"
-                    placeholder="Apt 4B"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Apartment, suite, etc. (optional)
+                    </label>
+                    <input
+                      value={customer.apartment}
+                      onChange={(e) =>
+                        handleInputChange("apartment", e.target.value)
+                      }
+                      className="w-full border border-gray-300 rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                      placeholder="Apt 4B"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Postal Code *
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="postalCode"
+                        value={customer.postalCode || ""}
+                        disabled
+                        readOnly
+                        className="w-full border border-gray-300 bg-gray-100 rounded-xl px-4 py-3"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+                    </div>
+                    {fulfillment?.area && (
+                      <p className="mt-1.5 text-sm text-green-700">
+                        Delivering to {fulfillment.area}
+                      </p>
+                    )}
+                    {errors.postalCode && (
+                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        {errors.postalCode}
+                      </p>
+                    )}
+                  </div>
                 </div>
-
-                <div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Postal Code *
-  </label>
-  
-  <div className="relative">
-   <input
-  id="postalCode"
-  value={customer.postalCode || ""}
-  disabled
-  readOnly
-  className="w-full border border-gray-300 bg-gray-100 rounded-xl px-4 py-3.5"
-/>
-
-    
-    {/* Optional: small indicator that it's from previous step */}
-    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-      <CheckCircle className="w-5 h-5 text-green-600" />
-    </div>
-  </div>
-
-  {/* Optional: show the friendly area name if you saved it */}
-  {fulfillment?.area && (
-    <p className="mt-1.5 text-sm text-green-700">
-      Delivering to {fulfillment.area}
-    </p>
-  )}
-
-  {errors.postalCode && (
-    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-      <AlertCircle className="w-4 h-4" />
-      {errors.postalCode}
-    </p>
-  )}
-</div>
               </div>
             </section>
           )}
 
-          {/* Delivery Method (unchanged) */}
+          {/* Delivery Method */}
           {fulfillment && (
-            <section className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                  3
+                  {fulfillment?.type === "delivery" ? 3 : 2}
                 </div>
                 <h2 className="text-xl font-serif font-semibold text-gray-900">
-                  Delivery Method
+                  {fulfillment.type === "delivery" ? "Delivery Method" : "Pickup Details"}
                 </h2>
               </div>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
-                <div className="flex items-start justify-between">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <div
@@ -574,9 +584,72 @@ const Checkout = () => {
           )}
         </div>
 
-        {/* RIGHT COLUMN - Order Summary */}
-        <div className="lg:sticky lg:top-24 h-fit">
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm sticky top-24">
+        {/* RIGHT COLUMN - Payment & Order Summary */}
+        <div className="space-y-6">
+          {/* Payment Method */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
+                {fulfillment?.type === "delivery" ? 4 : 3}
+              </div>
+              <h2 className="text-xl font-serif font-semibold text-gray-900">
+                Payment Method
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              <label
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
+                  paymentMethod === "paynow"
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="paynow"
+                  checked={paymentMethod === "paynow"}
+                  onChange={() => setPaymentMethod("paynow")}
+                  className="w-5 h-5"
+                />
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">
+                    PayNow (Recommended)
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Scan QR code to pay
+                  </p>
+                </div>
+                <span className="text-2xl">🇸🇬</span>
+              </label>
+
+              <label
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
+                  paymentMethod === "stripe"
+                    ? "border-black bg-gray-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="stripe"
+                  checked={paymentMethod === "stripe"}
+                  onChange={() => setPaymentMethod("stripe")}
+                  className="w-5 h-5"
+                />
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">Card Payment</p>
+                  <p className="text-sm text-gray-600">Pay securely with card</p>
+                </div>
+                <span className="text-xl">💳</span>
+              </label>
+            </div>
+          </section>
+
+          {/* Order Summary */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm lg:sticky lg:top-24">
             <h2 className="text-xl font-serif font-semibold text-gray-900 mb-6">
               Order Summary
             </h2>
@@ -587,7 +660,7 @@ const Checkout = () => {
                   key={`${item.itemId}_${item.variant}`}
                   className="flex gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors"
                 >
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <img
                       src={item.image}
                       alt={item.name}
@@ -652,15 +725,15 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
-      {/* Floating Payment Button */}
+      {/* Floating Payment Button - Mobile Responsive */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-white/95 border-t shadow-lg">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-center sm:text-left">
               <p className="text-sm text-gray-600">Total amount</p>
               <p className="text-2xl font-bold text-gray-900">
                 {formatPrice(totalAmount)}
@@ -670,7 +743,7 @@ const Checkout = () => {
             <button
               onClick={placeOrder}
               disabled={isProcessing || items.length === 0}
-              className="relative group flex-1 max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
             >
               {isProcessing ? (
                 <div className="flex items-center justify-center gap-2">
@@ -693,6 +766,151 @@ const Checkout = () => {
           </p>
         </div>
       </div>
+
+      {/* PayNow Modal - COMPACT VERSION */}
+      {showPayNowQR && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowPayNowQR(false)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Pay with PayNow
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Scan the QR code and upload your payment proof
+              </p>
+
+              {/* Compact QR Section */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-1">
+                  <div className="text-center mb-2">
+                    <div className="inline-flex items-baseline gap-1">
+                      <span className="text-2xl font-bold text-gray-900">
+                        {formatPrice(totalAmount)}
+                      </span>
+                      <span className="text-sm text-gray-500">SGD</span>
+                    </div>
+                  </div>
+                  <img
+                    src="/images/qr.jpeg"
+                    alt="PayNow QR Code"
+                    className="w-full h-auto rounded-lg"
+                  />
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Scan with your banking app
+                  </p>
+                </div>
+
+                {/* Upload Section */}
+                <div className="flex-1">
+                  <label className="block mb-2 text-sm font-medium text-gray-700">
+                    Upload Payment Proof
+                  </label>
+                  <div
+                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all h-full flex flex-col justify-center ${
+                      paymentProof
+                        ? "border-green-400 bg-green-50/40"
+                        : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/30"
+                    }`}
+                    onClick={() => !paymentProof && document.getElementById('file-upload').click()}
+                  >
+                    <input
+                      type="file"
+                      id="file-upload"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setPaymentProof(file);
+                      }}
+                      className="hidden"
+                    />
+                    
+                    {paymentProof ? (
+                      <div className="space-y-2">
+                        <div className="relative mx-auto w-20 h-20 rounded-lg overflow-hidden">
+                          <img
+                            src={URL.createObjectURL(paymentProof)}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPaymentProof(null);
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white text-xs p-1 rounded-full"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <p className="text-xs font-medium text-gray-700 truncate">
+                          {paymentProof.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 py-2">
+                        <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Upload className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <p className="text-sm text-gray-600">Click to upload</p>
+                        <p className="text-xs text-gray-500">
+                          JPG, PNG • max 5MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={async () => {
+                    if (!paymentProof) {
+                      alert("Please upload payment screenshot first");
+                      return;
+                    }
+                    await handleFileUpload(paymentProof);
+                  }}
+                  disabled={isUploading || !paymentProof}
+                  className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                    paymentProof && !isUploading
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Confirm Payment
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setShowPayNowQR(false)}
+                  className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

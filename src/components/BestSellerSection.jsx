@@ -99,7 +99,11 @@ const BestSellerSection = () => {
           <h2 className="font-light text-3xl md:text-5xl font-serif text-gray-900 mb-2">
             Best Sellers
           </h2>
-          <p className="text-gray-600 text-base md:text-lg">
+          <p className="mt-3
+      text-sm md:text-base
+      text-gray-500
+      tracking-wider
+      uppercase">
             Our most loved products
           </p>
         </div>

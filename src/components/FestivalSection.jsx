@@ -51,11 +51,32 @@ useEffect(() => {
       {festivals.map(festival => (
         <section key={festival._id} className="py-10">
 
-          <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-5xl font-serif text-gray-900">
-              🎊 {festival.name} 🎊
-            </h2>
-          </div>
+          <div className="text-center mb-10">
+  <h2
+    className="
+      text-3xl md:text-5xl
+      font-serif font-light
+      text-gray-900
+      tracking-wide
+      leading-tight
+    "
+  >
+    {festival.name}
+  </h2>
+
+  <p
+    className="
+      mt-3
+      text-sm md:text-base
+      text-gray-500
+      tracking-wider
+      uppercase
+    "
+  >
+    Made By Premium Butter
+  </p>
+</div>
+
 
           {festival.products.length > 0 ? (
             <>
