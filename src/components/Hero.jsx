@@ -1,59 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
   const navigate = useNavigate();
 
-  // Desktop images
-  const desktopImages = [
-    "/images/2.png",
-  ];
-
-  // Mobile images (portrait – 1080x1920)
-  const mobileImages = [
-    "/images/mobilebg.png",
-  ];
-
-  const [current, setCurrent] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % desktopImages.length);
-    }, 5000);
-
-    return () => clearInterval(timer);
-  }, [desktopImages.length]);
-
   return (
     <section className="w-full">
       <div className="relative w-full h-[55vh] md:h-[70vh] overflow-hidden">
 
-        {/* Desktop Image */}
-        <img
-          src={desktopImages[current]}
-          alt="Bakery banner desktop"
-          className="hidden md:block absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-        />
+        {/* Desktop Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="hidden md:block absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/images/hero.mp4" type="video/mp4" />
+        </video>
 
-        {/* Mobile Image */}
-        <img
-          src={mobileImages[current]}
-          alt="Bakery banner mobile"
-          className="block md:hidden absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-        />
+        {/* Mobile Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="block md:hidden absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/images/hero.mp4" type="video/mp4" />
+        </video>
 
-        {/* Light overlay */}
-        <div className="absolute inset-0 bg-black/10" />
+        {/* Stronger low-light overlay */}
+        <div className="absolute inset-0 bg-black/30" />
 
-        {/* Mobile Order Now Button */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:hidden">
+        {/* Mobile Order Now Button ONLY */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 md:hidden z-10">
           <button
             onClick={() => navigate("/order")}
-            className="px-6 py-3 rounded-sm border  text-white font-semibold text-sm shadow-lg active:scale-95 transition"
+            className="px-6 py-3 rounded-sm  bg-[#1E3A8A] backdrop-blur-sm text-white font-semibold text-sm shadow-lg active:scale-95 transition"
           >
             Order Now
           </button>
         </div>
+
       </div>
     </section>
   );
