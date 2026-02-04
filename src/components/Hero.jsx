@@ -14,16 +14,16 @@ const Hero = () => {
   muted
   loop
   playsInline
-  preload="metadata"
+  preload="auto"
   poster="/images/hero-fallback.jpg"
   className="absolute inset-0 w-full h-full object-cover opacity-90"
 >
   <source
-  src="https://ik.imagekit.io/h5f0asbgt/hero.mp4"
-  type="video/mp4"
-/>
-
+    src="https://res.cloudinary.com/dbbvqqbz1/video/upload/f_auto,q_auto/v1770190891/IMG_6242_1_fb3swp.mp4"
+    type="video/mp4"
+  />
 </video>
+
 
 
         {/* Overlay */}
