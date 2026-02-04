@@ -8,35 +8,23 @@ const Hero = () => {
     <section className="w-full">
       <div className="relative w-full h-[55vh] md:h-[70vh] overflow-hidden">
 
-        {/* Desktop Video */}
+        {/* Hero Video */}
         <video
           autoPlay
-          loop
           muted
+          loop
           playsInline
-          preload="auto"
-          className="hidden md:block absolute inset-0 w-full h-full object-cover"
+          preload="metadata"
+          poster="/images/hero-fallback.jpg"
+          className="absolute inset-0 w-full h-full object-cover opacity-90"
         >
-          <source src="/images/hero.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
+          <source
+            src="https://ik.imagekit.io/h5f0asbgt/IMG_6242.mp4?tr=q-auto,vc-auto,f-auto"
+            type="video/mp4"
+          />
         </video>
 
-        {/* Mobile Video with WebM fallback */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="block md:hidden absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="/images/hero-mobile.mp4" type="video/mp4" />
-          <source src="/images/hero-mobile.webm" type="video/webm" />
-          <source src="/images/hero.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-
-        {/* Low light overlay */}
+        {/* Overlay */}
         <div className="absolute inset-0 bg-black/30" />
 
         {/* Mobile button only */}
