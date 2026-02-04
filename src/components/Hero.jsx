@@ -17,7 +17,7 @@ const Hero = () => {
           preload="auto"
           className="hidden md:block absolute inset-0 w-full h-full object-cover"
         >
-          <source src="/videos/hero.mp4" type="video/mp4" />
+          <source src="/images/hero.mp4" type="video/mp4" />
         </video>
 
         {/* Mobile Video */}
@@ -31,7 +31,7 @@ const Hero = () => {
   poster="/images/hero-fallback.jpg"
   className="block md:hidden absolute inset-0 w-full h-full object-cover"
 >
-  <source src="/videos/hero.mp4" type="video/mp4" />
+  <source src="/images/hero.mp4" type="video/mp4" />
 </video>
 
 
