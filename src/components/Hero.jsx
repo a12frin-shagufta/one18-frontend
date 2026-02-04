@@ -18,22 +18,23 @@ const Hero = () => {
           className="hidden md:block absolute inset-0 w-full h-full object-cover"
         >
           <source src="/images/hero.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
 
-        {/* Mobile Video */}
-        {/* Mobile Video */}
-<video
-  autoPlay
-  loop
-  muted
-  playsInline
-  preload="metadata"
-  poster="/images/hero-fallback.jpg"
-  className="block md:hidden absolute inset-0 w-full h-full object-cover"
->
-  <source src="/images/hero.mp4" type="video/mp4" />
-</video>
-
+        {/* Mobile Video with WebM fallback */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="block md:hidden absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/images/hero-mobile.mp4" type="video/mp4" />
+          <source src="/images/hero-mobile.webm" type="video/webm" />
+          <source src="/images/hero.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
 
         {/* Low light overlay */}
         <div className="absolute inset-0 bg-black/30" />
