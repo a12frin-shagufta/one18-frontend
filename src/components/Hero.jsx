@@ -10,19 +10,21 @@ const Hero = () => {
 
         {/* Hero Video */}
         <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster="/images/hero-fallback.jpg"
-          className="absolute inset-0 w-full h-full object-cover opacity-90"
-        >
-          <source
-            src="https://ik.imagekit.io/h5f0asbgt/IMG_6242.mp4?tr=q-auto,vc-auto,f-auto"
-            type="video/mp4"
-          />
-        </video>
+  autoPlay
+  muted
+  loop
+  playsInline
+  preload="metadata"
+  poster="/images/hero-fallback.jpg"
+  className="absolute inset-0 w-full h-full object-cover opacity-90"
+>
+  <source
+  src="https://ik.imagekit.io/h5f0asbgt/hero.mp4"
+  type="video/mp4"
+/>
+
+</video>
+
 
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/30" />
