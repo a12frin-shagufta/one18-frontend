@@ -6,6 +6,7 @@ import { CheckCircle, ChevronLeft, AlertCircle, Loader, X, Upload } from "lucide
 import { useLocation } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { DEFAULT_BRANCH } from "../config/defaultBranch";
 
 import axios from "axios";
 
@@ -17,10 +18,15 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("paynow");
-  const [showPayNowQR, setShowPayNowQR] = useState(false);
-  const [pendingOrderPayload, setPendingOrderPayload] = useState(null);
-  const [paymentProof, setPaymentProof] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+const [showPayNowQR, setShowPayNowQR] = useState(false);
+
+
+  
+  const [createdOrderId, setCreatedOrderId] = useState(null);
+const [qrCode, setQrCode] = useState(null);
+
+  // const [paymentProof, setPaymentProof] = useState(null);
+  // const [isUploading, setIsUploading] = useState(false);
 
   const location = useLocation();
 
@@ -37,7 +43,7 @@ const Checkout = () => {
     address: "",
     apartment: "",
     postalCode: "",
-    phone: "",
+    
     phone: "65", // ✅ Singapore default
   });
 
@@ -141,9 +147,16 @@ const Checkout = () => {
 
       const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
       const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
+      const branchId =
+  fulfillment.type === "pickup"
+    ? fulfillment?.branch?._id
+    : DEFAULT_BRANCH.id;
+
+console.log("Sending branchId →", branchId);
+
 
       const payload = {
-        branch: fulfillment?.branch?._id || null,
+         branch: branchId,
         orderType,
         fulfillmentType: fulfillment.type,
         fulfillmentDate:
@@ -169,17 +182,21 @@ const Checkout = () => {
         deliveryAddress:
           fulfillment.type === "delivery"
             ? {
-                addressText: fulfillment.address || customer.address,
-                postalCode: fulfillment.postalCode || customer.postalCode,
+                addressText: customer.address,
+               postalCode: customer.postalCode,
               }
             : null,
         pickupLocation:
-          fulfillment.type === "pickup"
-            ? {
-                name: fulfillment?.branch?.name || "Pickup",
-                address: fulfillment?.branch?.address || "",
-              }
-            : null,
+  fulfillment.type === "pickup"
+    ? {
+        name: fulfillment?.branch?.name,
+        address: fulfillment?.branch?.address,
+      }
+    : {
+        name: DEFAULT_BRANCH.name,
+        address: DEFAULT_BRANCH.address,
+      },
+
         items: items.map((i) => ({
           productId: i.itemId,
           name: i.name,
@@ -191,13 +208,32 @@ const Checkout = () => {
         deliveryFee,
         totalAmount,
       };
+   
+
 
       if (paymentMethod === "paynow") {
-        setPendingOrderPayload(payload);
-        setShowPayNowQR(true);
-        setIsProcessing(false);
-        return;
-      }
+  const res = await axios.post(
+    `${BACKEND_URL}/api/orders`,
+    {
+      ...payload,
+      paymentMethod: "paynow"
+    }
+  );
+
+
+
+
+  const orderId = res.data.order._id;
+
+  setCreatedOrderId(orderId);
+  setShowPayNowQR(true);
+  setIsProcessing(false);
+  return;
+}
+
+
+
+
 
       if (paymentMethod === "stripe") {
         const res = await axios.post(
@@ -238,44 +274,64 @@ const Checkout = () => {
     localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
   }, [customer]);
 
-  const handleFileUpload = async (file) => {
-    setIsUploading(true);
-    try {
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-      const formData = new FormData();
-      formData.append("proof", file);
 
-      const uploadRes = await axios.post(
-        `${BACKEND_URL}/api/payment/upload-proof`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+  useEffect(() => {
+  if (!createdOrderId) return;
 
-      const proofUrl = uploadRes.data.url;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-      if (!pendingOrderPayload) {
-        alert("Order data not ready yet.");
-        return null;
-      }
+  axios
+    .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
+    .then(res => {
+      console.log("QR RECEIVED:", res.data);
+      setQrCode(res.data.qr);
+    })
+    .catch(err => {
+      console.error("QR fetch failed", err.response?.data || err.message);
+      alert("Failed to generate QR");
+    });
 
-      const res = await axios.post(`${BACKEND_URL}/api/orders`, {
-        ...pendingOrderPayload,
-        paymentMethod: "paynow",
-        paymentProof: proofUrl,
-      });
+}, [createdOrderId]);
 
-      clearCart();
 
-      navigate("/thank-you", {
-        state: { orderId: res.data.order._id },
-      });
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to place order");
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  // const handleFileUpload = async (file) => {
+  //   setIsUploading(true);
+  //   try {
+  //     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  //     const formData = new FormData();
+  //     formData.append("proof", file);
+
+  //     const uploadRes = await axios.post(
+  //       `${BACKEND_URL}/api/payment/upload-proof`,
+  //       formData,
+  //       { headers: { "Content-Type": "multipart/form-data" } }
+  //     );
+
+  //     const proofUrl = uploadRes.data.url;
+
+  //     if (!pendingOrderPayload) {
+  //       alert("Order data not ready yet.");
+  //       return null;
+  //     }
+
+  //     const res = await axios.post(`${BACKEND_URL}/api/orders`, {
+  //       ...pendingOrderPayload,
+  //       paymentMethod: "paynow",
+  //       paymentProof: proofUrl,
+  //     });
+
+  //     clearCart();
+
+  //     navigate("/thank-you", {
+  //       state: { orderId: res.data.order._id },
+  //     });
+  //   } catch (err) {
+  //     alert(err.response?.data?.message || "Failed to place order");
+  //     return null;
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
@@ -784,7 +840,8 @@ const Checkout = () => {
                 Pay with PayNow
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                Scan the QR code and upload your payment proof
+                Scan QR and complete payment
+
               </p>
 
               {/* Compact QR Section */}
@@ -798,18 +855,19 @@ const Checkout = () => {
                       <span className="text-sm text-gray-500">SGD</span>
                     </div>
                   </div>
-                  <img
-                    src="/images/qr.jpeg"
-                    alt="PayNow QR Code"
-                    className="w-full h-auto rounded-lg"
-                  />
+                  {qrCode ? (
+  <img src={qrCode} className="w-full rounded-lg" />
+) : (
+  <p>Generating QR...</p>
+)}
+
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Scan with your banking app
                   </p>
                 </div>
 
                 {/* Upload Section */}
-                <div className="flex-1">
+                {/* <div className="flex-1">
                   <label className="block mb-2 text-sm font-medium text-gray-700">
                     Upload Payment Proof
                   </label>
@@ -867,38 +925,37 @@ const Checkout = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3">
                 <button
-                  onClick={async () => {
-                    if (!paymentProof) {
-                      alert("Please upload payment screenshot first");
-                      return;
-                    }
-                    await handleFileUpload(paymentProof);
-                  }}
-                  disabled={isUploading || !paymentProof}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                    paymentProof && !isUploading
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Confirm Payment
-                    </>
-                  )}
-                </button>
+  disabled={!createdOrderId}
+  onClick={async () => {
+    try {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+      await axios.put(
+  `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`
+);
+
+
+      clearCart();
+
+      navigate("/thank-you", {
+        state: { orderId: createdOrderId },
+      });
+
+    } catch (err) {
+      alert("Failed to update payment status");
+    }
+  }}
+  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  I Have Paid
+</button>
+
 
                 <button
                   onClick={() => setShowPayNowQR(false)}
