@@ -1,10 +1,38 @@
 import React from "react";
 import { ArrowUp, Instagram, Facebook, Mail } from "lucide-react";
+import { useState } from "react";
+import axios from "axios";
+
 
 const Footer = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const [email, setEmail] = useState("");
+const [loading, setLoading] = useState(false);
+
+const handleSubscribe = async () => {
+  if (!email) return alert("Enter email");
+
+  try {
+    setLoading(true);
+
+    const res = await axios.post(
+      `${BACKEND_URL}/api/newsletter/subscribe`,
+      { email }
+    );
+
+    alert(res.data.message);
+    setEmail("");
+  } catch (err) {
+    alert(err.response?.data?.message || "Error subscribing");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <footer className="relative bg-[#183A8F] text-white overflow-hidden mt-20">
@@ -69,25 +97,41 @@ const Footer = () => {
   {/* DESKTOP (unchanged) */}
   <div className="hidden md:flex items-center bg-white/10 rounded-full overflow-hidden max-w-lg">
     <input
-      type="email"
-      placeholder="your@email.com"
-      className="flex-1 bg-transparent px-6 py-4 outline-none placeholder:text-white/60 text-white"
-    />
-    <button className="bg-[#F59E0B] text-white px-8 py-4 font-medium hover:bg-[#e18c07] transition">
-      Subscribe →
-    </button>
+  type="email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  placeholder="your@email.com"
+  className="flex-1 bg-transparent px-6 py-4 outline-none placeholder:text-white/60 text-white"
+/>
+
+<button
+  onClick={handleSubscribe}
+  disabled={loading}
+  className="bg-[#F59E0B] text-white px-8 py-4 font-medium hover:bg-[#e18c07] transition disabled:opacity-50"
+>
+  {loading ? "..." : "Subscribe →"}
+</button>
+
   </div>
 
   {/* MOBILE (new clean layout) */}
   <div className="md:hidden space-y-3">
     <input
-      type="email"
-      placeholder="your@email.com"
-      className="w-full bg-white/10 px-5 py-4 rounded-xl outline-none placeholder:text-white/60 text-white"
-    />
-    <button className="w-full bg-[#F59E0B] text-white py-4 rounded-xl font-medium hover:bg-[#e18c07] transition">
-      Subscribe →
-    </button>
+  type="email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  placeholder="your@email.com"
+  className="w-full bg-white/10 px-5 py-4 rounded-xl outline-none placeholder:text-white/60 text-white"
+/>
+
+<button
+  onClick={handleSubscribe}
+  disabled={loading}
+  className="w-full bg-[#F59E0B] text-white py-4 rounded-xl font-medium hover:bg-[#e18c07] transition disabled:opacity-50"
+>
+  {loading ? "..." : "Subscribe →"}
+</button>
+
   </div>
 </div>
 
