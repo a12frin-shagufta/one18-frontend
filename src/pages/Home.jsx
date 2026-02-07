@@ -9,15 +9,15 @@ import TreatsSection from "../components/TreatsSection";
 import Highlights from "../components/Highlights";
 import CateringSection from "../components/CateringSection";
 import AboutUsSection from "../components/AboutUsSection";
-import { Helmet } from "react-helmet-async";
+
 
 
 const Home = () => {
-  <Helmet>
-  <title>ONE18 Bakery | Artisan Cakes Singapore</title>
-  <meta name="description"
-    content="Order premium artisan cakes and pastries in Singapore." />
-</Helmet>
+//   <Helmet>
+//   <title>ONE18 Bakery | Artisan Cakes Singapore</title>
+//   <meta name="description"
+//     content="Order premium artisan cakes and pastries in Singapore." />
+// </Helmet>
 
     const branchId = localStorage.getItem("selectedBranch");
 
