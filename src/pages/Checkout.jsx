@@ -19,6 +19,8 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("paynow");
 const [showPayNowQR, setShowPayNowQR] = useState(false);
+const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+
 
 
   
@@ -147,13 +149,17 @@ const [qrCode, setQrCode] = useState(null);
 
       const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
       const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
-      const branchId =
+     const branchId =
   fulfillment.type === "pickup"
-    ? fulfillment?.branch?._id
+    ? fulfillment?.branch?._id || fulfillment?.branch?.id
     : DEFAULT_BRANCH.id;
+
 
 console.log("Sending branchId →", branchId);
 
+console.log("FULFILLMENT DATA =", fulfillment);
+console.log("FULFILLMENT BRANCH =", fulfillment?.branch);
+console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
 
       const payload = {
          branch: branchId,
@@ -930,16 +936,19 @@ console.log("Sending branchId →", branchId);
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                <button
-  disabled={!createdOrderId}
+               <button
+  disabled={!createdOrderId || isMarkingPaid}
   onClick={async () => {
+    if (isMarkingPaid) return; // extra safety
+
     try {
+      setIsMarkingPaid(true);
+
       const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
       await axios.put(
-  `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`
-);
-
+        `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`
+      );
 
       clearCart();
 
@@ -949,12 +958,21 @@ console.log("Sending branchId →", branchId);
 
     } catch (err) {
       alert("Failed to update payment status");
+      setIsMarkingPaid(false);
     }
   }}
-  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 >
-  I Have Paid
+  {isMarkingPaid ? (
+    <>
+      <Loader className="w-4 h-4 animate-spin" />
+      Confirming...
+    </>
+  ) : (
+    "I Have Paid"
+  )}
 </button>
+
 
 
                 <button
