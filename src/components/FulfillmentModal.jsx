@@ -63,15 +63,26 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const minDate = getMinDate();
 
   const saveAndClose = () => {
+    // pickup final check
     if (step === "pickup" && (!branch || !pickupDate || !pickupTime)) return;
+
+    // delivery step 1 → go to branch screen
     if (
-      step === "delivery" &&
+      step === "delivery_details" &&
       (!postalCode ||
         !deliveryDate ||
         !deliveryTime ||
         postalStatus !== "success")
     )
       return;
+
+    if (step === "delivery_details") {
+      setStep("delivery_branch");
+      return;
+    }
+
+    // delivery step 2 → must choose branch
+    if (step === "delivery_branch" && !branch) return;
 
     const area = postalMessage?.includes("Delivering to ")
       ? postalMessage.replace("Delivering to ", "")
@@ -80,7 +91,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     localStorage.setItem(
       "fulfillmentData",
       JSON.stringify({
-        type: step,
+        type: step.startsWith("delivery") ? "delivery" : step,
         branch,
         pickupDate,
         pickupTime,
@@ -113,31 +124,25 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         postalCode: value,
       });
       if (res.data.valid) {
-  setPostalStatus("success");
+        setPostalStatus("success");
 
-  try {
-    const feeRes = await axios.post(
-  `${BACKEND_URL}/api/delivery/check`,
-  {
-    postalCode: value,
-    subtotal: 0 // or cart subtotal if available
-  }
-);
+        try {
+          const feeRes = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
+            postalCode: value,
+            subtotal: 0, // or cart subtotal if available
+          });
 
+          setDeliveryFee(feeRes.data.deliveryFee);
 
-    setDeliveryFee(feeRes.data.deliveryFee);
-
-    // ✅ SHOW AREA + DISTANCE
-    setPostalMessage(
-      `Delivering to ${res.data.area} (${feeRes.data.distanceKm} km away)`
-    );
-
-  } catch {
-    setDeliveryFee(10);
-    setPostalMessage(`Delivering to ${res.data.area}`);
-  }
-}
-
+          // ✅ SHOW AREA + DISTANCE
+          setPostalMessage(
+            `Delivering to ${res.data.area} (${feeRes.data.distanceKm} km away)`,
+          );
+        } catch {
+          setDeliveryFee(10);
+          setPostalMessage(`Delivering to ${res.data.area}`);
+        }
+      }
     } catch {
       setPostalStatus("error");
       setPostalMessage("Cannot check right now");
@@ -167,7 +172,11 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
           <div className="flex items-center gap-2.5">
             {step !== "select" && (
               <button
-                onClick={() => setStep("select")}
+                onClick={() =>
+                  step === "delivery_branch"
+                    ? setStep("delivery_details")
+                    : setStep("select")
+                }
                 className="p-1.5 -ml-1.5"
               >
                 <ArrowLeft size={20} />
@@ -176,7 +185,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
             <h2 className="font-semibold text-[17px]">
               {step === "select" && "Select your preference"}
               {step === "pickup" && "Pickup"}
-              {step === "delivery" && "Delivery"}
+              {step.startsWith("delivery") && "Delivery"}
             </h2>
           </div>
           <button onClick={onClose} className="p-1.5 -mr-1.5">
@@ -206,7 +215,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
               </button>
 
               <button
-                onClick={() => setStep("delivery")}
+                onClick={() => setStep("delivery_details")}
                 className="border rounded-xl p-6 sm:p-8 text-center hover:shadow-md hover:border-blue-600 active:scale-[0.98] transition flex flex-col justify-between"
               >
                 <div>
@@ -298,50 +307,25 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
             </div>
           )}
 
-          {step === "delivery" && (
+          {step === "delivery_details" && (
             <div className="space-y-5">
+              {/* Branch Selection — REQUIRED FOR DELIVERY */}
+              {/* Postal Code */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Postal Code</label>
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Enter 6-digit postal code"
-                    value={postalCode}
-                    onChange={handlePostalChange}
-                    maxLength={6}
-                    inputMode="numeric"
-                    className={`w-full pl-10 pr-10 py-2.5 border rounded-lg text-base
-                      focus:outline-none focus:ring-2 focus:ring-blue-400
-                      ${postalStatus === "error" ? "border-red-500 bg-red-50" : ""}
-                      ${postalStatus === "success" ? "border-green-500 bg-green-50" : ""}
-                      ${postalStatus === "checking" ? "border-yellow-500" : "border-gray-300"}`}
-                  />
-                  {postalCode && (
-                    <button
-                      onClick={() => {
-                        setPostalCode("");
-                        setPostalStatus("idle");
-                        setPostalMessage("");
-                        setDeliveryFee(null);
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
+                <input
+                  value={postalCode}
+                  onChange={handlePostalChange}
+                  maxLength={6}
+                  placeholder="Enter 6 digit postal"
+                  className="w-full border rounded-lg px-3 py-2.5"
+                />
 
                 {postalStatus === "checking" && (
-                  <p className="text-xs text-yellow-700">Checking...</p>
+                  <p className="text-xs">Checking…</p>
                 )}
-                {postalStatus === "success" && postalMessage && (
-                  <p className="text-sm text-green-700 font-medium">
-                    {postalMessage}
-                  </p>
+                {postalStatus === "success" && (
+                  <p className="text-xs text-green-600">{postalMessage}</p>
                 )}
                 {postalStatus === "error" && (
                   <p className="text-xs text-red-600">{postalMessage}</p>
@@ -397,7 +381,31 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
               )}
             </div>
           )}
+          {step === "delivery_branch" && (
+          <div className="space-y-5">
+            <p className="font-medium mb-2.5">Select Delivery Branch</p>
+            <div className="space-y-3">
+              {branches.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setBranch(b)}
+                  className={`w-full border-2 rounded-xl p-4 text-left
+            ${
+              branch?.id === b.id
+                ? "border-blue-600 bg-blue-50"
+                : "border-gray-200"
+            }`}
+                >
+                  <p className="font-medium">{b.name}</p>
+                  <p className="text-sm text-gray-600">{b.address}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         </div>
+
+        
 
         {/* FOOTER */}
         {step !== "select" && (

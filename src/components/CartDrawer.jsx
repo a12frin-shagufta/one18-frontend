@@ -151,14 +151,15 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 </p>
 
                 <button
-                  onClick={() => {
-                    onClose();
-                    window.dispatchEvent(new Event("open-fulfillment"));
-                  }}
-                  className="w-full max-w-xs bg-[#1E3A8A] hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  Select Dining Preference
-                </button>
+  onClick={() => {
+    onClose();
+    navigate("/menu");   // or "/" — your menu route
+  }}
+  className="w-full max-w-xs bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-semibold shadow-lg"
+>
+  Go to Menu
+</button>
+
               </div>
             )}
 

@@ -150,9 +150,9 @@ const [qrCode, setQrCode] = useState(null);
       const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
       const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
      const branchId =
-  fulfillment.type === "pickup"
-    ? fulfillment?.branch?._id || fulfillment?.branch?.id
-    : DEFAULT_BRANCH.id;
+  fulfillment?.branch?._id ||
+  fulfillment?.branch?.id ||
+  DEFAULT_BRANCH.id;   // fallback only if missing
 
 
 console.log("Sending branchId →", branchId);
@@ -192,16 +192,11 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
                postalCode: customer.postalCode,
               }
             : null,
-        pickupLocation:
-  fulfillment.type === "pickup"
-    ? {
-        name: fulfillment?.branch?.name,
-        address: fulfillment?.branch?.address,
-      }
-    : {
-        name: DEFAULT_BRANCH.name,
-        address: DEFAULT_BRANCH.address,
-      },
+        pickupLocation: {
+  name: fulfillment?.branch?.name || DEFAULT_BRANCH.name,
+  address: fulfillment?.branch?.address || DEFAULT_BRANCH.address,
+},
+
 
         items: items.map((i) => ({
           productId: i.itemId,
