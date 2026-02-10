@@ -13,9 +13,5 @@ export const formatPrice = (price) => {
     return `${CURRENCY}0`;
   }
 
-  const num = Number(price);
-
-  return Number.isInteger(num)
-    ? `${CURRENCY}${num}`
-    : `${CURRENCY}${num.toFixed(2)}`;
+  return `${CURRENCY}${Math.round(Number(price))}`;
 };

@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiMinus } from "react-icons/fi";
 
+
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const navigate = useNavigate();
   const isOutOfStock = item.inStock === false || item.isAvailable === false;

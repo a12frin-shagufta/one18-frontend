@@ -35,6 +35,37 @@ const CategoryPage = () => {
   fetchData();
 }, []);
 
+const CATEGORY_ORDER = [
+  "bundles",
+  "croissants",
+  "breads",
+  "dessert pastries",
+  "slice cakes",
+  "whole cakes",
+  "festive",
+  "festive cookies",
+];
+
+const normalize = (str = "") =>
+  str.toLowerCase().replace(/\s+/g, " ").trim();
+
+
+const sortedCategories = [...categories].sort((a, b) => {
+  const aIndex = CATEGORY_ORDER.findIndex(k =>
+    normalize(a.name).includes(k)
+  );
+  const bIndex = CATEGORY_ORDER.findIndex(k =>
+    normalize(b.name).includes(k)
+  );
+
+  if (aIndex === -1 && bIndex === -1)
+    return a.name.localeCompare(b.name);
+  if (aIndex === -1) return 1;
+  if (bIndex === -1) return -1;
+
+  return aIndex - bIndex;
+});
+
 
   /* ======================
      SLIDER CONTROLS
@@ -102,7 +133,8 @@ const CategoryPage = () => {
           scroll-smooth
         "
       >
-        {categories.map((cat) => (
+        {sortedCategories.map((cat) => (
+
           <div
             key={cat._id}
             onClick={() => {
