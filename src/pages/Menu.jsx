@@ -119,13 +119,16 @@ return {
     });
 
     const CATEGORY_ORDER = [
-      "croissants",
-      "whole cakes",
-      "slice cakes",
-      "dessert pastries",
-      "breads",
-      "bundles",
-    ];
+  "bundles",
+  "croissants",
+  "breads",
+  "dessert pastries",
+  "slice cakes",
+  "whole cakes",
+  "festive",
+  "festive cookies",
+];
+
 
     const CROISSANT_SUB_ORDER = ["sweet", "savoury"];
 
@@ -331,7 +334,7 @@ return {
                       : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
-                  <span className="truncate">{cat.name}</span>
+                  <span className="truncate capitalize">{cat.name}</span>
                   {cat.subcategories.length > 0 && (
                     expandedCategories[cat.id] ? (
                       <FiChevronUp size={16} className="flex-shrink-0" />
@@ -355,7 +358,8 @@ return {
                               : "text-gray-600 hover:bg-gray-50"
                             }`}
                         >
-                          {sub.name}
+                         <span className="capitalize">{sub.name}</span>
+
                         </button>
                       ))}
                     </div>
