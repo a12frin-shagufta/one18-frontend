@@ -46,6 +46,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const [postalCode, setPostalCode] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
+  const [branchError, setBranchError] = useState("");
+
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
   const [pickupDateError, setPickupDateError] = useState("");
@@ -64,7 +66,14 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
 
   const saveAndClose = () => {
     // pickup final check
-    if (step === "pickup" && (!branch || !pickupDate || !pickupTime)) return;
+    // pickup validation with UI error
+    if (step === "pickup") {
+      if (!branch) {
+        setBranchError("Please choose a branch");
+        return;
+      }
+      if (!pickupDate || !pickupTime) return;
+    }
 
     // delivery step 1 → go to branch screen
     if (
@@ -241,12 +250,17 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                   {branches.map((b) => (
                     <button
                       key={b.id}
-                      onClick={() => setBranch(b)}
+                      onClick={() => {
+                        setBranch(b);
+                        setBranchError("");
+                      }}
                       className={`w-full border-2 rounded-xl p-4 text-left transition
                         ${
                           branch?.id === b.id
                             ? "border-blue-600 bg-blue-50/60"
-                            : "border-gray-200 hover:border-gray-300"
+                            : branchError
+                              ? "border-red-500"
+                              : "border-gray-200 hover:border-gray-300"
                         }`}
                     >
                       <div className="flex justify-between items-start gap-3">
@@ -263,7 +277,12 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                           />
                         )}
                       </div>
+                      {branchError && (
+  <p className="text-sm text-red-600 mt-1">{branchError}</p>
+)}
+
                     </button>
+                    
                   ))}
                 </div>
               </div>
@@ -382,30 +401,28 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
             </div>
           )}
           {step === "delivery_branch" && (
-          <div className="space-y-5">
-            <p className="font-medium mb-2.5">Select Delivery Branch</p>
-            <div className="space-y-3">
-              {branches.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => setBranch(b)}
-                  className={`w-full border-2 rounded-xl p-4 text-left
+            <div className="space-y-5">
+              <p className="font-medium mb-2.5">Select Delivery Branch</p>
+              <div className="space-y-3">
+                {branches.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setBranch(b)}
+                    className={`w-full border-2 rounded-xl p-4 text-left
             ${
               branch?.id === b.id
                 ? "border-blue-600 bg-blue-50"
                 : "border-gray-200"
             }`}
-                >
-                  <p className="font-medium">{b.name}</p>
-                  <p className="text-sm text-gray-600">{b.address}</p>
-                </button>
-              ))}
+                  >
+                    <p className="font-medium">{b.name}</p>
+                    <p className="text-sm text-gray-600">{b.address}</p>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
-
-        
 
         {/* FOOTER */}
         {step !== "select" && (

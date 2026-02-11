@@ -45,5 +45,12 @@ h1,h2{
   scrollbar-width: none;     /* Firefox */
 }
 
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 15s linear infinite;
+}
 
 /* text-[#1E3A8A] */
