@@ -6,15 +6,19 @@ import axios from "axios";
 const branches = [
   {
     id: "tampines",
-    _id: "696b2592f5f3ced6b3de4974", // ✅ Mongo id
+    _id: "696b2592f5f3ced6b3de4974",
     name: "One18 Bakery Tampines",
     address: "826 Tampines Street 81, Singapore 520826",
+    lat: 1.3526,
+    lng: 103.9448,
   },
   {
     id: "northbridge",
-    _id: "696b25f8f5f3ced6b3de4982", // ✅ add real id
+    _id: "696b25f8f5f3ced6b3de4982",
     name: "One18 Bakery North Bridge",
     address: "North Bridge Road, Singapore",
+    lat: 1.2905,
+    lng: 103.852,
   },
 ];
 
@@ -136,16 +140,32 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         setPostalStatus("success");
 
         try {
-          const feeRes = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
-            postalCode: value,
-            subtotal: 0, // or cart subtotal if available
-          });
+          // use first branch as default pickup for quote (safe fallback)
 
-          setDeliveryFee(feeRes.data.deliveryFee);
+          const pickupBranch = branches[0];   
+          console.log("POSTAL API RESPONSE =", res.data);
+    console.log("PICKUP BRANCH =", pickupBranch);
 
-          // ✅ SHOW AREA + DISTANCE
+          const quoteRes = await axios.post(
+            `${BACKEND_URL}/api/orders/lalamove-quote`,
+            {
+              pickup: {
+                address: pickupBranch.address,
+                lat: pickupBranch.lat,
+                lng: pickupBranch.lng,
+              },
+              drop: {
+                address: res.data.formattedAddress || value,
+                lat: res.data.lat,
+                lng: res.data.lng,
+              },
+            },
+          );
+
+          setDeliveryFee(quoteRes.data.price);
+
           setPostalMessage(
-            `Delivering to ${res.data.area} (${feeRes.data.distanceKm} km away)`,
+            `Delivering to ${res.data.area} • Est. fee S$${quoteRes.data.price}`,
           );
         } catch {
           setDeliveryFee(10);
@@ -278,11 +298,11 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                         )}
                       </div>
                       {branchError && (
-  <p className="text-sm text-red-600 mt-1">{branchError}</p>
-)}
-
+                        <p className="text-sm text-red-600 mt-1">
+                          {branchError}
+                        </p>
+                      )}
                     </button>
-                    
                   ))}
                 </div>
               </div>

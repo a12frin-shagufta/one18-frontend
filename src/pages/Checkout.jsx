@@ -49,6 +49,12 @@ const [qrCode, setQrCode] = useState(null);
     phone: "65", // ✅ Singapore default
   });
 
+
+  console.log("ORDERS =", orders);
+console.log("ITEMS =", items);
+
+
+
   useEffect(() => {
     const savedCustomer = localStorage.getItem("checkoutCustomer");
     if (!savedCustomer) return;
@@ -117,8 +123,11 @@ const [qrCode, setQrCode] = useState(null);
     return items.reduce((sum, item) => sum + item.price * item.qty, 0);
   }, [items]);
 
-  const deliveryFee =
-    fulfillment?.type === "delivery" ? fulfillment.deliveryFee || 0 : 0;
+ const deliveryFee =
+  fulfillment?.type === "delivery"
+    ? Number(fulfillment.deliveryFee) || 0
+    : 0;
+
   const totalAmount = subtotal + deliveryFee;
 
   const handleInputChange = (field, value) => {
@@ -333,6 +342,11 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
   //     setIsUploading(false);
   //   }
   // };
+
+  console.log("subtotal =", subtotal);
+console.log("deliveryFee =", deliveryFee);
+console.log("totalAmount =", totalAmount);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
