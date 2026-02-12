@@ -28,8 +28,8 @@ const [canConfirmPaid, setCanConfirmPaid] = useState(false);
 
   
   const [createdOrderId, setCreatedOrderId] = useState(null);
-const [qrCode, setQrCode] = useState(null);
-const [qrReference, setQrReference] = useState(null);
+// const [qrCode, setQrCode] = useState(null);
+// const [qrReference, setQrReference] = useState(null);
 
   // const [paymentProof, setPaymentProof] = useState(null);
   // const [isUploading, setIsUploading] = useState(false);
@@ -298,24 +298,37 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
     localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
   }, [customer]);
 
+  useEffect(() => {
+  if (!showPayNowQR) return;
 
-useEffect(() => {
-  if (!createdOrderId) return;
+  setCanConfirmPaid(false);
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const t = setTimeout(() => {
+    setCanConfirmPaid(true);
+  }, 8000);
 
-  axios
-    .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
-    .then(res => {
-      setQrCode(res.data.qr);
-      setQrReference(res.data.reference);
+  return () => clearTimeout(t);
+}, [showPayNowQR]);
 
-      // ✅ enable confirm after delay
-      setTimeout(() => {
-        setCanConfirmPaid(true);
-      }, 8000); // 8 seconds
-    });
-}, [createdOrderId]);
+
+
+// useEffect(() => {
+//   if (!createdOrderId) return;
+
+//   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+//   axios
+//     .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
+//     .then(res => {
+//       setQrCode(res.data.qr);
+//       setQrReference(res.data.reference);
+
+//       // ✅ enable confirm after delay
+//       setTimeout(() => {
+//         setCanConfirmPaid(true);
+//       }, 8000); // 8 seconds
+//     });
+// }, [createdOrderId]);
 
 
 
@@ -871,11 +884,12 @@ console.log("totalAmount =", totalAmount);
             </button>
 
             <div>
-              {qrReference && (
+              {createdOrderId && (
   <p className="text-sm font-mono bg-gray-100 px-3 py-1 rounded inline-block mb-3">
-    Order ID: {qrReference}
+    Order ID: {createdOrderId}
   </p>
 )}
+
 
               <p className="text-sm text-gray-600 mb-4">
                 Scan QR and complete payment
@@ -893,11 +907,13 @@ console.log("totalAmount =", totalAmount);
                       <span className="text-sm text-gray-500">SGD</span>
                     </div>
                   </div>
-                  {qrCode ? (
-  <img src={qrCode} className="w-full rounded-lg" />
-) : (
-  <p>Generating QR...</p>
-)}
+                  <img
+  src="/images/qr.jpeg"
+  alt="PayNow QR"
+  style={{ width: 260, height: 260 }}
+  className="mx-auto rounded-lg"
+/>
+
 
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Scan with your banking app
