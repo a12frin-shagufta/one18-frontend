@@ -269,10 +269,12 @@ const ProductDetail = () => {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
       /> */}
-      <FulfillmentModal
+   <FulfillmentModal
   open={showFulfillment}
   onClose={() => setShowFulfillment(false)}
+  redirectToCheckout={true}
 />
+
 
 
     </div>
