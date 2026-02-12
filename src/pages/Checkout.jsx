@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
@@ -13,6 +13,7 @@ import axios from "axios";
 const Checkout = () => {
   const navigate = useNavigate();
   const { orders, clearCart } = useCart();
+  const clickLock = useRef(false);
 
   const items = Object.values(orders);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,12 +21,15 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("paynow");
 const [showPayNowQR, setShowPayNowQR] = useState(false);
 const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+const [canConfirmPaid, setCanConfirmPaid] = useState(false);
+
 
 
 
   
   const [createdOrderId, setCreatedOrderId] = useState(null);
 const [qrCode, setQrCode] = useState(null);
+const [qrReference, setQrReference] = useState(null);
 
   // const [paymentProof, setPaymentProof] = useState(null);
   // const [isUploading, setIsUploading] = useState(false);
@@ -139,7 +143,14 @@ console.log("ITEMS =", items);
   };
 
   const placeOrder = async () => {
-    if (!validateForm()) return;
+    if (clickLock.current) return;
+  clickLock.current = true;
+   if (!validateForm()) {
+  clickLock.current = false;
+  setIsProcessing(false);
+  return;
+}
+
 
     setIsProcessing(true);
 
@@ -237,7 +248,9 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
 
   setCreatedOrderId(orderId);
   setShowPayNowQR(true);
+  setCanConfirmPaid(false); 
   setIsProcessing(false);
+  clickLock.current = false;
   return;
 }
 
@@ -268,6 +281,7 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
     } catch (err) {
       alert(err.response?.data?.message || "Payment failed, try again");
       setIsProcessing(false);
+       clickLock.current = false;
     }
   };
 
@@ -285,7 +299,7 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
   }, [customer]);
 
 
-  useEffect(() => {
+useEffect(() => {
   if (!createdOrderId) return;
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -293,15 +307,16 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
   axios
     .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
     .then(res => {
-      console.log("QR RECEIVED:", res.data);
       setQrCode(res.data.qr);
-    })
-    .catch(err => {
-      console.error("QR fetch failed", err.response?.data || err.message);
-      alert("Failed to generate QR");
-    });
+      setQrReference(res.data.reference);
 
+      // ✅ enable confirm after delay
+      setTimeout(() => {
+        setCanConfirmPaid(true);
+      }, 8000); // 8 seconds
+    });
 }, [createdOrderId]);
+
 
 
   // const handleFileUpload = async (file) => {
@@ -812,10 +827,15 @@ console.log("totalAmount =", totalAmount);
             </div>
 
             <button
-              onClick={placeOrder}
-              disabled={isProcessing || items.length === 0}
-              className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
-            >
+  onClick={() => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    placeOrder();
+  }}
+  disabled={isProcessing || items.length === 0}
+  className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
+>
+
               {isProcessing ? (
                 <div className="flex items-center justify-center gap-2">
                   <Loader className="w-5 h-5 animate-spin" />
@@ -851,9 +871,12 @@ console.log("totalAmount =", totalAmount);
             </button>
 
             <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Pay with PayNow
-              </h3>
+              {qrReference && (
+  <p className="text-sm font-mono bg-gray-100 px-3 py-1 rounded inline-block mb-3">
+    Order ID: {qrReference}
+  </p>
+)}
+
               <p className="text-sm text-gray-600 mb-4">
                 Scan QR and complete payment
 
@@ -946,7 +969,7 @@ console.log("totalAmount =", totalAmount);
               {/* Action Buttons */}
               <div className="space-y-3">
                <button
-  disabled={!createdOrderId || isMarkingPaid}
+ disabled={!canConfirmPaid || isMarkingPaid}
   onClick={async () => {
     if (isMarkingPaid) return; // extra safety
 
