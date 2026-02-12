@@ -2,7 +2,14 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
-import { CheckCircle, ChevronLeft, AlertCircle, Loader, X, Upload } from "lucide-react";
+import {
+  CheckCircle,
+  ChevronLeft,
+  AlertCircle,
+  Loader,
+  X,
+  Upload,
+} from "lucide-react";
 import { useLocation } from "react-router-dom";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -19,17 +26,15 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("paynow");
-const [showPayNowQR, setShowPayNowQR] = useState(false);
-const [isMarkingPaid, setIsMarkingPaid] = useState(false);
-const [canConfirmPaid, setCanConfirmPaid] = useState(false);
+  const [showPayNowQR, setShowPayNowQR] = useState(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  const [canConfirmPaid, setCanConfirmPaid] = useState(false);
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-
-
-
-  
   const [createdOrderId, setCreatedOrderId] = useState(null);
-// const [qrCode, setQrCode] = useState(null);
-// const [qrReference, setQrReference] = useState(null);
+  // const [qrCode, setQrCode] = useState(null);
+  // const [qrReference, setQrReference] = useState(null);
 
   // const [paymentProof, setPaymentProof] = useState(null);
   // const [isUploading, setIsUploading] = useState(false);
@@ -49,15 +54,12 @@ const [canConfirmPaid, setCanConfirmPaid] = useState(false);
     address: "",
     apartment: "",
     postalCode: "",
-    
+
     phone: "65", // ✅ Singapore default
   });
 
-
   console.log("ORDERS =", orders);
-console.log("ITEMS =", items);
-
-
+  console.log("ITEMS =", items);
 
   useEffect(() => {
     const savedCustomer = localStorage.getItem("checkoutCustomer");
@@ -79,10 +81,7 @@ console.log("ITEMS =", items);
       setCustomer((prev) => ({
         ...prev,
         postalCode:
-          fulfillment.postalCode ||
-          fulfillment.postal ||
-          fulfillment.zip ||
-          "",
+          fulfillment.postalCode || fulfillment.postal || fulfillment.zip || "",
       }));
     }
   }, [fulfillment]);
@@ -127,10 +126,8 @@ console.log("ITEMS =", items);
     return items.reduce((sum, item) => sum + item.price * item.qty, 0);
   }, [items]);
 
- const deliveryFee =
-  fulfillment?.type === "delivery"
-    ? Number(fulfillment.deliveryFee) || 0
-    : 0;
+  const deliveryFee =
+    fulfillment?.type === "delivery" ? Number(fulfillment.deliveryFee) || 0 : 0;
 
   const totalAmount = subtotal + deliveryFee;
 
@@ -144,13 +141,12 @@ console.log("ITEMS =", items);
 
   const placeOrder = async () => {
     if (clickLock.current) return;
-  clickLock.current = true;
-   if (!validateForm()) {
-  clickLock.current = false;
-  setIsProcessing(false);
-  return;
-}
-
+    clickLock.current = true;
+    if (!validateForm()) {
+      clickLock.current = false;
+      setIsProcessing(false);
+      return;
+    }
 
     setIsProcessing(true);
 
@@ -169,20 +165,19 @@ console.log("ITEMS =", items);
 
       const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
       const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
-     const branchId =
-  fulfillment?.branch?._id ||
-  fulfillment?.branch?.id ||
-  DEFAULT_BRANCH.id;   // fallback only if missing
+      const branchId =
+        fulfillment?.branch?._id ||
+        fulfillment?.branch?.id ||
+        DEFAULT_BRANCH.id; // fallback only if missing
 
+      console.log("Sending branchId →", branchId);
 
-console.log("Sending branchId →", branchId);
-
-console.log("FULFILLMENT DATA =", fulfillment);
-console.log("FULFILLMENT BRANCH =", fulfillment?.branch);
-console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
+      console.log("FULFILLMENT DATA =", fulfillment);
+      console.log("FULFILLMENT BRANCH =", fulfillment?.branch);
+      console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
 
       const payload = {
-         branch: branchId,
+        branch: branchId,
         orderType,
         fulfillmentType: fulfillment.type,
         fulfillmentDate:
@@ -209,14 +204,13 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
           fulfillment.type === "delivery"
             ? {
                 addressText: customer.address,
-               postalCode: customer.postalCode,
+                postalCode: customer.postalCode,
               }
             : null,
         pickupLocation: {
-  name: fulfillment?.branch?.name || DEFAULT_BRANCH.name,
-  address: fulfillment?.branch?.address || DEFAULT_BRANCH.address,
-},
-
+          name: fulfillment?.branch?.name || DEFAULT_BRANCH.name,
+          address: fulfillment?.branch?.address || DEFAULT_BRANCH.address,
+        },
 
         items: items.map((i) => ({
           productId: i.itemId,
@@ -229,34 +223,22 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
         deliveryFee,
         totalAmount,
       };
-   
-
 
       if (paymentMethod === "paynow") {
-  const res = await axios.post(
-    `${BACKEND_URL}/api/orders`,
-    {
-      ...payload,
-      paymentMethod: "paynow"
-    }
-  );
+        const res = await axios.post(`${BACKEND_URL}/api/orders`, {
+          ...payload,
+          paymentMethod: "paynow",
+        });
 
+        const orderId = res.data.order._id;
 
-
-
-  const orderId = res.data.order._id;
-
-  setCreatedOrderId(orderId);
-  setShowPayNowQR(true);
-  setCanConfirmPaid(false); 
-  setIsProcessing(false);
-  clickLock.current = false;
-  return;
-}
-
-
-
-
+        setCreatedOrderId(orderId);
+        setShowPayNowQR(true);
+        setCanConfirmPaid(false);
+        setIsProcessing(false);
+        clickLock.current = false;
+        return;
+      }
 
       if (paymentMethod === "stripe") {
         const res = await axios.post(
@@ -281,7 +263,7 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
     } catch (err) {
       alert(err.response?.data?.message || "Payment failed, try again");
       setIsProcessing(false);
-       clickLock.current = false;
+      clickLock.current = false;
     }
   };
 
@@ -299,82 +281,40 @@ console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
   }, [customer]);
 
   useEffect(() => {
-  if (!showPayNowQR) return;
+    if (!showPayNowQR) return;
 
-  setCanConfirmPaid(false);
+    setCanConfirmPaid(false);
 
-  const t = setTimeout(() => {
-    setCanConfirmPaid(true);
-  }, 8000);
+    const t = setTimeout(() => {
+      setCanConfirmPaid(true);
+    }, 8000);
 
-  return () => clearTimeout(t);
-}, [showPayNowQR]);
+    return () => clearTimeout(t);
+  }, [showPayNowQR]);
 
+  // useEffect(() => {
+  //   if (!createdOrderId) return;
 
+  //   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// useEffect(() => {
-//   if (!createdOrderId) return;
+  //   axios
+  //     .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
+  //     .then(res => {
+  //       setQrCode(res.data.qr);
+  //       setQrReference(res.data.reference);
 
-//   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-//   axios
-//     .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
-//     .then(res => {
-//       setQrCode(res.data.qr);
-//       setQrReference(res.data.reference);
-
-//       // ✅ enable confirm after delay
-//       setTimeout(() => {
-//         setCanConfirmPaid(true);
-//       }, 8000); // 8 seconds
-//     });
-// }, [createdOrderId]);
-
-
-
-  // const handleFileUpload = async (file) => {
-  //   setIsUploading(true);
-  //   try {
-  //     const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-  //     const formData = new FormData();
-  //     formData.append("proof", file);
-
-  //     const uploadRes = await axios.post(
-  //       `${BACKEND_URL}/api/payment/upload-proof`,
-  //       formData,
-  //       { headers: { "Content-Type": "multipart/form-data" } }
-  //     );
-
-  //     const proofUrl = uploadRes.data.url;
-
-  //     if (!pendingOrderPayload) {
-  //       alert("Order data not ready yet.");
-  //       return null;
-  //     }
-
-  //     const res = await axios.post(`${BACKEND_URL}/api/orders`, {
-  //       ...pendingOrderPayload,
-  //       paymentMethod: "paynow",
-  //       paymentProof: proofUrl,
+  //       // ✅ enable confirm after delay
+  //       setTimeout(() => {
+  //         setCanConfirmPaid(true);
+  //       }, 8000); // 8 seconds
   //     });
+  // }, [createdOrderId]);
 
-  //     clearCart();
-
-  //     navigate("/thank-you", {
-  //       state: { orderId: res.data.order._id },
-  //     });
-  //   } catch (err) {
-  //     alert(err.response?.data?.message || "Failed to place order");
-  //     return null;
-  //   } finally {
-  //     setIsUploading(false);
-  //   }
-  // };
+  
 
   console.log("subtotal =", subtotal);
-console.log("deliveryFee =", deliveryFee);
-console.log("totalAmount =", totalAmount);
-
+  console.log("deliveryFee =", deliveryFee);
+  console.log("totalAmount =", totalAmount);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
@@ -492,19 +432,18 @@ console.log("totalAmount =", totalAmount);
                     Phone number *
                   </label>
                   <PhoneInput
-  country="sg"
-  preferredCountries={["sg"]}
-  value={customer.phone}
-  onChange={(value) => handleInputChange("phone", value)}
-  enableSearch
-  inputClass={`!w-full !h-[50px] !rounded-xl !pl-14 !border ${
-    errors.phone ? "!border-red-500" : "!border-gray-300"
-  }`}
-  buttonClass="!border-gray-300 !rounded-l-xl"
-  containerClass="w-full"
-  dropdownClass="!rounded-xl"
-/>
-
+                    country="sg"
+                    preferredCountries={["sg"]}
+                    value={customer.phone}
+                    onChange={(value) => handleInputChange("phone", value)}
+                    enableSearch
+                    inputClass={`!w-full !h-[50px] !rounded-xl !pl-14 !border ${
+                      errors.phone ? "!border-red-500" : "!border-gray-300"
+                    }`}
+                    buttonClass="!border-gray-300 !rounded-l-xl"
+                    containerClass="w-full"
+                    dropdownClass="!rounded-xl"
+                  />
 
                   {errors.phone && (
                     <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
@@ -625,7 +564,9 @@ console.log("totalAmount =", totalAmount);
                   {fulfillment?.type === "delivery" ? 3 : 2}
                 </div>
                 <h2 className="text-xl font-serif font-semibold text-gray-900">
-                  {fulfillment.type === "delivery" ? "Delivery Method" : "Pickup Details"}
+                  {fulfillment.type === "delivery"
+                    ? "Delivery Method"
+                    : "Pickup Details"}
                 </h2>
               </div>
 
@@ -716,9 +657,7 @@ console.log("totalAmount =", totalAmount);
                   <p className="font-semibold text-gray-900">
                     PayNow (Recommended)
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Scan QR code to pay
-                  </p>
+                  <p className="text-sm text-gray-600">Scan QR code to pay</p>
                 </div>
                 <span className="text-2xl">🇸🇬</span>
               </label>
@@ -740,7 +679,9 @@ console.log("totalAmount =", totalAmount);
                 />
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900">Card Payment</p>
-                  <p className="text-sm text-gray-600">Pay securely with card</p>
+                  <p className="text-sm text-gray-600">
+                    Pay securely with card
+                  </p>
                 </div>
                 <span className="text-xl">💳</span>
               </label>
@@ -840,15 +781,14 @@ console.log("totalAmount =", totalAmount);
             </div>
 
             <button
-  onClick={() => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    placeOrder();
-  }}
-  disabled={isProcessing || items.length === 0}
-  className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
->
-
+              onClick={() => {
+                if (isProcessing) return;
+                setIsProcessing(true);
+                placeOrder();
+              }}
+              disabled={isProcessing || items.length === 0}
+              className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
+            >
               {isProcessing ? (
                 <div className="flex items-center justify-center gap-2">
                   <Loader className="w-5 h-5 animate-spin" />
@@ -885,15 +825,13 @@ console.log("totalAmount =", totalAmount);
 
             <div>
               {createdOrderId && (
-  <p className="text-sm font-mono bg-gray-100 px-3 py-1 rounded inline-block mb-3">
-    Order ID: {createdOrderId}
-  </p>
-)}
-
+                <p className="text-sm font-mono bg-gray-100 px-3 py-1 rounded inline-block mb-3">
+                  Order ID: {createdOrderId}
+                </p>
+              )}
 
               <p className="text-sm text-gray-600 mb-4">
                 Scan QR and complete payment
-
               </p>
 
               {/* Compact QR Section */}
@@ -908,12 +846,11 @@ console.log("totalAmount =", totalAmount);
                     </div>
                   </div>
                   <img
-  src="/images/qr.jpeg"
-  alt="PayNow QR"
-  style={{ width: 260, height: 260 }}
-  className="mx-auto rounded-lg"
-/>
-
+                    src="/images/qr.jpeg"
+                    alt="PayNow QR"
+                    style={{ width: 260, height: 260 }}
+                    className="mx-auto rounded-lg"
+                  />
 
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Scan with your banking app
@@ -921,7 +858,7 @@ console.log("totalAmount =", totalAmount);
                 </div>
 
                 {/* Upload Section */}
-                {/* <div className="flex-1">
+                <div className="flex-1">
                   <label className="block mb-2 text-sm font-medium text-gray-700">
                     Upload Payment Proof
                   </label>
@@ -979,49 +916,60 @@ console.log("totalAmount =", totalAmount);
                       </div>
                     )}
                   </div>
-                </div> */}
+                </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-3">
-               <button
- disabled={!canConfirmPaid || isMarkingPaid}
-  onClick={async () => {
-    if (isMarkingPaid) return; // extra safety
+                <button
+                  disabled={!canConfirmPaid || isMarkingPaid || !paymentProof}
+                  onClick={async () => {
+  if (!paymentProof) return;
 
-    try {
-      setIsMarkingPaid(true);
+  try {
+    setIsMarkingPaid(true);
 
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-      await axios.put(
-        `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`
-      );
+    const formData = new FormData();
+    formData.append("proof", paymentProof);
 
-      clearCart();
+    const uploadRes = await axios.post(
+      `${BACKEND_URL}/api/payment/upload-proof`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
 
-      navigate("/thank-you", {
-        state: { orderId: createdOrderId },
-      });
+    const proofUrl = uploadRes.data.url;
 
-    } catch (err) {
-      alert("Failed to update payment status");
-      setIsMarkingPaid(false);
-    }
-  }}
-  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
->
-  {isMarkingPaid ? (
-    <>
-      <Loader className="w-4 h-4 animate-spin" />
-      Confirming...
-    </>
-  ) : (
-    "I Have Paid"
-  )}
-</button>
+    await axios.put(
+      `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`,
+      { paymentProof: proofUrl }
+    );
 
+    clearCart();
 
+    navigate("/thank-you", {
+      state: { orderId: createdOrderId },
+    });
+
+  } catch (err) {
+    alert("Upload failed");
+    setIsMarkingPaid(false);
+  }
+}}
+
+                  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isMarkingPaid ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Confirming...
+                    </>
+                  ) : (
+                    "I Have Paid"
+                  )}
+                </button>
 
                 <button
                   onClick={() => setShowPayNowQR(false)}
