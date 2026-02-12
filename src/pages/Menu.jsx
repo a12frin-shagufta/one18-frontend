@@ -283,7 +283,7 @@ return {
         </div>
 
         {/* CART BUTTON */}
-        <button
+        {/* <button
           onClick={() => setShowFulfillment(true)}
           className="relative p-2"
           aria-label="View cart"
@@ -294,7 +294,7 @@ return {
               {cartTotalItems}
             </span>
           )}
-        </button>
+        </button> */}
       </div>
 
       {/* SIDEBAR OVERLAY */}
