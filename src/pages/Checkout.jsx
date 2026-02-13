@@ -25,14 +25,15 @@ const Checkout = () => {
   const items = Object.values(orders);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
-  const [paymentMethod, setPaymentMethod] = useState("paynow");
-  const [showPayNowQR, setShowPayNowQR] = useState(false);
-  const [isMarkingPaid, setIsMarkingPaid] = useState(false);
-  const [canConfirmPaid, setCanConfirmPaid] = useState(false);
-  const [paymentProof, setPaymentProof] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
 
-  const [createdOrderId, setCreatedOrderId] = useState(null);
+  // const [showPayNowQR, setShowPayNowQR] = useState(false);
+  // const [isMarkingPaid, setIsMarkingPaid] = useState(false);
+  // const [canConfirmPaid, setCanConfirmPaid] = useState(false);
+  // const [paymentProof, setPaymentProof] = useState(null);
+  // const [isUploading, setIsUploading] = useState(false);
+
+  // const [createdOrderId, setCreatedOrderId] = useState(null);
   // const [qrCode, setQrCode] = useState(null);
   // const [qrReference, setQrReference] = useState(null);
 
@@ -224,21 +225,21 @@ const Checkout = () => {
         totalAmount,
       };
 
-      if (paymentMethod === "paynow") {
-        const res = await axios.post(`${BACKEND_URL}/api/orders`, {
-          ...payload,
-          paymentMethod: "paynow",
-        });
+      // if (paymentMethod === "paynow") {
+      //   const res = await axios.post(`${BACKEND_URL}/api/orders`, {
+      //     ...payload,
+      //     paymentMethod: "paynow",
+      //   });
 
-        const orderId = res.data.order._id;
+      //   const orderId = res.data.order._id;
 
-        setCreatedOrderId(orderId);
-        setShowPayNowQR(true);
-        setCanConfirmPaid(false);
-        setIsProcessing(false);
-        clickLock.current = false;
-        return;
-      }
+      //   setCreatedOrderId(orderId);
+      //   setShowPayNowQR(true);
+      //   setCanConfirmPaid(false);
+      //   setIsProcessing(false);
+      //   clickLock.current = false;
+      //   return;
+      // }
 
       if (paymentMethod === "stripe") {
         const res = await axios.post(
@@ -280,17 +281,17 @@ const Checkout = () => {
     localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
   }, [customer]);
 
-  useEffect(() => {
-    if (!showPayNowQR) return;
+  // useEffect(() => {
+  //   if (!showPayNowQR) return;
 
-    setCanConfirmPaid(false);
+  //   setCanConfirmPaid(false);
 
-    const t = setTimeout(() => {
-      setCanConfirmPaid(true);
-    }, 8000);
+  //   const t = setTimeout(() => {
+  //     setCanConfirmPaid(true);
+  //   }, 8000);
 
-    return () => clearTimeout(t);
-  }, [showPayNowQR]);
+  //   return () => clearTimeout(t);
+  // }, [showPayNowQR]);
 
   // useEffect(() => {
   //   if (!createdOrderId) return;
@@ -309,8 +310,6 @@ const Checkout = () => {
   //       }, 8000); // 8 seconds
   //     });
   // }, [createdOrderId]);
-
-  
 
   console.log("subtotal =", subtotal);
   console.log("deliveryFee =", deliveryFee);
@@ -638,29 +637,7 @@ const Checkout = () => {
             </div>
 
             <div className="space-y-3">
-              <label
-                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === "paynow"
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="paynow"
-                  checked={paymentMethod === "paynow"}
-                  onChange={() => setPaymentMethod("paynow")}
-                  className="w-5 h-5"
-                />
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">
-                    PayNow (Recommended)
-                  </p>
-                  <p className="text-sm text-gray-600">Scan QR code to pay</p>
-                </div>
-                <span className="text-2xl">🇸🇬</span>
-              </label>
+              
 
               <label
                 className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
@@ -678,10 +655,10 @@ const Checkout = () => {
                   className="w-5 h-5"
                 />
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">Card Payment</p>
-                  <p className="text-sm text-gray-600">
-                    Pay securely with card
-                  </p>
+                  <p className="font-semibold text-gray-900">Secure Online Payment</p>
+<p className="text-sm text-gray-600">
+  PayNow / Card / Wallet (via Stripe)
+</p>
                 </div>
                 <span className="text-xl">💳</span>
               </label>
@@ -812,176 +789,7 @@ const Checkout = () => {
       </div>
 
       {/* PayNow Modal - COMPACT VERSION */}
-      {showPayNowQR && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 max-w-md w-full shadow-2xl relative">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowPayNowQR(false)}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div>
-              {createdOrderId && (
-                <p className="text-sm font-mono bg-gray-100 px-3 py-1 rounded inline-block mb-3">
-                  Order ID: {createdOrderId}
-                </p>
-              )}
-
-              <p className="text-sm text-gray-600 mb-4">
-                Scan QR and complete payment
-              </p>
-
-              {/* Compact QR Section */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-1">
-                  <div className="text-center mb-2">
-                    <div className="inline-flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-gray-900">
-                        {formatPrice(totalAmount)}
-                      </span>
-                      <span className="text-sm text-gray-500">SGD</span>
-                    </div>
-                  </div>
-                  <img
-                    src="/images/qr.jpeg"
-                    alt="PayNow QR"
-                    style={{ width: 260, height: 260 }}
-                    className="mx-auto rounded-lg"
-                  />
-
-                  <p className="text-xs text-center text-gray-500 mt-2">
-                    Scan with your banking app
-                  </p>
-                </div>
-
-                {/* Upload Section */}
-                <div className="flex-1">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">
-                    Upload Payment Proof
-                  </label>
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all h-full flex flex-col justify-center ${
-                      paymentProof
-                        ? "border-green-400 bg-green-50/40"
-                        : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/30"
-                    }`}
-                    onClick={() => !paymentProof && document.getElementById('file-upload').click()}
-                  >
-                    <input
-                      type="file"
-                      id="file-upload"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) setPaymentProof(file);
-                      }}
-                      className="hidden"
-                    />
-                    
-                    {paymentProof ? (
-                      <div className="space-y-2">
-                        <div className="relative mx-auto w-20 h-20 rounded-lg overflow-hidden">
-                          <img
-                            src={URL.createObjectURL(paymentProof)}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPaymentProof(null);
-                            }}
-                            className="absolute top-1 right-1 bg-red-500 text-white text-xs p-1 rounded-full"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <p className="text-xs font-medium text-gray-700 truncate">
-                          {paymentProof.name}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2 py-2">
-                        <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Upload className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <p className="text-sm text-gray-600">Click to upload</p>
-                        <p className="text-xs text-gray-500">
-                          JPG, PNG • max 5MB
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <button
-                  disabled={!canConfirmPaid || isMarkingPaid || !paymentProof}
-                  onClick={async () => {
-  if (!paymentProof) return;
-
-  try {
-    setIsMarkingPaid(true);
-
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-    const formData = new FormData();
-    formData.append("proof", paymentProof);
-
-    const uploadRes = await axios.post(
-      `${BACKEND_URL}/api/payment/upload-proof`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-
-    const proofUrl = uploadRes.data.url;
-
-    await axios.put(
-      `${BACKEND_URL}/api/orders/${createdOrderId}/mark-paid`,
-      { paymentProof: proofUrl }
-    );
-
-    clearCart();
-
-    navigate("/thank-you", {
-      state: { orderId: createdOrderId },
-    });
-
-  } catch (err) {
-    alert("Upload failed");
-    setIsMarkingPaid(false);
-  }
-}}
-
-                  className="w-full py-3 rounded-xl font-semibold bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isMarkingPaid ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    "I Have Paid"
-                  )}
-                </button>
-
-                <button
-                  onClick={() => setShowPayNowQR(false)}
-                  className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };

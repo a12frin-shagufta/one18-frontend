@@ -1,17 +1,17 @@
-export const CURRENCY = "$";
+// ✅ Singapore currency
+export const CURRENCY = "S$";
 
 // ✅ single source of truth
 export const DELIVERY_FEE = 5;
 
 /**
- * Smart price formatter
- * - Whole numbers → $2
- * - Decimals → $2.50
+ * Smart SGD formatter
+ * Always shows 2 decimals (Stripe-safe)
  */
 export const formatPrice = (price) => {
-  if (price === null || price === undefined || isNaN(price)) {
-    return `${CURRENCY}0`;
-  }
+  const num = Number(price);
 
-  return `${CURRENCY}${Math.round(Number(price))}`;
+  if (isNaN(num)) return "S$0.00";
+
+  return `${CURRENCY}${num.toFixed(2)}`;
 };
