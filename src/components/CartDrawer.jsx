@@ -194,7 +194,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                     className="p-2 hover:bg-white/50 rounded-lg transition-colors"
                     aria-label="Edit fulfillment details"
                   >
-                    <Edit2 size={18} className="text-gray-500" />
+                    {/* <Edit2 size={18} className="text-gray-500" /> */}
                   </button>
                 </div>
 
