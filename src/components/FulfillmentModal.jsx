@@ -133,49 +133,26 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     setPostalStatus("checking");
 
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/postal/validate`, {
-        postalCode: value,
-      });
-      if (res.data.valid) {
-        setPostalStatus("success");
-
-        try {
-          // use first branch as default pickup for quote (safe fallback)
-
-          const pickupBranch = branches[0];   
-          console.log("POSTAL API RESPONSE =", res.data);
-    console.log("PICKUP BRANCH =", pickupBranch);
-
-          const quoteRes = await axios.post(
-            `${BACKEND_URL}/api/orders/lalamove-quote`,
-            {
-              pickup: {
-                address: pickupBranch.address,
-                lat: pickupBranch.lat,
-                lng: pickupBranch.lng,
-              },
-              drop: {
-                address: res.data.formattedAddress || value,
-                lat: res.data.lat,
-                lng: res.data.lng,
-              },
-            },
-          );
-
-          setDeliveryFee(quoteRes.data.price);
-
-          setPostalMessage(
-            `Delivering to ${res.data.area} • Est. fee S$${quoteRes.data.price}`,
-          );
-        } catch {
-          setDeliveryFee(10);
-          setPostalMessage(`Delivering to ${res.data.area}`);
-        }
-      }
-    } catch {
-      setPostalStatus("error");
-      setPostalMessage("Cannot check right now");
+  const res = await axios.post(
+    `${BACKEND_URL}/api/delivery/check`,
+    {
+      postalCode: value,
+      subtotal: 0 // or pass cart subtotal if you want free-delivery rule
     }
+  );
+
+  setPostalStatus("success");
+  setDeliveryFee(res.data.deliveryFee);
+
+  setPostalMessage(
+    `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`
+  );
+
+} catch (err) {
+  setPostalStatus("error");
+  setPostalMessage(err.response?.data?.message || "Delivery not available");
+}
+
   };
 
   const handleDateChange = (value, setter, errorSetter) => {
