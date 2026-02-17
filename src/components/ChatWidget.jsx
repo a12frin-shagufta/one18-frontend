@@ -32,6 +32,26 @@ export default function ChatWidget() {
     }
     setLoading(false);
   };
+const renderMessageText = (text) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  return text.split(urlRegex).map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline text-[#334b8f] break-all"
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+};
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end font-sans">
@@ -61,7 +81,8 @@ export default function ChatWidget() {
                   ${m.role === "user" 
                     ? "bg-[#334b8f] text-white rounded-tr-none" 
                     : "bg-white text-gray-700 border border-gray-100 rounded-tl-none"}`}>
-                  {m.text}
+                  {renderMessageText(m.text)}
+
                 </div>
               </div>
             ))}
