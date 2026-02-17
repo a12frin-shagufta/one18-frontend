@@ -22,6 +22,7 @@ import { DEFAULT_BRANCH } from "./config/defaultBranch";
 import FulfillmentModal from "./components/FulfillmentModal";
 import ThankYou from "./components/ThankYou";
 import NewsletterPopup from "./components/NewsletterPopup";
+import ChatWidget from "./components/ChatWidget";
 
 
 function App() {
@@ -79,7 +80,13 @@ function App() {
       </Routes>
 
       {!shouldHideFooter && <Footer />}
+
+
+<ChatWidget />
+
     </>
+
+    
   );
 }
 
