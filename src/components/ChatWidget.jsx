@@ -38,7 +38,8 @@ export default function ChatWidget() {
       
       {/* Chat Panel */}
       {open && (
-        <div className="mb-4 w-80 sm:w-96 h-[500px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="mb-4 w-[92vw] max-w-sm h-[70vh] max-h-[520px]
+ bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-5 duration-300">
           
           {/* Header: Gradient & 3D Depth */}
           <div className="bg-[#334b8f] p-4 text-white shadow-md flex items-center justify-between">
@@ -85,7 +86,7 @@ export default function ChatWidget() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 placeholder="Ask about cakes..."
-                className="bg-transparent border-none focus:ring-0 flex-1 text-sm text-gray-700 outline-none px-2"
+                className="bg-transparent border-none focus:ring-0 flex-1 text-base text-gray-700 outline-none px-2"
               />
               <button 
                 onClick={sendMessage}
