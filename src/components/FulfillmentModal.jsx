@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState,useMemo , useEffect} from "react";
 import { X, Store, Truck, ArrowLeft, CheckCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useCart } from "../context/CartContext";
 
 const branches = [
   {
@@ -39,7 +40,10 @@ const timeSlots = [
 ];
 
 const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
+  const { orders } = useCart();
+
   if (!open) return null;
+
 
   const [step, setStep] = useState("select");
   const navigate = useNavigate();
@@ -67,6 +71,14 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   };
 
   const minDate = getMinDate();
+
+
+  const cartSubtotal = useMemo(() => {
+  return Object.values(orders).reduce(
+    (sum, item) => sum + item.price * item.qty,
+    0
+  );
+}, [orders]);
 
   const saveAndClose = () => {
     // pickup final check
@@ -137,7 +149,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     `${BACKEND_URL}/api/delivery/check`,
     {
       postalCode: value,
-      subtotal: 0 // or pass cart subtotal if you want free-delivery rule
+      subtotal: cartSubtotal
+
     }
   );
 
@@ -169,6 +182,13 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     setter(value);
     errorSetter("");
   };
+
+  useEffect(() => {
+  if (postalCode.length === 6) {
+    handlePostalChange({ target: { value: postalCode } });
+  }
+}, [cartSubtotal]);
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">

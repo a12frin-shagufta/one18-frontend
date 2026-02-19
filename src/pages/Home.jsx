@@ -26,8 +26,9 @@ const Home = () => {
       <Hero />
      
       <CategoryPage />
+       <BestSellerSection />
        <FestivalSection />
-      <BestSellerSection />
+     
       <TreatsSection />
       <Highlights />
       <CateringSection />

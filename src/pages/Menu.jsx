@@ -424,7 +424,13 @@ return {
                     item={item}
                     orders={orders}
                     setOrders={setOrders}
-                    openCart={() => setShowFulfillment(true)}
+                    openCart={() => {
+  const fulfillment = localStorage.getItem("fulfillmentData");
+  if (!fulfillment) {
+    setShowFulfillment(true);
+  }
+}}
+
                   />
                 ))}
               </div>

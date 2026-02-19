@@ -41,7 +41,13 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
       };
     });
 
-    if (type === "inc") openCart();
+    if (type === "inc") {
+  const fulfillment = localStorage.getItem("fulfillmentData");
+  if (!fulfillment) {
+    openCart();
+  }
+}
+
   };
 
   const handleAddClick = (e) => {

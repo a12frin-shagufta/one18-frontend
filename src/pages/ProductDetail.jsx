@@ -120,7 +120,12 @@ const ProductDetail = () => {
     },
   }));
 
-  setShowFulfillment(true); // ✅ correct behavior
+  const fulfillment = localStorage.getItem("fulfillmentData");
+
+if (!fulfillment) {
+  setShowFulfillment(true);
+}
+
 };
 
   /* ======================
