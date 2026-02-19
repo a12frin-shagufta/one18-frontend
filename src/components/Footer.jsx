@@ -73,16 +73,50 @@ const handleSubscribe = async () => {
           </p>
 
           {/* SOCIAL ICONS */}
-          <div className="flex gap-4 mt-6">
-            {[Instagram, Facebook, Mail].map((Icon, i) => (
-              <button
-                key={i}
-                className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center hover:bg-white hover:text-[#183A8F] transition"
-              >
-                <Icon size={18} />
-              </button>
-            ))}
-          </div>
+          {/* SOCIAL ICONS */}
+<div className="flex gap-4 mt-6">
+  {/* Instagram Link */}
+  <a
+    href="https://www.instagram.com/one18bakery"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center hover:bg-white hover:text-[#183A8F] transition"
+  >
+    <Instagram size={18} />
+  </a>
+
+  {/* Facebook Link */}
+  <a
+    href="https://www.facebook.com/one18bakery"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center hover:bg-white hover:text-[#183A8F] transition"
+  >
+    <Facebook size={18} />
+  </a>
+
+  {/* TikTok Link */}
+  <a
+    href="https://www.tiktok.com/@one18bakery"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-10 h-10 rounded-full border border-white/40 flex items-center justify-center hover:bg-white hover:text-[#183A8F] transition"
+  >
+    {/* TikTok SVG Icon */}
+    <svg 
+      viewBox="0 0 24 24" 
+      width="18" 
+      height="18" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      fill="none" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+    </svg>
+  </a>
+</div>
         </div>
 
         {/* RIGHT */}
