@@ -5,7 +5,7 @@ import { FiPlus, FiMinus } from "react-icons/fi";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const navigate = useNavigate();
-  const isOutOfStock = item.inStock === false || item.isAvailable === false;
+const isOutOfStock = item.stock <= 0 || item.isAvailable === false;
 
   const hasMultipleVariants = item.variants.length > 1;
   const variant = item.variants[0];
@@ -19,8 +19,13 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
 
     setOrders((prev) => {
       const currentQty = prev[key]?.qty || 0;
-      const newQty =
-        type === "inc" ? currentQty + 1 : Math.max(0, currentQty - 1);
+    let newQty =
+  type === "inc" ? currentQty + 1 : Math.max(0, currentQty - 1);
+
+// 🚫 Prevent exceeding stock
+if (newQty > item.stock) {
+  newQty = item.stock;
+}
 
       if (newQty === 0) {
         const copy = { ...prev };
@@ -160,9 +165,14 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
     </div>
 
     <button
-      onClick={(e) => addSingleVariantToCart(e, "inc")}
-      className="w-7 h-7 flex items-center justify-center bg-white border border-gray-300 rounded-full active:bg-gray-100"
-    >
+  disabled={qty >= item.stock}
+  onClick={(e) => addSingleVariantToCart(e, "inc")}
+  className={`w-7 h-7 flex items-center justify-center border rounded-full
+    ${qty >= item.stock 
+      ? "bg-gray-200 cursor-not-allowed"
+      : "bg-white border-gray-300 active:bg-gray-100"
+    }`}
+>
       <FiPlus size={14} />
     </button>
   </div>
