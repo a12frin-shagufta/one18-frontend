@@ -1,8 +1,9 @@
-import React, { useState,useMemo , useEffect} from "react";
-import { X, Store, Truck, ArrowLeft, CheckCircle, Search } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { X, Store, Truck, ArrowLeft, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
+import { useLocation } from "react-router-dom";
 
 const branches = [
   {
@@ -24,30 +25,18 @@ const branches = [
 ];
 
 const timeSlots = [
-  "07:30",
-  "08:30",
-  "09:30",
-  "10:30",
-  "11:30",
-  "12:30",
-  "13:30",
-  "14:30",
-  "15:30",
-  "16:30",
-  "17:30",
-  "18:30",
-  "19:00",
+  "07:30", "08:30", "09:30", "10:30", "11:30", "12:30",
+  "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:00",
 ];
 
 const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const { orders } = useCart();
-
-  if (!open) return null;
-
-
-  const [step, setStep] = useState("select");
   const navigate = useNavigate();
+  const location = useLocation();
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+  // ── useState ────────────────────────────────────────────────────────────────
+  const [step, setStep] = useState("select");
   const [branch, setBranch] = useState(null);
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
@@ -55,34 +44,101 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
   const [branchError, setBranchError] = useState("");
-
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
   const [pickupDateError, setPickupDateError] = useState("");
   const [deliveryDateError, setDeliveryDateError] = useState("");
-  const [postalStatus, setPostalStatus] = useState("idle"); // idle | error | success | checking
+  const [postalStatus, setPostalStatus] = useState("idle");
   const [postalMessage, setPostalMessage] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(null);
 
-  const getMinDate = () => {
+  // ── useMemo ─────────────────────────────────────────────────────────────────
+  const cartSubtotal = useMemo(() => {
+    return Object.values(orders).reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    );
+  }, [orders]);
+
+  const hasFestiveCookies = useMemo(() => {
+    return Object.values(orders).some((item) =>
+      item.category?.toLowerCase().includes("festive")
+    );
+  }, [orders]);
+
+  const minDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
-    return d.toISOString().split("T")[0];
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  const year = new Date().getFullYear();
+  const festiveMin = `${year}-03-01`;
+  const festiveMax = `${year}-03-18`;
+  const effectiveMin = hasFestiveCookies ? festiveMin : minDate;
+  const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
+
+  // ── useEffect ───────────────────────────────────────────────────────────────
+ 
+
+
+  // ── Early return — MUST be after ALL hooks above ────────────────────────────
+
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handlePostalChange = async (e) => {
+    let value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setPostalCode(value);
+    setPostalStatus("idle");
+    setPostalMessage("");
+    setDeliveryFee(null);
+
+    if (value.length !== 6) return;
+    setPostalStatus("checking");
+
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
+        postalCode: value,
+        subtotal: cartSubtotal,
+      });
+      setPostalStatus("success");
+      setDeliveryFee(res.data.deliveryFee);
+      setPostalMessage(
+        `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`
+      );
+    } catch (err) {
+      setPostalStatus("error");
+      setPostalMessage(err.response?.data?.message || "Delivery not available");
+    }
   };
 
-  const minDate = getMinDate();
+   
 
-
-  const cartSubtotal = useMemo(() => {
-  return Object.values(orders).reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
-}, [orders]);
+  const handleDateChange = (value, setter, errorSetter) => {
+    if (!value) {
+      setter("");
+      errorSetter("");
+      return;
+    }
+    if (hasFestiveCookies) {
+      if (value < festiveMin || value > festiveMax) {
+        setter("");
+        errorSetter("Festive cookies are available 1–18 March only");
+        return;
+      }
+    } else {
+      if (value < minDate) {
+        setter("");
+        errorSetter("Date must be at least 3 days from today");
+        return;
+      }
+    }
+    setter(value);
+    errorSetter("");
+  };
 
   const saveAndClose = () => {
-    // pickup final check
-    // pickup validation with UI error
     if (step === "pickup") {
       if (!branch) {
         setBranchError("Please choose a branch");
@@ -91,13 +147,9 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
       if (!pickupDate || !pickupTime) return;
     }
 
-    // delivery step 1 → go to branch screen
     if (
       step === "delivery_details" &&
-      (!postalCode ||
-        !deliveryDate ||
-        !deliveryTime ||
-        postalStatus !== "success")
+      (!postalCode || !deliveryDate || !deliveryTime || postalStatus !== "success")
     )
       return;
 
@@ -106,7 +158,6 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
       return;
     }
 
-    // delivery step 2 → must choose branch
     if (step === "delivery_branch" && !branch) return;
 
     const area = postalMessage?.includes("Delivering to ")
@@ -125,74 +176,43 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         deliveryTime,
         deliveryFee,
         area,
-      }),
+      })
     );
 
     onClose();
     if (redirectToCheckout) navigate("/checkout");
   };
 
-  const handlePostalChange = async (e) => {
-    let value = e.target.value.replace(/\D/g, "").slice(0, 6);
-    setPostalCode(value);
-
-    setPostalStatus("idle");
-    setPostalMessage("");
-    setDeliveryFee(null);
-
-    if (value.length !== 6) return;
-
-    setPostalStatus("checking");
-
-    try {
-  const res = await axios.post(
-    `${BACKEND_URL}/api/delivery/check`,
-    {
-      postalCode: value,
-      subtotal: cartSubtotal
-
-    }
-  );
-
-  setPostalStatus("success");
-  setDeliveryFee(res.data.deliveryFee);
-
-  setPostalMessage(
-    `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`
-  );
-
-} catch (err) {
-  setPostalStatus("error");
-  setPostalMessage(err.response?.data?.message || "Delivery not available");
-}
-
-  };
-
-  const handleDateChange = (value, setter, errorSetter) => {
-    if (!value) {
-      setter("");
-      errorSetter("");
-      return;
-    }
-    if (new Date(value) < new Date(minDate)) {
-      setter("");
-      errorSetter("Date must be at least 3 days from today");
-      return;
-    }
-    setter(value);
-    errorSetter("");
-  };
 
   useEffect(() => {
-  if (postalCode.length === 6) {
-    handlePostalChange({ target: { value: postalCode } });
-  }
-}, [cartSubtotal]);
+    if (postalCode.length === 6) {
+      handlePostalChange({ target: { value: postalCode } });
+    }
+  }, [cartSubtotal]);
+  if (!open) return null;
 
+  const FestiveNotice = () => (
+  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 text-sm text-red-800 leading-relaxed">
+    <p className="font-semibold mb-2">Important Notice</p>
+    <ul className="list-disc pl-5 space-y-1">
+      <li>
+        Self-collection is preferred to maintain the best condition of the treats.
+      </li>
+      <li>
+        Delivery is available upon request. Slight crumb movement may occur during transit.
+      </li>
+      <li>
+        All payments made are non-refundable.
+      </li>
+    </ul>
+  </div>
+);
 
+  // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
+
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b shrink-0">
           <div className="flex items-center gap-2.5">
@@ -221,6 +241,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
 
         {/* CONTENT */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5">
+
+          {/* ── Step: select ── */}
           {step === "select" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <button
@@ -234,7 +256,6 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                     Self-collect and beat the queue
                   </p>
                 </div>
-
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
                 </div>
@@ -251,7 +272,6 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                     Delivered right to your doorstep
                   </p>
                 </div>
-
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
                 </div>
@@ -259,6 +279,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
             </div>
           )}
 
+          {/* ── Step: pickup ── */}
           {step === "pickup" && (
             <div className="space-y-5">
               <div>
@@ -276,46 +297,44 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                           branch?.id === b.id
                             ? "border-blue-600 bg-blue-50/60"
                             : branchError
-                              ? "border-red-500"
-                              : "border-gray-200 hover:border-gray-300"
+                            ? "border-red-500"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div>
                           <p className="font-medium">{b.name}</p>
-                          <p className="text-sm text-gray-600 mt-0.5">
-                            {b.address}
-                          </p>
+                          <p className="text-sm text-gray-600 mt-0.5">{b.address}</p>
                         </div>
                         {branch?.id === b.id && (
-                          <CheckCircle
-                            className="text-blue-600 mt-1"
-                            size={20}
-                          />
+                          <CheckCircle className="text-blue-600 mt-1" size={20} />
                         )}
                       </div>
                       {branchError && (
-                        <p className="text-sm text-red-600 mt-1">
-                          {branchError}
-                        </p>
+                        <p className="text-sm text-red-600 mt-1">{branchError}</p>
                       )}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {hasFestiveCookies && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
+                  🎉 Festive cookies must be picked up between{" "}
+                  <strong>1–18 March {year}</strong>. Other dates are not available.
+                </div>
+              )}
+              
+
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Pickup Date</label>
                 <input
                   type="date"
-                  min={minDate}
+                  min={effectiveMin}
+                  max={effectiveMax}
                   value={pickupDate}
                   onChange={(e) =>
-                    handleDateChange(
-                      e.target.value,
-                      setPickupDate,
-                      setPickupDateError,
-                    )
+                    handleDateChange(e.target.value, setPickupDate, setPickupDateError)
                   }
                   className={`w-full border rounded-lg px-3 py-2.5 text-base
                     ${pickupDateError ? "border-red-500" : "border-gray-300 focus:border-blue-500"}`}
@@ -334,19 +353,16 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>
             </div>
           )}
 
+          {/* ── Step: delivery_details ── */}
           {step === "delivery_details" && (
             <div className="space-y-5">
-              {/* Branch Selection — REQUIRED FOR DELIVERY */}
-              {/* Postal Code */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Postal Code</label>
                 <input
@@ -356,10 +372,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                   placeholder="Enter 6 digit postal"
                   className="w-full border rounded-lg px-3 py-2.5"
                 />
-
-                {postalStatus === "checking" && (
-                  <p className="text-xs">Checking…</p>
-                )}
+                {postalStatus === "checking" && <p className="text-xs">Checking…</p>}
                 {postalStatus === "success" && (
                   <p className="text-xs text-green-600">{postalMessage}</p>
                 )}
@@ -368,19 +381,23 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                 )}
               </div>
 
+              {hasFestiveCookies && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
+                  🎉 Festive cookies must be delivered between{" "}
+                  <strong>1–18 March {year}</strong>. Other dates are not available.
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Delivery Date</label>
                 <input
                   type="date"
-                  min={minDate}
+                  min={effectiveMin}
+                  max={effectiveMax}
                   value={deliveryDate}
                   disabled={postalStatus !== "success"}
                   onChange={(e) =>
-                    handleDateChange(
-                      e.target.value,
-                      setDeliveryDate,
-                      setDeliveryDateError,
-                    )
+                    handleDateChange(e.target.value, setDeliveryDate, setDeliveryDateError)
                   }
                   className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100
                     ${deliveryDateError ? "border-red-500" : "border-gray-300 focus:border-blue-500"}`}
@@ -400,9 +417,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
+                    <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>
@@ -417,6 +432,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
               )}
             </div>
           )}
+
+          {/* ── Step: delivery_branch ── */}
           {step === "delivery_branch" && (
             <div className="space-y-5">
               <p className="font-medium mb-2.5">Select Delivery Branch</p>
@@ -426,11 +443,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                     key={b.id}
                     onClick={() => setBranch(b)}
                     className={`w-full border-2 rounded-xl p-4 text-left
-            ${
-              branch?.id === b.id
-                ? "border-blue-600 bg-blue-50"
-                : "border-gray-200"
-            }`}
+                      ${branch?.id === b.id ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}
                   >
                     <p className="font-medium">{b.name}</p>
                     <p className="text-sm text-gray-600">{b.address}</p>

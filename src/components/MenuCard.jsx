@@ -34,16 +34,17 @@ if (newQty > item.stock) {
       }
 
       return {
-        ...prev,
-        [key]: {
-          itemId: item._id,
-          name: item.name,
-          variant: variant.label,
-          qty: newQty,
-          price: variant.discountedPrice ?? variant.price,
-          image: item.images?.[0],
-        },
-      };
+  ...prev,
+  [key]: {
+    itemId: item._id,
+    name: item.name,
+    variant: variant.label,
+    qty: newQty,
+    price: variant.discountedPrice ?? variant.price,
+    image: item.images?.[0],
+    category: item.category?.name, // ✅ ADD THIS
+  },
+};
     });
 
     if (type === "inc") {

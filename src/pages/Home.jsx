@@ -25,9 +25,10 @@ const Home = () => {
     <div>
       <Hero />
      
-      <CategoryPage />
+      {/* <CategoryPage /> */}
+      <FestivalSection />
        <BestSellerSection />
-       <FestivalSection />
+       
      
       <TreatsSection />
       <Highlights />

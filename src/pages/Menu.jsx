@@ -9,6 +9,7 @@ import {
   getBestOfferForItem,
   calculateDiscountedPrice,
 } from "../utils/applyOffer";
+import { useLocation } from "react-router-dom";
 import FulfillmentModal from "../components/FulfillmentModal";
 
 const Menu = () => {
@@ -27,6 +28,10 @@ const Menu = () => {
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+  const location = useLocation();
+
+
+
   /* ======================
      FETCH DATA
   ====================== */
@@ -38,6 +43,28 @@ const Menu = () => {
       .catch(console.error)
       .finally(() => setIsMenuLoading(false));
   }, []);
+
+  
+
+  console.log(menu[0]?.category);
+  
+  
+  useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const slug = params.get("category");
+
+  if (!slug || menu.length === 0) return;
+
+  // find category by slug
+  const matchedItem = menu.find(
+    (item) => item.category?.slug === slug
+  );
+
+  if (matchedItem?.category?._id) {
+    setActiveCategory(matchedItem.category._id);
+    setActiveSubcategory("all");
+  }
+}, [location.search, menu]);
 
   useEffect(() => {
     axios
@@ -52,6 +79,8 @@ const Menu = () => {
       setActiveSubcategory("all");
     }
   }, [categoryId]);
+
+  console.log("ORDERS:", orders);
 
   /* ======================
      CALCULATE TOTALS
@@ -176,6 +205,8 @@ return {
       ...categories,
     ];
   }, [menuWithOffers]);
+
+  
 
 
   useEffect(() => {

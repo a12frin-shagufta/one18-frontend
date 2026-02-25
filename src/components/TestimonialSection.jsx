@@ -1,42 +1,50 @@
 import React, { useState, useEffect, useRef } from "react";
 
 const TestimonialSection = () => {
+  const [expandedIndex, setExpandedIndex] = useState(null);
   const testimonials = [
     {
-      name: "Sarah L.",
-      role: "Regular Customer",
-      text: "The pistachio supreme croissant is absolutely divine! I come here every weekend without fail.",
-      avatar: "https://i.pravatar.cc/100?img=32",
+      name: "Di Di",
+      // role: "Food: 5/5  |  Service: 5/5  |  Atmosphere: 5/5",
+      text: "I love the quiche. It was cooked to perfection, with a little runny interior and well cooked exterior. The flavours were just right and the best part is, the staff that packed the food was hospitable. It is the warmness that service crews provide that brings customers back to a store.",
+      avatar: "https://lh3.googleusercontent.com/a/ACg8ocINqiGLTNwzpLATUMYSd6Xqe-x7dmcespvlf6NpThmbpMpOnQ=w130-h130-p-rp-mo-ba6-br100",
     },
     {
-      name: "Ahmad R.",
-      role: "Event Organizer",
-      text: "One18 catered our corporate event and everyone was blown away. Professional service and amazing pastries!",
-      avatar: "https://i.pravatar.cc/100?img=12",
+      name: "Ezdiyan Lukman",
+      // role: "Event Organizer",
+      text: "Enquired about Hari Raya Cookies to order for Staff and he was very patient with us! One18 Bakery has also came over to my school a few times for Bake Sale!",
+      avatar: "https://lh3.googleusercontent.com/a-/ALV-UjU8bMYO1N1n1Ha-ufsaSwFer7zWG80l_VzdYYfbnyifEWLoQn7LaQ=w130-h130-p-rp-mo-ba6-br100",
     },
     {
-      name: "Michelle T.",
-      role: "Food Blogger",
-      text: "Authentic French techniques with local flavors. One18 is a hidden gem in Singapore's bakery scene.",
-      avatar: "https://i.pravatar.cc/100?img=47",
+      name: "Wayne Huang",
+      // role: "Food Blogger",
+      text: "North bridge road branch has buffet menu. Quaint cosy cafe. Good to reserve on their website. They have cheese cakes, sweet and savoury croissants (rendang beef, chicken, ikan billis), quiches. You can ask them to heat up the savoury items. Buffet comes with one coffee (lattes). It’s a good option to taste all their pastries like ala carte high tea. Take your time to order, the buffet is about 2 hours.",
+      avatar: "https://lh3.googleusercontent.com/a/ACg8ocLe_nRTeuE_zGeLhuvIsp13MehfO38kJQKq438WsW_4oKOBbQ=w130-h130-p-rp-mo-ba3-br100",
     },
     {
-      name: "James K.",
-      role: "Coffee Enthusiast",
-      text: "The sourdough is world-class. You can taste the passion and quality ingredients in every bite.",
-      avatar: "https://i.pravatar.cc/100?img=23",
+      name: "Mei Leng Lee",
+      // role: "Coffee Enthusiast",
+      text: "North bridge road branch has buffet menu. Quaint cosy cafe. Good to reserve on their website. They have cheese cakes, sweet and savoury croissants (rendang beef, chicken, ikan billis), quiches. You can ask them to heat up the savoury items. Buffet comes with one coffee (lattes). It’s a good option to taste all their pastries like ala carte high tea. Take your time to order, the buffet is about 2 hours.",
+      avatar: "https://i.pinimg.com/736x/fe/db/e3/fedbe389b9ba006ebd593e15c5c9efec.jpg",
     },
     {
-      name: "Lisa M.",
-      role: "Local Resident",
-      text: "Their sourdough bread has become a staple in our home. Fresh, crusty, and absolutely delicious!",
-      avatar: "https://i.pravatar.cc/100?img=41",
+      name: "Nue Rz",
+      // role: "Local Resident",
+      text: "We chanced upon the bakery around our new neighbourhood as we just moved to the East and it was lovely to step into a bakery with the owner being so welcoming and sharing their specials even though it was close to closing time. Service was 110% Bought their ondeh-ondeh rolls and they were so fluffy and delicious. We also bought some savoury pastries chicken and beef rendang it was so rich with spices and I kept it the next day to eat up and it was still fresh! Wouldn’t be our last visit for sure.",
+      avatar: "https://i.pinimg.com/736x/9e/81/63/9e8163f56572232bfbce1b6530f6de7c.jpg",
+    },
+  
+    {
+      name: "farhanah",
+      // role: "Pastry Chef",
+      text: "Went all the way from Balestier to try these halal Supreme Croissants! They were crunchy on the outside, soft and buttery on the inside. Love the pistachio and rendang filling, so delicious. Would love to try other flavours too. They sell lots of other pastries too. Worth the travel and calories!",
+      avatar: "https://lh3.googleusercontent.com/a/ACg8ocIlnXXDbUUjuiqzXm2vWNCFrBtIrxb0vqhl4CPimLAuE7qVBg=w130-h130-p-rp-mo-br100",
     },
     {
-      name: "David W.",
-      role: "Pastry Chef",
-      text: "As a professional chef, I appreciate the attention to detail. One18's pastries are truly exceptional.",
-      avatar: "https://i.pravatar.cc/100?img=19",
+      name: "Chris Lai",
+      role: "self proclaimed foodie",
+      text: "Affordable crème brulé and stuffed circular croissants in the hood that did not skimp on the portion size",
+      avatar: "https://lh3.googleusercontent.com/a-/ALV-UjV23ri0KYEjYNquHyhtWTE4K-SdovaRb6y0PfFYMnB0ln5fkYVH=w130-h130-p-rp-mo-ba6-br100",
     },
   ];
 
@@ -195,10 +203,28 @@ const TestimonialSection = () => {
                     </div>
 
                     {/* Text */}
-                    <p className="text-[#163aa9] text-lg leading-relaxed italic">
-                      "{t.text}"
-                    </p>
+                    {/* Text */}
+<p className="text-[#163aa9] text-lg leading-relaxed italic">
+  "
+  {expandedIndex === i
+    ? t.text
+    : t.text.length > 180
+    ? t.text.substring(0, 180) + "..."
+    : t.text}
+  "
+</p>
 
+{/* Read More Button */}
+{t.text.length > 180 && (
+  <button
+    onClick={() =>
+      setExpandedIndex(expandedIndex === i ? null : i)
+    }
+    className="mt-3 text-orange-500 font-semibold text-sm hover:underline transition"
+  >
+    {expandedIndex === i ? "Read Less" : "Read More"}
+  </button>
+)}
                     {/* Divider */}
                     <div className="my-6 h-px bg-gray-200"></div>
 

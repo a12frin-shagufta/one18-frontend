@@ -11,9 +11,9 @@ const TreatsSection = () => {
   },
   
   {
-    title: "Presents",
-    image: "/images/button.jpg",
-    link: "/menu",
+    title: "Gifts",
+    image: "/images/gift.png",
+     link: "/menu/6979ca82bf183cc4e9a909c0",
   },
 
  
@@ -21,13 +21,13 @@ const TreatsSection = () => {
   {
     title: "Birthday",
     image: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/03645a17219bb167bf48ab7d9376b35c.jpg",
-    link: "/menu",
+    link: "/menu/69775854468616460bc2ef57",
   },
   
   {
     title: "Parties",
-    image: "https://i.pinimg.com/1200x/61/03/6f/61036fb62c1f669ea75159294268f9b5.jpg",
-    link: "/menu",
+    image: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/menu/a485276907bc66749dcd42d00a784382.jpg",
+    pdf: "https://pub-092239935ed64b7a853c7059e639a201.r2.dev/pdfs/One18%20Curated%20Bundles%20%26%20Packages.pdf_compressed%20(1).pdf", // ✅ PDF
   },
 ];
 
