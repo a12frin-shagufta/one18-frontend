@@ -192,7 +192,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   if (!open) return null;
 
   const FestiveNotice = () => (
-  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 text-sm text-red-800 leading-relaxed">
+  <div className="bg-amber-50 border-amber-200 text-amber-900 rounded-xl px-4 py-4 text-sm text-red-800 leading-relaxed">
     <p className="font-semibold mb-2">Important Notice</p>
     <ul className="list-disc pl-5 space-y-1">
       <li>
@@ -324,6 +324,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                   <strong>1–18 March {year}</strong>. Other dates are not available.
                 </div>
               )}
+              {hasFestiveCookies && <FestiveNotice />}
               
 
               <div className="space-y-1.5">
@@ -387,6 +388,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
                   <strong>1–18 March {year}</strong>. Other dates are not available.
                 </div>
               )}
+              {hasFestiveCookies && <FestiveNotice />}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Delivery Date</label>
