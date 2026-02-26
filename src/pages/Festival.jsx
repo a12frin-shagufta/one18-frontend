@@ -103,9 +103,9 @@ const Festival = () => {
         <p className="text-gray-200 text-sm md:text-lg mb-0 leading-relaxed font-light">
           "Made To Share, Meant To Enjoy"
         </p>
-        <p className="text-gray-400 text-xs md:text-sm mt-1 tracking-wide uppercase">
+        {/* <p className="text-gray-400 text-xs md:text-sm mt-1 tracking-wide uppercase">
           Handcrafted for all occasions
-        </p>
+        </p> */}
       </div>
     </div>
 

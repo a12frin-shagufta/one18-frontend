@@ -6,7 +6,6 @@ import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { formatPrice } from "../utils/currency";
 import FulfillmentModal from "../components/FulfillmentModal";
 
-
 import {
   getBestOfferForItem,
   calculateDiscountedPrice,
@@ -27,7 +26,6 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showFulfillment, setShowFulfillment] = useState(false);
 
-
   /* ======================
      FETCH PRODUCT
   ====================== */
@@ -35,9 +33,7 @@ const ProductDetail = () => {
     const loadProduct = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(
-          `${BACKEND_URL}/api/menu/slug/${slug}`
-        );
+        const res = await axios.get(`${BACKEND_URL}/api/menu/slug/${slug}`);
         setProduct(res.data);
       } catch (err) {
         console.error(err);
@@ -94,9 +90,7 @@ const ProductDetail = () => {
   const basePrice = useMemo(() => {
     if (!productWithOffer?.variants?.length) return 0;
     return Math.min(
-      ...productWithOffer.variants.map(
-        (v) => v.discountedPrice ?? v.price
-      )
+      ...productWithOffer.variants.map((v) => v.discountedPrice ?? v.price),
     );
   }, [productWithOffer]);
 
@@ -107,6 +101,7 @@ const ProductDetail = () => {
   if (!selectedVariant) return;
 
   const key = `${product._id}_${selectedVariant.label}`;
+  console.log("PRODUCT:", product);
 
   setOrders((prev) => ({
     ...prev,
@@ -117,15 +112,17 @@ const ProductDetail = () => {
       price: selectedVariant.discountedPrice ?? selectedVariant.price,
       qty,
       image: product.images?.[0],
+      category: product.category, // ✅ ADD THIS
+      isFestive: !!product.festival, 
+       
     },
   }));
 
   const fulfillment = localStorage.getItem("fulfillmentData");
 
-if (!fulfillment) {
-  setShowFulfillment(true);
-}
-
+  if (!fulfillment) {
+    setShowFulfillment(true);
+  }
 };
 
   /* ======================
@@ -169,10 +166,7 @@ if (!fulfillment) {
                       : "border-gray-200"
                   }`}
                 >
-                  <img
-                    src={img}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={img} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -181,17 +175,13 @@ if (!fulfillment) {
 
         {/* ================= RIGHT DETAILS ================= */}
         <div>
-          <h1 className="text-3xl font-bold mb-3">
-            {product.name}
-          </h1>
+          <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
 
           <p className="text-lg text-[#1E3A8A] font-semibold mb-4">
             From {formatPrice(basePrice)}
           </p>
 
-          <p className="text-gray-600 mb-6">
-            {product.description}
-          </p>
+          <p className="text-gray-600 mb-6">{product.description}</p>
 
           {/* ================= VARIANT ACCORDION ================= */}
           <div className="border rounded-xl overflow-hidden mb-6">
@@ -212,8 +202,7 @@ if (!fulfillment) {
             {accordionOpen && (
               <div className="divide-y">
                 {productWithOffer.variants.map((v) => {
-                  const diff =
-                    (v.discountedPrice ?? v.price) - basePrice;
+                  const diff = (v.discountedPrice ?? v.price) - basePrice;
 
                   return (
                     <label
@@ -232,7 +221,6 @@ if (!fulfillment) {
                       <input
                         type="radio"
                         checked={selectedVariant?.label === v.label}
-
                         onChange={() => setSelectedVariant(v)}
                         className="w-5 h-5 accent-[#1E3A8A]"
                       />
@@ -274,14 +262,11 @@ if (!fulfillment) {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
       /> */}
-   <FulfillmentModal
-  open={showFulfillment}
-  onClose={() => setShowFulfillment(false)}
-  redirectToCheckout={true}
-/>
-
-
-
+      <FulfillmentModal
+        open={showFulfillment}
+        onClose={() => setShowFulfillment(false)}
+        redirectToCheckout={true}
+      />
     </div>
   );
 };

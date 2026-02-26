@@ -58,12 +58,21 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     );
   }, [orders]);
 
-  const hasFestiveCookies = useMemo(() => {
-    return Object.values(orders).some((item) =>
-      item.category?.toLowerCase().includes("festive")
-    );
-  }, [orders]);
+const hasFestiveCookies = useMemo(() => {
+  return Object.values(orders).some((item) => {
+    if (!item.category) return false;
 
+    if (typeof item.category === "string") {
+      return item.category.toLowerCase().includes("festive");
+    }
+
+    if (typeof item.category === "object") {
+      return item.category.name?.toLowerCase().includes("festive");
+    }
+
+    return false;
+  });
+}, [orders]);
   const minDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
@@ -189,6 +198,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
       handlePostalChange({ target: { value: postalCode } });
     }
   }, [cartSubtotal]);
+
+  console.log("ORDERS:", orders);
   if (!open) return null;
 
   const FestiveNotice = () => (
