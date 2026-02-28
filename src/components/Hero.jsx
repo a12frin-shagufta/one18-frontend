@@ -10,10 +10,16 @@ const Hero = () => {
 
         {/* LEFT — TEXT CONTENT */}
         <div>
-
-          <span className="inline-block bg-[#1E3A8A] text-white text-md px-4 py-1 rounded-full mb-6 tracking-wide">
-            SINGAPORE'S FINEST · 100% Muslim Owned · Halal Artisanal bakery
-          </span>
+<span className="inline-block bg-[#1E3A8A] text-white 
+  text-xs sm:text-sm md:text-base 
+  px-3 sm:px-4 
+  py-1.5 sm:py-2 
+  rounded-full 
+  mb-6 
+  tracking-wide 
+  text-center leading-snug">
+  SINGAPORE'S FINEST · 100% Muslim Owned · Halal Artisanal Bakery
+</span>
 
           <h1 className="text-4xl md:text-6xl font-serif text-blue-900 leading-tight">
             Singapore's <br />
