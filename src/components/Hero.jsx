@@ -11,13 +11,13 @@ const Hero = () => {
         {/* LEFT — TEXT CONTENT */}
         <div>
 
-          <span className="inline-block bg-[#1E3A8A] text-white text-xs px-4 py-1 rounded-full mb-6 tracking-wide">
-            SINGAPORE'S FINEST · MUSLIM OWNED
+          <span className="inline-block bg-[#1E3A8A] text-white text-md px-4 py-1 rounded-full mb-6 tracking-wide">
+            SINGAPORE'S FINEST · 100% Muslim Owned · Halal Artisanal bakery
           </span>
 
           <h1 className="text-4xl md:text-6xl font-serif text-blue-900 leading-tight">
             Singapore's <br />
-            Finest Artisan <br />
+            Finest Artisanal  <br />
             Bakery
           </h1>
 
@@ -91,7 +91,7 @@ const Hero = () => {
         </div>
 
         <div>
-          <p className="text-blue-900 text-xl font-bold">2</p>
+          <p className="text-blue-900 text-xl font-bold">3</p>
           <p className="text-gray-500 text-sm">Locations</p>
         </div>
 
