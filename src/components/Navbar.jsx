@@ -155,7 +155,7 @@ export default function Navbar() {
 
               {/* ORDER NOW BUTTON */}
               <Link
-                to="/order"
+                 to="/menu/69763d7616f215abc8441c8c"
                 className="hidden md:inline-block px-5 py-2.5 bg-[#334b8f] text-white text-sm uppercase tracking-wider font-semibold hover:shadow-lg hover:shadow-amber-200 transition-all duration-300 transform hover:-translate-y-0.5 rounded-sm"
               >
                 Order Now
@@ -214,7 +214,7 @@ export default function Navbar() {
               {/* MOBILE ORDER BUTTON */}
               <div className="pt-4 border-t border-gray-100">
                 <Link
-                  to="/order"
+                to="/menu/69763d7616f215abc8441c8c"
                   className="block px-4 py-3 text-center bg-gradient-to-r from-amber-600 to-amber-700 text-white text-sm uppercase tracking-wider font-semibold hover:shadow-md transition-colors rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
