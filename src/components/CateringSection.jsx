@@ -65,11 +65,16 @@ const CateringSection = () => {
           <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
             <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg">
               <div className="relative pb-[100%] sm:pb-[90%] lg:pb-[80%] overflow-hidden rounded-3xl sm:rounded-[40px] shadow-2xl">
-                <img
-                  src="https://res.cloudinary.com/devf591xt/image/upload/v1767709746/menu/iv9m8tqz0ouin4jkp88v.png"
-                  alt="Catering Cake"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                <video
+  src="/images/cat.mp4"
+  autoPlay
+  loop
+  muted
+  playsInline
+  className="absolute inset-0 w-full h-full object-cover"
+>
+  Your browser does not support the video tag.
+</video>
               </div>
               
               {/* Decorative elements for better visual appeal */}
