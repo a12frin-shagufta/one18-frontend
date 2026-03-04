@@ -83,10 +83,14 @@ const hasFestiveCookies = useMemo(() => {
   }, []);
 
   const year = new Date().getFullYear();
-  const festiveMin = `${year}-03-01`;
-  const festiveMax = `${year}-03-18`;
-  const effectiveMin = hasFestiveCookies ? festiveMin : minDate;
-  const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
+ const festiveMin = `${year}-03-01`;
+const festiveMax = `${year}-03-18`;
+
+const effectiveMin = hasFestiveCookies
+  ? (minDate > festiveMin ? minDate : festiveMin)
+  : minDate;
+
+const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
 
   // ── useEffect ───────────────────────────────────────────────────────────────
  
@@ -130,8 +134,8 @@ const hasFestiveCookies = useMemo(() => {
       errorSetter("");
       return;
     }
-    if (hasFestiveCookies) {
-      if (value < festiveMin || value > festiveMax) {
+   if (hasFestiveCookies) {
+  if (value < effectiveMin || value > festiveMax) {
         setter("");
         errorSetter("Festive cookies are available 1–18 March only");
         return;
