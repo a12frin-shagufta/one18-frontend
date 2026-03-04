@@ -398,11 +398,12 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
               </div>
 
               {hasFestiveCookies && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
-                  🎉 Festive cookies must be delivered between{" "}
-                  <strong>1–18 March {year}</strong>. Other dates are not available.
-                </div>
-              )}
+  <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800 leading-relaxed">
+    🎉 Festive cookies are available between <strong>1–18 March {year}</strong>.
+    <br />
+    Orders must be placed at least <strong>3 days in advance</strong>.
+  </div>
+)}
               {hasFestiveCookies && <FestiveNotice />}
 
               <div className="space-y-1.5">
