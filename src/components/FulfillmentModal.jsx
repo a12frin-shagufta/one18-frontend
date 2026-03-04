@@ -59,19 +59,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   }, [orders]);
 
 const hasFestiveCookies = useMemo(() => {
-  return Object.values(orders).some((item) => {
-    if (!item.category) return false;
-
-    if (typeof item.category === "string") {
-      return item.category.toLowerCase().includes("festive");
-    }
-
-    if (typeof item.category === "object") {
-      return item.category.name?.toLowerCase().includes("festive");
-    }
-
-    return false;
-  });
+  return Object.values(orders).some((item) => item.festival);
 }, [orders]);
   const minDate = useMemo(() => {
     const d = new Date();
