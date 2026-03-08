@@ -102,6 +102,12 @@ if (newQty > item.stock) {
               Best Seller
             </div>
           )}
+          // After the isBestSeller badge, add:
+{item.isPromoEligible && (
+  <div className="absolute bottom-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+    🎁 Buy 4 Get 1
+  </div>
+)}
         </div>
       </Link>
 

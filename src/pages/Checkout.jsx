@@ -47,6 +47,12 @@ const Checkout = () => {
     return data ? JSON.parse(data) : null;
   }, []);
 
+  // ✅ Read promo free item from localStorage
+const freeItem = useMemo(() => {
+  const data = localStorage.getItem("promoFreeItem");
+  return data ? JSON.parse(data) : null;
+}, []);
+
   const [customer, setCustomer] = useState({
     firstName: "",
     lastName: "",
@@ -213,13 +219,28 @@ const Checkout = () => {
           address: fulfillment?.branch?.address || DEFAULT_BRANCH.address,
         },
 
-        items: items.map((i) => ({
-          productId: i.itemId,
-          name: i.name,
-          variant: i.variant,
-          price: i.price,
-          qty: i.qty,
-        })),
+        items: [
+  ...items.map((i) => ({
+    productId: i.itemId,
+    name: i.name,
+    variant: i.variant,
+    price: i.price,
+    qty: i.qty,
+  })),
+  // ✅ append free promo item if unlocked
+  ...(freeItem
+    ? [
+        {
+          productId: freeItem._id,
+          name: freeItem.name,
+          variant: freeItem.variants?.[0]?.label || "Default",
+          price: 0,
+          qty: 1,
+          isFreePromo: true,
+        },
+      ]
+    : []),
+],
         subtotal,
         deliveryFee,
         totalAmount,
@@ -259,6 +280,7 @@ const Checkout = () => {
           return;
         }
 
+        localStorage.removeItem("promoFreeItem");
         window.location.assign(res.data.url);
       }
     } catch (err) {
@@ -707,6 +729,33 @@ const Checkout = () => {
                   </div>
                 </div>
               ))}
+              {/* ✅ Free promo item in summary */}
+{freeItem && (
+  <div className="flex gap-4 p-3 bg-green-50 rounded-xl border border-green-100">
+    <div className="relative flex-shrink-0">
+      <img
+        src={freeItem.images?.[0]}
+        alt={freeItem.name}
+        className="w-16 h-16 rounded-lg object-cover"
+      />
+      <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
+        1
+      </span>
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2">
+        <p className="font-medium text-gray-900 truncate">{freeItem.name}</p>
+        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+          🎁 Free
+        </span>
+      </div>
+      <p className="text-sm text-gray-500">{freeItem.variants?.[0]?.label || "Default"}</p>
+    </div>
+    <div className="text-right">
+      <p className="font-semibold text-green-600">FREE</p>
+    </div>
+  </div>
+)}
             </div>
 
             <div className="mt-6 pt-6 border-t space-y-3">
@@ -727,6 +776,13 @@ const Checkout = () => {
                   </span>
                 </div>
               )}
+
+              {freeItem && (
+  <div className="flex justify-between items-center text-green-600">
+    <span>🎁 Free item</span>
+    <span className="font-medium">- FREE</span>
+  </div>
+)}
 
               <div className="pt-4 border-t">
                 <div className="flex justify-between items-center">

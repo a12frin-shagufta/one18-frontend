@@ -32,6 +32,21 @@ const FestivalCard = ({ product }) => {
               : `$${product.offer.value} OFF`}
           </span>
         )}
+        {/* ✅ OFFER BADGE */}
+{hasDiscount && product.offer && (
+  <span className="absolute top-2 left-2 text-[10px] px-2 py-1 rounded-full bg-red-100 text-red-600 font-semibold">
+    {product.offer.type === "percent"
+      ? `${product.offer.value}% OFF`
+      : `$${product.offer.value} OFF`}
+  </span>
+)}
+
+{/* ✅ PROMO BADGE */}
+{product.isPromoEligible && (
+  <span className="absolute bottom-2 right-2 text-[10px] px-2 py-1 rounded-full bg-green-500 text-white font-semibold shadow">
+    🎁 Buy 4 Get 1
+  </span>
+)}
       </div>
 
       {/* INFO */}

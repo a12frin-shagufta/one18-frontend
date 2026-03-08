@@ -154,6 +154,8 @@ const ProductDetail = () => {
             className="w-full h-[420px] md:h-[520px] object-cover rounded-xl"
           />
 
+          
+
           {product.images?.length > 1 && (
             <div className="flex gap-3 mt-4">
               {product.images.map((img, i) => (
@@ -180,6 +182,17 @@ const ProductDetail = () => {
           <p className="text-lg text-[#1E3A8A] font-semibold mb-4">
             From {formatPrice(basePrice)}
           </p>
+          {product.isPromoEligible && (
+    <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4">
+      <span className="text-2xl">🎁</span>
+      <div>
+        <p className="text-sm font-bold text-green-800">Buy 4 Get 1 Free!</p>
+        <p className="text-xs text-green-600">
+          Add 4 eligible items to your cart and choose 1 for free
+        </p>
+      </div>
+    </div>
+  )}
 
           <p className="text-gray-600 mb-6">{product.description}</p>
 
