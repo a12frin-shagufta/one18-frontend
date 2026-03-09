@@ -1,14 +1,23 @@
-import { useParams } from "react-router-dom";
+
 import { useEffect, useState } from "react";
 import { getFestivals, getMenu } from "../services/festivalApi";
 import FestivalCard from "../components/FestivalCard";
+import { useCart } from "../context/CartContext";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
 const Festival = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
+
+  const { orders, setOrders } = useCart();
+  
+ 
 
   const [festival, setFestival] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
 
   const branchId = localStorage.getItem("selectedBranch");
 
@@ -40,6 +49,9 @@ const Festival = () => {
     load();
   }, [slug]);
 
+
+
+
   if (loading) {
     return <div className="py-20 text-center">Loading festival...</div>;
   }
@@ -48,6 +60,9 @@ const Festival = () => {
     return <div className="py-20 text-center">Festival not found</div>;
   }
 
+const handleGiftSetPurchase = () => {
+  navigate("/product/cookie-gift-set");
+};
   return (
     <>
       {/* ✅ FULL WIDTH BANNER */}
@@ -103,6 +118,12 @@ const Festival = () => {
         <p className="text-gray-200 text-sm md:text-lg mb-0 leading-relaxed font-light">
           "Made To Share, Meant To Enjoy"
         </p>
+        <button
+  onClick={handleGiftSetPurchase}
+  className="relative z-30 mt-6 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm md:text-base rounded-full transition-all duration-300 shadow-lg"
+>
+  Purchase Now
+</button>
         {/* <p className="text-gray-400 text-xs md:text-sm mt-1 tracking-wide uppercase">
           Handcrafted for all occasions
         </p> */}
