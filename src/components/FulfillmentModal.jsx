@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { X, Store, Truck, ArrowLeft, CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
-import { useLocation } from "react-router-dom";
 
 const branches = [
   {
@@ -25,17 +24,27 @@ const branches = [
 ];
 
 const timeSlots = [
-  "07:30", "08:30", "09:30", "10:30", "11:30", "12:30",
-  "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:00",
+  "07:30", "08:30", "09:30", "10:30", "11:30",
+  "12:30", "13:30", "14:30", "15:30", "16:30",
+  "17:30", "18:30", "19:00",
 ];
 
+// ── Festive date constants ────────────────────────────────────────────────────
+const FESTIVE_YEAR = new Date().getFullYear();
+const FESTIVE_DATES = [
+  { value: `${FESTIVE_YEAR}-03-16`, day: "MON", date: 16, month: "MAR", label: "TODAY" },
+  { value: `${FESTIVE_YEAR}-03-17`, day: "TUE",  date: 17, month: "MAR", label: null },
+  { value: `${FESTIVE_YEAR}-03-18`, day: "WED",  date: 18, month: "MAR", label: null },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const { orders } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-  // ── useState ────────────────────────────────────────────────────────────────
+  // ── State ──────────────────────────────────────────────────────────────────
   const [step, setStep] = useState("select");
   const [branch, setBranch] = useState(null);
   const [pickupDate, setPickupDate] = useState("");
@@ -50,54 +59,48 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const [postalMessage, setPostalMessage] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(null);
 
-  // ── useMemo ─────────────────────────────────────────────────────────────────
-  const cartSubtotal = useMemo(() => {
-    return Object.values(orders).reduce(
-      (sum, item) => sum + item.price * item.qty,
-      0
-    );
-  }, [orders]);
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const cartSubtotal = useMemo(
+    () => Object.values(orders).reduce((sum, item) => sum + item.price * item.qty, 0),
+    [orders]
+  );
 
-const hasFestiveCookies = useMemo(() => {
-  return Object.values(orders).some((item) => item.festival);
-}, [orders]);
-  const minDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 3);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }, []);
+  const hasFestiveCookies = useMemo(
+  () => Object.values(orders).some((item) => !!item.festival),
+  [orders]
+);
+  console.log("🍪 hasFestiveCookies:", hasFestiveCookies);
+console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ name: i.name, festival: i.festival })), null, 2));
 
-  const year = new Date().getFullYear();
- const festiveMin = `${year}-03-01`;
-const festiveMax = `${year}-03-18`;
+  // ── Auto-default dates when festive cookies enter cart ────────────────────
+  useEffect(() => {
+    if (!hasFestiveCookies) return;
+    if (!FESTIVE_DATES.map((d) => d.value).includes(pickupDate)) {
+      setPickupDate(FESTIVE_DATES[0].value);
+      setPickupDateError("");
+    }
+    if (!FESTIVE_DATES.map((d) => d.value).includes(deliveryDate)) {
+      setDeliveryDate(FESTIVE_DATES[0].value);
+      setDeliveryDateError("");
+    }
+  }, [hasFestiveCookies]);
 
-const effectiveMin = hasFestiveCookies
-  ? (minDate > festiveMin ? minDate : festiveMin)
-  : minDate;
+  // ── Re-validate postal when subtotal changes ──────────────────────────────
+  useEffect(() => {
+    if (postalCode.length === 6) {
+      handlePostalChange({ target: { value: postalCode } });
+    }
+  }, [cartSubtotal]);
 
-const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
-
-  // ── useEffect ───────────────────────────────────────────────────────────────
- 
-
-
-  // ── Early return — MUST be after ALL hooks above ────────────────────────────
-
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePostalChange = async (e) => {
-    let value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
     setPostalCode(value);
     setPostalStatus("idle");
     setPostalMessage("");
     setDeliveryFee(null);
-
     if (value.length !== 6) return;
     setPostalStatus("checking");
-
     try {
       const res = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
         postalCode: value,
@@ -105,56 +108,22 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
       });
       setPostalStatus("success");
       setDeliveryFee(res.data.deliveryFee);
-      setPostalMessage(
-        `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`
-      );
+      setPostalMessage(`Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`);
     } catch (err) {
       setPostalStatus("error");
       setPostalMessage(err.response?.data?.message || "Delivery not available");
     }
   };
 
-   
-
-  const handleDateChange = (value, setter, errorSetter) => {
-    if (!value) {
-      setter("");
-      errorSetter("");
-      return;
-    }
-   if (hasFestiveCookies) {
-  if (value < effectiveMin || value > festiveMax) {
-        setter("");
-        errorSetter("Festive cookies are available 1–18 March only");
-        return;
-      }
-    } else {
-      if (value < minDate) {
-        setter("");
-        errorSetter("Date must be at least 3 days from today");
-        return;
-      }
-    }
-    setter(value);
-    errorSetter("");
-  };
-
   const saveAndClose = () => {
     if (step === "pickup") {
-      if (!branch) {
-        setBranchError("Please choose a branch");
-        return;
-      }
-      if (!pickupDate || !pickupTime) return;
+      if (!branch) { setBranchError("Please choose a branch"); return; }
+      if (!pickupDate) { setPickupDateError("Please select a pickup date"); return; }
+      if (!pickupTime) return;
     }
 
-    if (
-      step === "delivery_details" &&
-      (!postalCode || !deliveryDate || !deliveryTime || postalStatus !== "success")
-    )
-      return;
-
     if (step === "delivery_details") {
+      if (!postalCode || !deliveryDate || !deliveryTime || postalStatus !== "success") return;
       setStep("delivery_branch");
       return;
     }
@@ -184,34 +153,110 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
     if (redirectToCheckout) navigate("/checkout");
   };
 
-
-  useEffect(() => {
-    if (postalCode.length === 6) {
-      handlePostalChange({ target: { value: postalCode } });
-    }
-  }, [cartSubtotal]);
-
-  console.log("ORDERS:", orders);
   if (!open) return null;
 
-  const FestiveNotice = () => (
-  <div className="bg-amber-50 border-amber-200 text-amber-900 rounded-xl px-4 py-4 text-sm text-red-800 leading-relaxed">
-    <p className="font-semibold mb-2">Important Notice</p>
-    <ul className="list-disc pl-5 space-y-1">
-      <li>
-        Self-collection is preferred to maintain the best condition of the treats.
-      </li>
-      <li>
-        Delivery is available upon request. Slight crumb movement may occur during transit.
-      </li>
-      <li>
-        All payments made are non-refundable.
-      </li>
-    </ul>
-  </div>
-);
+  // ── Sub-components ─────────────────────────────────────────────────────────
 
-  // ── JSX ─────────────────────────────────────────────────────────────────────
+  const FestiveNotice = () => (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 text-sm text-amber-900 leading-relaxed">
+      <p className="font-semibold mb-2">Important Notice</p>
+      <ul className="list-disc pl-5 space-y-1">
+        <li>Self-collection is preferred to maintain the best condition of the treats.</li>
+        <li>Delivery is available upon request. Slight crumb movement may occur during transit.</li>
+        <li>All payments made are non-refundable.</li>
+      </ul>
+    </div>
+  );
+
+  const FestiveDateBanner = () => (
+    <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
+      🎉 Festive cookies are available until
+      <strong>18 March {FESTIVE_YEAR}</strong>
+    </div>
+  );
+
+  /** Tile-based date picker — only shows the 3 festive dates */
+  const FestiveDatePicker = ({ label, value, onChange, error }) => (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">{label}</label>
+      <div className="flex gap-">
+        {FESTIVE_DATES.map((d) => {
+          const isSelected = value === d.value;
+          return (
+            <button
+              key={d.value}
+              type="button"
+              onClick={() => onChange(d.value)}
+              className={`w-[95px] h-[120px] flex flex-col items-center justify-center rounded-2xl border-2 transition-all active:scale-95 shadow-sm
+  ${isSelected
+    ? "border-black bg-white shadow-md"
+    : "border-gray-200 bg-white hover:border-gray-400"
+  }`}
+            >
+              {/* Checkmark row */}
+              <div className="w-full flex justify-end pr-2 h-4 mb-1">
+                {isSelected && (
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M2 7l4 4 6-6"
+                      stroke="#111"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+
+              {/* Day label (TODAY / TUE / WED) */}
+             {/* Day label */}
+<span
+  className={`text-[11px] uppercase tracking-wide mb-1
+  ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}
+>
+  {d.label ?? d.day}
+</span>
+
+{/* Date number */}
+<span
+  className={`text-4xl leading-none
+  ${isSelected ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}
+>
+  {d.date}
+</span>
+
+{/* Month */}
+<span
+  className={`text-[11px] uppercase tracking-wide mt-1
+  ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}
+>
+  {d.month}
+</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+    </div>
+  );
+
+  /** Normal free-form date input used when no festive cookies in cart */
+  const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      <input
+        type="date"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
+          ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+      />
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+
+  // ── JSX ────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
@@ -255,9 +300,7 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                 <div>
                   <Store className="mx-auto text-blue-700 mb-4" size={40} />
                   <h3 className="font-semibold text-xl">Pickup</h3>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Self-collect and beat the queue
-                  </p>
+                  <p className="text-sm text-gray-600 mt-2">Self-collect and beat the queue</p>
                 </div>
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
@@ -271,9 +314,7 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                 <div>
                   <Truck className="mx-auto text-blue-700 mb-4" size={40} />
                   <h3 className="font-semibold text-xl">Delivery</h3>
-                  <p className="text-sm text-gray-600 mt-2">
-                    Delivered right to your doorstep
-                  </p>
+                  <p className="text-sm text-gray-600 mt-2">Delivered right to your doorstep</p>
                 </div>
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
@@ -285,21 +326,18 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
           {/* ── Step: pickup ── */}
           {step === "pickup" && (
             <div className="space-y-5">
+              {/* Branch selection */}
               <div>
                 <p className="font-medium mb-2.5">Select Pickup Store</p>
                 <div className="space-y-3">
                   {branches.map((b) => (
                     <button
                       key={b.id}
-                      onClick={() => {
-                        setBranch(b);
-                        setBranchError("");
-                      }}
+                      onClick={() => { setBranch(b); setBranchError(""); }}
                       className={`w-full border-2 rounded-xl p-4 text-left transition
-                        ${
-                          branch?.id === b.id
-                            ? "border-blue-600 bg-blue-50/60"
-                            : branchError
+                        ${branch?.id === b.id
+                          ? "border-blue-600 bg-blue-50/60"
+                          : branchError
                             ? "border-red-500"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
@@ -313,47 +351,42 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                           <CheckCircle className="text-blue-600 mt-1" size={20} />
                         )}
                       </div>
-                      {branchError && (
-                        <p className="text-sm text-red-600 mt-1">{branchError}</p>
-                      )}
                     </button>
                   ))}
+                  {branchError && (
+                    <p className="text-sm text-red-600">{branchError}</p>
+                  )}
                 </div>
               </div>
 
-              {hasFestiveCookies && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
-                  🎉 Festive cookies must be picked up between{" "}
-                  <strong>1–18 March {year}</strong>. Other dates are not available.
-                </div>
-              )}
+              {/* Festive banners */}
+              {hasFestiveCookies && <FestiveDateBanner />}
               {hasFestiveCookies && <FestiveNotice />}
-              
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Pickup Date</label>
-                <input
-                  type="date"
-                  min={effectiveMin}
-                  max={effectiveMax}
+              {/* Date picker — tile for festive, normal input otherwise */}
+              {hasFestiveCookies ? (
+                <FestiveDatePicker
+                  label="Pickup Date"
                   value={pickupDate}
-                  onChange={(e) =>
-                    handleDateChange(e.target.value, setPickupDate, setPickupDateError)
-                  }
-                  className={`w-full border rounded-lg px-3 py-2.5 text-base
-                    ${pickupDateError ? "border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+                  onChange={(v) => { setPickupDate(v); setPickupDateError(""); }}
+                  error={pickupDateError}
                 />
-                {pickupDateError && (
-                  <p className="text-xs text-red-600">{pickupDateError}</p>
-                )}
-              </div>
+              ) : (
+                <NormalDatePicker
+                  label="Pickup Date"
+                  value={pickupDate}
+                  onChange={setPickupDate}
+                  error={pickupDateError}
+                />
+              )}
 
+              {/* Time slot */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Pickup Time</label>
                 <select
                   value={pickupTime}
                   onChange={(e) => setPickupTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
@@ -367,6 +400,7 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
           {/* ── Step: delivery_details ── */}
           {step === "delivery_details" && (
             <div className="space-y-5">
+              {/* Postal code */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Postal Code</label>
                 <input
@@ -374,9 +408,11 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                   onChange={handlePostalChange}
                   maxLength={6}
                   placeholder="Enter 6 digit postal"
-                  className="w-full border rounded-lg px-3 py-2.5"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:border-blue-500 focus:outline-none"
                 />
-                {postalStatus === "checking" && <p className="text-xs">Checking…</p>}
+                {postalStatus === "checking" && (
+                  <p className="text-xs text-gray-500">Checking…</p>
+                )}
                 {postalStatus === "success" && (
                   <p className="text-xs text-green-600">{postalMessage}</p>
                 )}
@@ -385,41 +421,36 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                 )}
               </div>
 
-              {hasFestiveCookies && (
-  <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800 leading-relaxed">
-    🎉 Festive cookies are available between <strong>1–18 March {year}</strong>.
-    <br />
-    Orders must be placed at least <strong>3 days in advance</strong>.
-  </div>
-)}
+              {/* Festive banners */}
+              {hasFestiveCookies && <FestiveDateBanner />}
               {hasFestiveCookies && <FestiveNotice />}
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Delivery Date</label>
-                <input
-                  type="date"
-                  min={effectiveMin}
-                  max={effectiveMax}
+              {/* Date picker — tile for festive, normal input otherwise */}
+              {hasFestiveCookies ? (
+                <FestiveDatePicker
+                  label="Delivery Date"
                   value={deliveryDate}
-                  disabled={postalStatus !== "success"}
-                  onChange={(e) =>
-                    handleDateChange(e.target.value, setDeliveryDate, setDeliveryDateError)
-                  }
-                  className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100
-                    ${deliveryDateError ? "border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+                  onChange={(v) => { setDeliveryDate(v); setDeliveryDateError(""); }}
+                  error={deliveryDateError}
                 />
-                {deliveryDateError && (
-                  <p className="text-xs text-red-600">{deliveryDateError}</p>
-                )}
-              </div>
+              ) : (
+                <NormalDatePicker
+                  label="Delivery Date"
+                  value={deliveryDate}
+                  onChange={setDeliveryDate}
+                  disabled={postalStatus !== "success"}
+                  error={deliveryDateError}
+                />
+              )}
 
+              {/* Time slot */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Delivery Time</label>
                 <select
                   value={deliveryTime}
                   disabled={postalStatus !== "success"}
                   onChange={(e) => setDeliveryTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:border-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
@@ -428,6 +459,7 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                 </select>
               </div>
 
+              {/* Delivery fee */}
               {postalStatus === "success" && deliveryFee !== null && (
                 <div className="bg-gray-50 p-3.5 rounded-xl text-base">
                   Delivery Fee:{" "}
@@ -448,11 +480,21 @@ const effectiveMax = hasFestiveCookies ? festiveMax : undefined;
                   <button
                     key={b.id}
                     onClick={() => setBranch(b)}
-                    className={`w-full border-2 rounded-xl p-4 text-left
-                      ${branch?.id === b.id ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}
+                    className={`w-full border-2 rounded-xl p-4 text-left transition
+                      ${branch?.id === b.id
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                      }`}
                   >
-                    <p className="font-medium">{b.name}</p>
-                    <p className="text-sm text-gray-600">{b.address}</p>
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <p className="font-medium">{b.name}</p>
+                        <p className="text-sm text-gray-600">{b.address}</p>
+                      </div>
+                      {branch?.id === b.id && (
+                        <CheckCircle className="text-blue-600 mt-1" size={20} />
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>

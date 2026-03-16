@@ -42,7 +42,8 @@ if (newQty > item.stock) {
     qty: newQty,
     price: variant.discountedPrice ?? variant.price,
     image: item.images?.[0],
-    category: item.category?.name, // ✅ ADD THIS
+    category: item.category?.name,
+    festival: item.festival ?? null, // ✅ ADD THIS LINE
   },
 };
     });
