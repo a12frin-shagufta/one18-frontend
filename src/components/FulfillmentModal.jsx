@@ -31,10 +31,10 @@ const timeSlots = [
 
 // ── Festive date constants ────────────────────────────────────────────────────
 const FESTIVE_YEAR = new Date().getFullYear();
+// ✅ NEW — only 17 and 18 (1 day advance)
 const FESTIVE_DATES = [
-  { value: `${FESTIVE_YEAR}-03-16`, day: "MON", date: 16, month: "MAR", label: "TODAY" },
-  { value: `${FESTIVE_YEAR}-03-17`, day: "TUE",  date: 17, month: "MAR", label: null },
-  { value: `${FESTIVE_YEAR}-03-18`, day: "WED",  date: 18, month: "MAR", label: null },
+  { value: `${FESTIVE_YEAR}-03-17`, day: "TUE", date: 17, month: "MAR", label: null },
+  { value: `${FESTIVE_YEAR}-03-18`, day: "WED", date: 18, month: "MAR", label: null },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
   const FestiveDateBanner = () => (
     <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-sm text-yellow-800">
       🎉 Festive cookies are available until
-      <strong>18 March {FESTIVE_YEAR}</strong>
+      <strong> 18 March {FESTIVE_YEAR}</strong>
     </div>
   );
 
