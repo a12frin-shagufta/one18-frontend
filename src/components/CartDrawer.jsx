@@ -307,14 +307,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 )}
 
                 {/* ✅ PROMO TEASER (shows when 0 eligible items in cart) */}
-                {promoItems.length > 0 && promoQty === 0 && (
+                {/* {promoItems.length > 0 && promoQty === 0 && (
                   <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 flex items-center gap-3">
                     <span className="text-xl">🎁</span>
                     <p className="text-sm text-purple-700">
                       Buy <span className="font-bold">4 eligible items</span> and get 1 FREE!
                     </p>
                   </div>
-                )}
+                )} */}
 
                 <div className="space-y-4">
                   {items.map((item) => (
