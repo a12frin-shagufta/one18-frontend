@@ -260,21 +260,35 @@ const getMinDate = () => {
   );
 
   /** Normal free-form date input used when no festive cookies in cart */
-const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => (
-  <div className="space-y-1.5">
-    <label className="text-sm font-medium">{label}</label>
-    <input
-      type="date"
-      value={value}
-      min={getMinDate()}  
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
-        ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
-    />
-    {error && <p className="text-xs text-red-600">{error}</p>}
-  </div>
-);
+const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => {
+  const handleDateChange = (e) => {
+    const selected = e.target.value;
+    if (selected < getMinDate()) {
+      onChange(""); // clear invalid date
+      return;
+    }
+    onChange(selected);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      <input
+        type="date"
+        value={value}
+        min={getMinDate()}
+        disabled={disabled}
+        onChange={handleDateChange}
+        className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
+          ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+      />
+      <p className="text-xs text-gray-400">
+        Earliest available: {getMinDate()}
+      </p>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  );
+};
 
   // ── JSX ────────────────────────────────────────────────────────────────────
   return (
