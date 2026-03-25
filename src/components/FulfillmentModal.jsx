@@ -116,20 +116,32 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
   };
 
   const saveAndClose = () => {
-    if (step === "pickup") {
-      if (!branch) { setBranchError("Please choose a branch"); return; }
-      if (!pickupDate) { setPickupDateError("Please select a pickup date"); return; }
-      if (!pickupTime) return;
-    }
+  if (step === "pickup") {
+  if (!branch) { setBranchError("Please choose a branch"); return; }
+  if (!pickupDate) { setPickupDateError("Please select a pickup date"); return; }
 
-    if (step === "delivery_details") {
-      if (!postalCode || !deliveryDate || !deliveryTime || postalStatus !== "success") return;
-      setStep("delivery_branch");
-      return;
-    }
+  // ← ADD THIS CHECK
+  if (pickupDate < getMinDate()) {
+    setPickupDateError("Pickup must be at least 3 days in advance");
+    return;
+  }
 
-    if (step === "delivery_branch" && !branch) return;
+  if (!pickupTime) return;
+}
 
+ if (step === "delivery_details") {
+  if (!postalCode || postalStatus !== "success") return;
+
+  // ← ADD THIS CHECK
+  if (deliveryDate < getMinDate()) {
+    setDeliveryDateError("Delivery must be at least 3 days in advance");
+    return;
+  }
+
+  if (!deliveryDate || !deliveryTime) return;
+  setStep("delivery_branch");
+  return;
+}
     const area = postalMessage?.includes("Delivering to ")
       ? postalMessage.replace("Delivering to ", "")
       : "";
@@ -152,6 +164,13 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
     onClose();
     if (redirectToCheckout) navigate("/checkout");
   };
+
+  // Returns today + 3 days in YYYY-MM-DD format (local time)
+const getMinDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  return d.toISOString().split("T")[0];
+};
 
   if (!open) return null;
 
@@ -241,20 +260,21 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
   );
 
   /** Normal free-form date input used when no festive cookies in cart */
-  const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}</label>
-      <input
-        type="date"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
-          ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
-      />
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
-  );
+const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => (
+  <div className="space-y-1.5">
+    <label className="text-sm font-medium">{label}</label>
+    <input
+      type="date"
+      value={value}
+      min={getMinDate()}  
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
+        ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+    />
+    {error && <p className="text-xs text-red-600">{error}</p>}
+  </div>
+);
 
   // ── JSX ────────────────────────────────────────────────────────────────────
   return (
