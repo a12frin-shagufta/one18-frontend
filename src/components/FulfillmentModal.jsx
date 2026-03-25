@@ -24,17 +24,39 @@ const branches = [
 ];
 
 const timeSlots = [
-  "07:30", "08:30", "09:30", "10:30", "11:30",
-  "12:30", "13:30", "14:30", "15:30", "16:30",
-  "17:30", "18:30", "19:00",
+  "07:30",
+  "08:30",
+  "09:30",
+  "10:30",
+  "11:30",
+  "12:30",
+  "13:30",
+  "14:30",
+  "15:30",
+  "16:30",
+  "17:30",
+  "18:30",
+  "19:00",
 ];
 
 // ── Festive date constants ────────────────────────────────────────────────────
 const FESTIVE_YEAR = new Date().getFullYear();
 // ✅ NEW — only 17 and 18 (1 day advance)
 const FESTIVE_DATES = [
-  { value: `${FESTIVE_YEAR}-03-17`, day: "TUE", date: 17, month: "MAR", label: null },
-  { value: `${FESTIVE_YEAR}-03-18`, day: "WED", date: 18, month: "MAR", label: null },
+  {
+    value: `${FESTIVE_YEAR}-03-17`,
+    day: "TUE",
+    date: 17,
+    month: "MAR",
+    label: null,
+  },
+  {
+    value: `${FESTIVE_YEAR}-03-18`,
+    day: "WED",
+    date: 18,
+    month: "MAR",
+    label: null,
+  },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -61,16 +83,30 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const cartSubtotal = useMemo(
-    () => Object.values(orders).reduce((sum, item) => sum + item.price * item.qty, 0),
-    [orders]
+    () =>
+      Object.values(orders).reduce(
+        (sum, item) => sum + item.price * item.qty,
+        0,
+      ),
+    [orders],
   );
 
   const hasFestiveCookies = useMemo(
-  () => Object.values(orders).some((item) => !!item.festival),
-  [orders]
-);
+    () => Object.values(orders).some((item) => !!item.festival),
+    [orders],
+  );
   console.log("🍪 hasFestiveCookies:", hasFestiveCookies);
-console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ name: i.name, festival: i.festival })), null, 2));
+  console.log(
+    "🛒 orders:",
+    JSON.stringify(
+      Object.values(orders).map((i) => ({
+        name: i.name,
+        festival: i.festival,
+      })),
+      null,
+      2,
+    ),
+  );
 
   // ── Auto-default dates when festive cookies enter cart ────────────────────
   useEffect(() => {
@@ -108,7 +144,9 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
       });
       setPostalStatus("success");
       setDeliveryFee(res.data.deliveryFee);
-      setPostalMessage(`Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`);
+      setPostalMessage(
+        `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`,
+      );
     } catch (err) {
       setPostalStatus("error");
       setPostalMessage(err.response?.data?.message || "Delivery not available");
@@ -116,32 +154,38 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
   };
 
   const saveAndClose = () => {
-  if (step === "pickup") {
-  if (!branch) { setBranchError("Please choose a branch"); return; }
-  if (!pickupDate) { setPickupDateError("Please select a pickup date"); return; }
+    if (step === "pickup") {
+      if (!branch) {
+        setBranchError("Please choose a branch");
+        return;
+      }
+      if (!pickupDate) {
+        setPickupDateError("Please select a pickup date");
+        return;
+      }
 
-  // ← ADD THIS CHECK
-  if (pickupDate < getMinDate()) {
-    setPickupDateError("Pickup must be at least 3 days in advance");
-    return;
-  }
+      // ← ADD THIS CHECK
+      if (pickupDate < getMinDate()) {
+        setPickupDateError("Pickup must be at least 3 days in advance");
+        return;
+      }
 
-  if (!pickupTime) return;
-}
+      if (!pickupTime) return;
+    }
 
- if (step === "delivery_details") {
-  if (!postalCode || postalStatus !== "success") return;
+    if (step === "delivery_details") {
+      if (!postalCode || postalStatus !== "success") return;
 
-  // ← ADD THIS CHECK
-  if (deliveryDate < getMinDate()) {
-    setDeliveryDateError("Delivery must be at least 3 days in advance");
-    return;
-  }
+      // ← ADD THIS CHECK
+      if (deliveryDate < getMinDate()) {
+        setDeliveryDateError("Delivery must be at least 3 days in advance");
+        return;
+      }
 
-  if (!deliveryDate || !deliveryTime) return;
-  setStep("delivery_branch");
-  return;
-}
+      if (!deliveryDate || !deliveryTime) return;
+      setStep("delivery_branch");
+      return;
+    }
     const area = postalMessage?.includes("Delivering to ")
       ? postalMessage.replace("Delivering to ", "")
       : "";
@@ -158,7 +202,7 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
         deliveryTime,
         deliveryFee,
         area,
-      })
+      }),
     );
 
     onClose();
@@ -166,11 +210,11 @@ console.log("🛒 orders:", JSON.stringify(Object.values(orders).map(i => ({ nam
   };
 
   // Returns today + 3 days in YYYY-MM-DD format (local time)
-const getMinDate = () => {
-  const d = new Date();
-  d.setDate(d.getDate() + 3);
-  return d.toISOString().split("T")[0];
-};
+  const getMinDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString().split("T")[0];
+  };
 
   if (!open) return null;
 
@@ -180,8 +224,14 @@ const getMinDate = () => {
     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-4 text-sm text-amber-900 leading-relaxed">
       <p className="font-semibold mb-2">Important Notice</p>
       <ul className="list-disc pl-5 space-y-1">
-        <li>Self-collection is preferred to maintain the best condition of the treats.</li>
-        <li>Delivery is available upon request. Slight crumb movement may occur during transit.</li>
+        <li>
+          Self-collection is preferred to maintain the best condition of the
+          treats.
+        </li>
+        <li>
+          Delivery is available upon request. Slight crumb movement may occur
+          during transit.
+        </li>
         <li>All payments made are non-refundable.</li>
       </ul>
     </div>
@@ -207,9 +257,10 @@ const getMinDate = () => {
               type="button"
               onClick={() => onChange(d.value)}
               className={`w-[95px] h-[120px] flex flex-col items-center justify-center rounded-2xl border-2 transition-all active:scale-95 shadow-sm
-  ${isSelected
-    ? "border-black bg-white shadow-md"
-    : "border-gray-200 bg-white hover:border-gray-400"
+  ${
+    isSelected
+      ? "border-black bg-white shadow-md"
+      : "border-gray-200 bg-white hover:border-gray-400"
   }`}
             >
               {/* Checkmark row */}
@@ -228,29 +279,29 @@ const getMinDate = () => {
               </div>
 
               {/* Day label (TODAY / TUE / WED) */}
-             {/* Day label */}
-<span
-  className={`text-[11px] uppercase tracking-wide mb-1
+              {/* Day label */}
+              <span
+                className={`text-[11px] uppercase tracking-wide mb-1
   ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}
->
-  {d.label ?? d.day}
-</span>
+              >
+                {d.label ?? d.day}
+              </span>
 
-{/* Date number */}
-<span
-  className={`text-4xl leading-none
+              {/* Date number */}
+              <span
+                className={`text-4xl leading-none
   ${isSelected ? "font-bold text-gray-900" : "font-semibold text-gray-800"}`}
->
-  {d.date}
-</span>
+              >
+                {d.date}
+              </span>
 
-{/* Month */}
-<span
-  className={`text-[11px] uppercase tracking-wide mt-1
+              {/* Month */}
+              <span
+                className={`text-[11px] uppercase tracking-wide mt-1
   ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}
->
-  {d.month}
-</span>
+              >
+                {d.month}
+              </span>
             </button>
           );
         })}
@@ -260,32 +311,58 @@ const getMinDate = () => {
   );
 
   /** Normal free-form date input used when no festive cookies in cart */
-const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => {
+  const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) => {
+  const [dateError, setDateError] = useState("");
+
   const handleDateChange = (e) => {
     const selected = e.target.value;
+    if (!selected) return;
+
     if (selected < getMinDate()) {
-      onChange(""); // clear invalid date
-      return;
+      setDateError(`⚠️ Please select a date from ${getMinDate()} or later`);
+      onChange(""); // clear invalid value from parent state
+    } else {
+      setDateError("");
+      onChange(selected);
     }
-    onChange(selected);
   };
 
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium">{label}</label>
+
       <input
         type="date"
         value={value}
         min={getMinDate()}
         disabled={disabled}
         onChange={handleDateChange}
-        className={`w-full border rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none
-          ${error ? "border-red-500 focus:border-red-500" : "border-gray-300 focus:border-blue-500"}`}
+        className={`w-full border-2 rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 focus:outline-none transition
+          ${dateError
+            ? "border-red-500 bg-red-50 focus:border-red-500"
+            : error
+              ? "border-red-500 focus:border-red-500"
+              : "border-gray-300 focus:border-blue-500"
+          }`}
       />
+
+      {/* Hint always visible */}
       <p className="text-xs text-gray-400">
-        Earliest available: {getMinDate()}
+        📅 Earliest available date: <span className="font-medium">{getMinDate()}</span>
       </p>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      {/* Inline error for too-early date */}
+      {dateError && (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-300 rounded-lg px-3 py-2.5 mt-1">
+          <span className="text-red-500 text-base leading-none mt-0.5">✕</span>
+          <p className="text-xs text-red-600 font-medium">{dateError}</p>
+        </div>
+      )}
+
+      {/* Parent-level error (e.g. "Please select a date") */}
+      {error && !dateError && (
+        <p className="text-xs text-red-600">{error}</p>
+      )}
     </div>
   );
 };
@@ -294,7 +371,6 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
-
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b shrink-0">
           <div className="flex items-center gap-2.5">
@@ -323,7 +399,6 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
 
         {/* CONTENT */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5">
-
           {/* ── Step: select ── */}
           {step === "select" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -334,7 +409,9 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 <div>
                   <Store className="mx-auto text-blue-700 mb-4" size={40} />
                   <h3 className="font-semibold text-xl">Pickup</h3>
-                  <p className="text-sm text-gray-600 mt-2">Self-collect and beat the queue</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Self-collect and beat the queue
+                  </p>
                 </div>
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
@@ -348,7 +425,9 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 <div>
                   <Truck className="mx-auto text-blue-700 mb-4" size={40} />
                   <h3 className="font-semibold text-xl">Delivery</h3>
-                  <p className="text-sm text-gray-600 mt-2">Delivered right to your doorstep</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Delivered right to your doorstep
+                  </p>
                 </div>
                 <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
                   Select
@@ -367,22 +446,31 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                   {branches.map((b) => (
                     <button
                       key={b.id}
-                      onClick={() => { setBranch(b); setBranchError(""); }}
+                      onClick={() => {
+                        setBranch(b);
+                        setBranchError("");
+                      }}
                       className={`w-full border-2 rounded-xl p-4 text-left transition
-                        ${branch?.id === b.id
-                          ? "border-blue-600 bg-blue-50/60"
-                          : branchError
-                            ? "border-red-500"
-                            : "border-gray-200 hover:border-gray-300"
+                        ${
+                          branch?.id === b.id
+                            ? "border-blue-600 bg-blue-50/60"
+                            : branchError
+                              ? "border-red-500"
+                              : "border-gray-200 hover:border-gray-300"
                         }`}
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div>
                           <p className="font-medium">{b.name}</p>
-                          <p className="text-sm text-gray-600 mt-0.5">{b.address}</p>
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            {b.address}
+                          </p>
                         </div>
                         {branch?.id === b.id && (
-                          <CheckCircle className="text-blue-600 mt-1" size={20} />
+                          <CheckCircle
+                            className="text-blue-600 mt-1"
+                            size={20}
+                          />
                         )}
                       </div>
                     </button>
@@ -402,7 +490,10 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 <FestiveDatePicker
                   label="Pickup Date"
                   value={pickupDate}
-                  onChange={(v) => { setPickupDate(v); setPickupDateError(""); }}
+                  onChange={(v) => {
+                    setPickupDate(v);
+                    setPickupDateError("");
+                  }}
                   error={pickupDateError}
                 />
               ) : (
@@ -424,7 +515,9 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -464,7 +557,10 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 <FestiveDatePicker
                   label="Delivery Date"
                   value={deliveryDate}
-                  onChange={(v) => { setDeliveryDate(v); setDeliveryDateError(""); }}
+                  onChange={(v) => {
+                    setDeliveryDate(v);
+                    setDeliveryDateError("");
+                  }}
                   error={deliveryDateError}
                 />
               ) : (
@@ -488,7 +584,9 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                 >
                   <option value="">Select time slot</option>
                   {timeSlots.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -515,9 +613,10 @@ const NormalDatePicker = ({ label, value, onChange, disabled = false, error }) =
                     key={b.id}
                     onClick={() => setBranch(b)}
                     className={`w-full border-2 rounded-xl p-4 text-left transition
-                      ${branch?.id === b.id
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                      ${
+                        branch?.id === b.id
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
                       }`}
                   >
                     <div className="flex justify-between items-start gap-3">
