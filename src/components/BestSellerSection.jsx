@@ -37,9 +37,7 @@ const BestSellerSection = () => {
     try {
       const menu = await getMenu(); // ✅ NO branch
 
-      const bestSellers = menu
-        .filter((p) => p.isBestSeller)
-        .slice(0, 4);
+      const bestSellers = menu.filter((p) => p.isBestSeller);
 
       setProducts(bestSellers);
     } catch (err) {
@@ -116,14 +114,14 @@ const BestSellerSection = () => {
         </div>
 
         {/* View All */}
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <Link
             to="/best-sellers"
             className="inline-flex items-center justify-center px-8 py-3 bg-[#1E3A8A] text-white text-sm md:text-base font-medium rounded-full"
           >
             View All
           </Link>
-        </div>
+        </div> */}
       </section>
     </div>
   );

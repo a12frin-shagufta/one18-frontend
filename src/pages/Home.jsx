@@ -9,6 +9,7 @@ import TreatsSection from "../components/TreatsSection";
 import Highlights from "../components/Highlights";
 import CateringSection from "../components/CateringSection";
 import AboutUsSection from "../components/AboutUsSection";
+import MenuSection from "../components/MenuSection";
 
 
 
@@ -27,6 +28,7 @@ const Home = () => {
      
       {/* <CategoryPage /> */}
       <FestivalSection />
+      <MenuSection />
        <BestSellerSection />
        
      
