@@ -61,7 +61,8 @@ useEffect(() => {
       leading-tight
     "
   >
-    {festival.name}
+    Bundles 
+    {/* {festival.name} */}
   </h2>
 
   <p
@@ -73,7 +74,7 @@ useEffect(() => {
       uppercase
     "
   >
-    Made By Premium Butter
+      RAYA OPEN HOUSE PACKAGE
   </p>
 </div>
 
@@ -85,15 +86,17 @@ useEffect(() => {
                   <FestivalCard key={p._id} product={p} />
                 ))}
               </div>
+              
+              {/* just coment this view all for bundles when this end comment remove */}
 
-              <div className="flex justify-center mt-8">
+              {/* <div className="flex justify-center mt-8">
                 <Link
                   to={`/festival/${festival.slug}`}
                   className="px-8 py-3 bg-[#1E3A8A] text-white rounded-full"
                 >
                   View All
                 </Link>
-              </div>
+              </div> */}
             </>
           ) : (
             !branchId && (

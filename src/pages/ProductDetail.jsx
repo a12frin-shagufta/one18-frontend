@@ -191,7 +191,7 @@ const ProductDetail = () => {
             </div>
           )}
 
-          <p className="text-gray-600 mb-6">{product.description}</p>
+         <p className="text-gray-600 mb-6 whitespace-pre-line">{product.description}</p>
 
           {/* ================= VARIANT ACCORDION ================= */}
           <div className="border rounded-xl overflow-hidden mb-6">

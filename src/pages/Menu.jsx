@@ -1,7 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import MenuCard from "../components/MenuCard";
-import { FiChevronDown, FiChevronUp, FiMenu, FiX, FiShoppingCart } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiChevronUp,
+  FiMenu,
+  FiX,
+  FiShoppingCart,
+} from "react-icons/fi";
 import { useCart } from "../context/CartContext";
 import { useParams } from "react-router-dom";
 import CartDrawer from "../components/CartDrawer";
@@ -30,8 +36,6 @@ const Menu = () => {
 
   const location = useLocation();
 
-
-
   /* ======================
      FETCH DATA
   ====================== */
@@ -44,27 +48,22 @@ const Menu = () => {
       .finally(() => setIsMenuLoading(false));
   }, []);
 
-  
-
   console.log(menu[0]?.category);
-  
-  
+
   useEffect(() => {
-  const params = new URLSearchParams(location.search);
-  const slug = params.get("category");
+    const params = new URLSearchParams(location.search);
+    const slug = params.get("category");
 
-  if (!slug || menu.length === 0) return;
+    if (!slug || menu.length === 0) return;
 
-  // find category by slug
-  const matchedItem = menu.find(
-    (item) => item.category?.slug === slug
-  );
+    // find category by slug
+    const matchedItem = menu.find((item) => item.category?.slug === slug);
 
-  if (matchedItem?.category?._id) {
-    setActiveCategory(matchedItem.category._id);
-    setActiveSubcategory("all");
-  }
-}, [location.search, menu]);
+    if (matchedItem?.category?._id) {
+      setActiveCategory(matchedItem.category._id);
+      setActiveSubcategory("all");
+    }
+  }, [location.search, menu]);
 
   useEffect(() => {
     axios
@@ -90,7 +89,10 @@ const Menu = () => {
   }, [orders]);
 
   const cartTotalPrice = useMemo(() => {
-    return Object.values(orders).reduce((sum, item) => sum + (item.price * item.qty), 0);
+    return Object.values(orders).reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0,
+    );
   }, [orders]);
 
   /* ======================
@@ -102,15 +104,14 @@ const Menu = () => {
       const updatedVariants = (item.variants || []).map((v) => {
         const originalPrice = v.price;
         const discountedPrice = bestOffer
-  ? calculateDiscountedPrice(originalPrice, bestOffer)
-  : null;
+          ? calculateDiscountedPrice(originalPrice, bestOffer)
+          : null;
 
-return {
-  ...v,
-  originalPrice,
-  discountedPrice,
-};
-
+        return {
+          ...v,
+          originalPrice,
+          discountedPrice,
+        };
       });
 
       return {
@@ -140,24 +141,22 @@ return {
       }
 
       if (item.subcategory) {
-        map.get(cid).subcategories.set(
-          item.subcategory._id,
-          item.subcategory.name
-        );
+        map
+          .get(cid)
+          .subcategories.set(item.subcategory._id, item.subcategory.name);
       }
     });
 
     const CATEGORY_ORDER = [
-  "bundles",
-  "croissants",
-  "breads",
-  "dessert pastries",
-  "slice cakes",
-  "whole cakes",
-  "festive",
-  "festive cookies",
-];
-
+      "bundles",
+      "croissants",
+      "breads",
+      "dessert pastries",
+      "slice cakes",
+      "whole cakes",
+      "festive",
+      "festive cookies",
+    ];
 
     const CROISSANT_SUB_ORDER = ["sweet", "savoury"];
 
@@ -165,25 +164,25 @@ return {
       let subs = Array.from(c.subcategories, ([id, name]) => ({ id, name }));
 
       if (c.name.toLowerCase() === "croissants") {
-  subs.sort((a, b) => {
-    const normalize = (str = "") =>
-      str.toLowerCase().replace(/\s+/g, " ").trim();
+        subs.sort((a, b) => {
+          const normalize = (str = "") =>
+            str.toLowerCase().replace(/\s+/g, " ").trim();
 
-    const order = ["sweet", "savoury"];
+          const order = ["sweet", "savoury"];
 
-    const aName = normalize(a.name);
-    const bName = normalize(b.name);
+          const aName = normalize(a.name);
+          const bName = normalize(b.name);
 
-    const aIndex = order.findIndex(k => aName.includes(k));
-    const bIndex = order.findIndex(k => bName.includes(k));
+          const aIndex = order.findIndex((k) => aName.includes(k));
+          const bIndex = order.findIndex((k) => bName.includes(k));
 
-    if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
-    if (aIndex === -1) return 1;
-    if (bIndex === -1) return -1;
+          if (aIndex === -1 && bIndex === -1) return aName.localeCompare(bName);
+          if (aIndex === -1) return 1;
+          if (bIndex === -1) return -1;
 
-    return aIndex - bIndex;
-  });
-}
+          return aIndex - bIndex;
+        });
+      }
 
       return {
         ...c,
@@ -200,73 +199,78 @@ return {
       return aIndex - bIndex;
     });
 
-    return [
-      { id: "all", name: "All", subcategories: [] },
-      ...categories,
-    ];
+    return [{ id: "all", name: "All", subcategories: [] }, ...categories];
   }, [menuWithOffers]);
 
-  
-
-
   useEffect(() => {
-  const open = () => setShowFulfillment(true);
-  const edit = () => setShowFulfillment(true);
+    const open = () => setShowFulfillment(true);
+    const edit = () => setShowFulfillment(true);
 
-  window.addEventListener("open-fulfillment", open);
-  window.addEventListener("edit-fulfillment", edit);
+    window.addEventListener("open-fulfillment", open);
+    window.addEventListener("edit-fulfillment", edit);
 
-  return () => {
-    window.removeEventListener("open-fulfillment", open);
-    window.removeEventListener("edit-fulfillment", edit);
-  };
-}, []);
-
+    return () => {
+      window.removeEventListener("open-fulfillment", open);
+      window.removeEventListener("edit-fulfillment", edit);
+    };
+  }, []);
 
   /* ======================
      FILTER MENU
   ====================== */
   const filteredMenu = useMemo(() => {
-  const result = menuWithOffers.filter((item) => {
-    const catMatch =
-      activeCategory === "all" || item.category?._id === activeCategory;
+    const result = menuWithOffers.filter((item) => {
+      const catMatch =
+        activeCategory === "all" || item.category?._id === activeCategory;
 
-    const subMatch =
-      activeSubcategory === "all" ||
-      item.subcategory?._id === activeSubcategory;
+      const subMatch =
+        activeSubcategory === "all" ||
+        item.subcategory?._id === activeSubcategory;
 
-    return catMatch && subMatch;
-  });
+      return catMatch && subMatch;
+    });
 
-  return result.sort((a, b) => {
-    // 🥐 CROISSANTS: Sweet → Savoury → Plain
-    if (a.category?.name?.toLowerCase() === "croissants") {
-      const normalize = (str = "") =>
-        str.toLowerCase().replace(/\s+/g, " ").trim();
+    return result.sort((a, b) => {
+      // 🥐 CROISSANTS: Sweet → Savoury → Plain
+      if (a.category?.name?.toLowerCase() === "croissants") {
+        const normalize = (str = "") =>
+          str.toLowerCase().replace(/\s+/g, " ").trim();
 
-      const order = ["sweet", "savoury", "plain"];
+        const order = ["sweet", "savoury", "plain"];
 
-      const aSub = normalize(a.subcategory?.name || "plain");
-      const bSub = normalize(b.subcategory?.name || "plain");
+        const aSub = normalize(a.subcategory?.name || "plain");
+        const bSub = normalize(b.subcategory?.name || "plain");
 
-      const aIndex = order.findIndex((k) => aSub.includes(k));
-      const bIndex = order.findIndex((k) => bSub.includes(k));
+        const aIndex = order.findIndex((k) => aSub.includes(k));
+        const bIndex = order.findIndex((k) => bSub.includes(k));
 
-      if (aIndex !== bIndex) {
-        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+        if (aIndex !== bIndex) {
+          return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+        }
       }
-    }
 
-    // ⭐ Best sellers AFTER croissant grouping
-    if (a.isBestSeller !== b.isBestSeller) {
-      return a.isBestSeller ? -1 : 1;
-    }
+      // ⭐ Best sellers AFTER croissant grouping
+      if (a.isBestSeller !== b.isBestSeller) {
+        return a.isBestSeller ? -1 : 1;
+      }
 
-    // 🕒 Default: newest first
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-}, [menuWithOffers, activeCategory, activeSubcategory]);
+      // 🕒 Default: newest first
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }, [menuWithOffers, activeCategory, activeSubcategory]);
 
+ const isRaya = (item) => 
+  item.name?.toLowerCase().includes("raya");
+
+const rayaItems = useMemo(() =>
+  filteredMenu.filter(isRaya),
+  [filteredMenu]
+);
+
+const regularItems = useMemo(() =>
+  filteredMenu.filter(item => !isRaya(item)),
+  [filteredMenu]
+);
 
 
   /* ======================
@@ -305,7 +309,7 @@ return {
         >
           <FiMenu size={20} className="text-gray-700" />
         </button>
-        
+
         <div className="flex-1 text-center">
           <h1 className="font-bold text-gray-900 text-sm">Menu</h1>
           {filteredMenu.length > 0 && (
@@ -346,8 +350,8 @@ return {
         >
           <div className="p-4 border-b flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-900">Menu Categories</h2>
-            <button 
-              onClick={() => setShowSidebar(false)} 
+            <button
+              onClick={() => setShowSidebar(false)}
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
             >
               <FiX size={20} />
@@ -360,19 +364,19 @@ return {
                 <button
                   onClick={() => handleCategoryClick(cat.id)}
                   className={`w-full flex justify-between items-center px-3 py-3 rounded-lg text-sm font-medium transition-colors
-                    ${activeCategory === cat.id
-                      ? "bg-blue-50 text-blue-700 border border-blue-100"
-                      : "text-gray-700 hover:bg-gray-50"
+                    ${
+                      activeCategory === cat.id
+                        ? "bg-blue-50 text-blue-700 border border-blue-100"
+                        : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   <span className="truncate capitalize">{cat.name}</span>
-                  {cat.subcategories.length > 0 && (
-                    expandedCategories[cat.id] ? (
+                  {cat.subcategories.length > 0 &&
+                    (expandedCategories[cat.id] ? (
                       <FiChevronUp size={16} className="flex-shrink-0" />
                     ) : (
                       <FiChevronDown size={16} className="flex-shrink-0" />
-                    )
-                  )}
+                    ))}
                 </button>
 
                 {cat.id !== "all" &&
@@ -384,13 +388,13 @@ return {
                           key={sub.id}
                           onClick={() => handleSubcategoryClick(sub.id)}
                           className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors
-                            ${activeSubcategory === sub.id
-                              ? "bg-gray-100 text-gray-900 font-medium"
-                              : "text-gray-600 hover:bg-gray-50"
+                            ${
+                              activeSubcategory === sub.id
+                                ? "bg-gray-100 text-gray-900 font-medium"
+                                : "text-gray-600 hover:bg-gray-50"
                             }`}
                         >
-                         <span className="capitalize">{sub.name}</span>
-
+                          <span className="capitalize">{sub.name}</span>
                         </button>
                       ))}
                     </div>
@@ -407,10 +411,11 @@ return {
             <div>
               <h1 className="text-xl font-bold text-gray-900">Our Menu</h1>
               <p className="text-sm text-gray-500">
-                {filteredMenu.length} {filteredMenu.length === 1 ? 'item' : 'items'} available
+                {filteredMenu.length}{" "}
+                {filteredMenu.length === 1 ? "item" : "items"} available
               </p>
             </div>
-            
+
             {/* DESKTOP CART BUTTON */}
             {/* {cartTotalItems > 0 && (
               <button
@@ -442,47 +447,119 @@ return {
             ) : filteredMenu.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-6xl mb-4">🍰</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No items found</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  No items found
+                </h3>
                 <p className="text-gray-500 text-sm">
                   Try selecting a different category
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                {filteredMenu.map((item) => (
-                  <MenuCard
-                    key={item._id}
-                    item={item}
-                    orders={orders}
-                    setOrders={setOrders}
-                    openCart={() => {
-  const fulfillment = localStorage.getItem("fulfillmentData");
-  if (!fulfillment) {
-    setShowFulfillment(true);
-  }
-}}
+              <>
+                {/* ===== RAYA FEATURED SECTION ===== */}
+                {rayaItems.length > 0 && (
+                  <div className="mb-8">
+                    {/* Amber promo strip */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+                      <div className="text-xl">🌙</div>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">
+                          Hari Raya Special Packages
+                        </p>
+                        <p className="text-xs text-amber-700">
+                          Limited availability — order now before they sell out
+                        </p>
+                      </div>
+                      <span className="ml-auto text-xs text-amber-800 border border-amber-300 bg-amber-100 rounded px-2 py-1 whitespace-nowrap flex-shrink-0">
+                        {rayaItems.length}{" "}
+                        {rayaItems.length === 1 ? "package" : "packages"}
+                      </span>
+                    </div>
 
-                  />
-                ))}
-              </div>
+                    {/* Section label */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <p className="text-xs font-medium tracking-widest text-gray-400 uppercase whitespace-nowrap">
+                        Featured this Raya
+                      </p>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+
+                    {/* Raya cards grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                      {rayaItems.map((item) => (
+                        <div key={item._id} className="relative">
+                          {/* Orange ribbon */}
+                          <div
+                            className="absolute top-3 left-0 z-10 bg-orange-500 text-white text-[10px] font-semibold px-2 py-1"
+                            style={{
+                              clipPath:
+                                "polygon(0 0, 100% 0, 88% 50%, 100% 100%, 0 100%)",
+                            }}
+                          >
+                            Raya Special
+                          </div>
+                          {/* Gold border wrapper */}
+                          <div className="rounded-lg ring-2 ring-amber-400 overflow-hidden">
+                            <MenuCard
+                              item={item}
+                              orders={orders}
+                              setOrders={setOrders}
+                              openCart={() => {
+                                const fulfillment =
+                                  localStorage.getItem("fulfillmentData");
+                                if (!fulfillment) setShowFulfillment(true);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ===== REGULAR ITEMS ===== */}
+                {regularItems.length > 0 && (
+                  <div>
+                    {rayaItems.length > 0 && (
+                      <div className="flex items-center gap-3 mb-3">
+                        <p className="text-xs font-medium tracking-widest text-gray-400 uppercase whitespace-nowrap">
+                          All items
+                        </p>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                      {regularItems.map((item) => (
+                        <MenuCard
+                          key={item._id}
+                          item={item}
+                          orders={orders}
+                          setOrders={setOrders}
+                          openCart={() => {
+                            const fulfillment =
+                              localStorage.getItem("fulfillmentData");
+                            if (!fulfillment) setShowFulfillment(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </main>
       </div>
 
       {/* CART DRAWER */}
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-      />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       {/* FULFILLMENT MODAL */}
-     <FulfillmentModal
-  open={showFulfillment}
-  onClose={() => setShowFulfillment(false)}
-  redirectToCheckout
-/>
-
+      <FulfillmentModal
+        open={showFulfillment}
+        onClose={() => setShowFulfillment(false)}
+        redirectToCheckout
+      />
     </div>
   );
 };
