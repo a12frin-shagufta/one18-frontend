@@ -3,30 +3,39 @@ import { Link } from "react-router-dom";
 import { getMenu } from "../services/festivalApi";
 import FestivalCard from "./FestivalCard";
 
+const STORAGE_KEY = "menu_section_products";
+
+const getRandomItems = (arr, count) => {
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+};
+
 const MenuSection = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
     const load = async () => {
-      const menu = await getMenu();
+      // Return cached products if they exist
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        setProducts(JSON.parse(cached));
+        return;
+      }
 
-      // show only few products
+      // Otherwise fetch, pick random, and cache
+      const menu = await getMenu();
       const fewProducts = getRandomItems(menu, 12);
 
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fewProducts));
       setProducts(fewProducts);
     };
 
     load();
   }, []);
 
-  const getRandomItems = (arr, count) => {
-  const shuffled = [...arr].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-};
-
   return (
     <section className="py-8 md:py-12 max-w-7xl mx-auto px-4">
-      
+
       {/* Title */}
       <div className="text-center mb-8">
         <h2 className="text-3xl md:text-5xl font-serif">Our Menu</h2>
