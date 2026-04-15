@@ -31,6 +31,8 @@ const Menu = () => {
   const [showFulfillment, setShowFulfillment] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [isMenuLoading, setIsMenuLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -219,46 +221,40 @@ const Menu = () => {
      FILTER MENU
   ====================== */
   const filteredMenu = useMemo(() => {
-    const result = menuWithOffers.filter((item) => {
-      const catMatch =
-        activeCategory === "all" || item.category?._id === activeCategory;
+  const q = searchQuery.toLowerCase().trim();
 
-      const subMatch =
-        activeSubcategory === "all" ||
-        item.subcategory?._id === activeSubcategory;
+  const result = menuWithOffers.filter((item) => {
+    const catMatch =
+      activeCategory === "all" || item.category?._id === activeCategory;
+    const subMatch =
+      activeSubcategory === "all" ||
+      item.subcategory?._id === activeSubcategory;
 
-      return catMatch && subMatch;
-    });
+    // Search filter — matches name or description
+    const searchMatch =
+      !q ||
+      item.name?.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q);
 
-    return result.sort((a, b) => {
-      // 🥐 CROISSANTS: Sweet → Savoury → Plain
-      if (a.category?.name?.toLowerCase() === "croissants") {
-        const normalize = (str = "") =>
-          str.toLowerCase().replace(/\s+/g, " ").trim();
+    return catMatch && subMatch && searchMatch;
+  });
 
-        const order = ["sweet", "savoury", "plain"];
-
-        const aSub = normalize(a.subcategory?.name || "plain");
-        const bSub = normalize(b.subcategory?.name || "plain");
-
-        const aIndex = order.findIndex((k) => aSub.includes(k));
-        const bIndex = order.findIndex((k) => bSub.includes(k));
-
-        if (aIndex !== bIndex) {
-          return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
-        }
-      }
-
-      // ⭐ Best sellers AFTER croissant grouping
-      if (a.isBestSeller !== b.isBestSeller) {
-        return a.isBestSeller ? -1 : 1;
-      }
-
-      // 🕒 Default: newest first
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  }, [menuWithOffers, activeCategory, activeSubcategory]);
-
+  return result.sort((a, b) => {
+    if (a.category?.name?.toLowerCase() === "croissants") {
+      const normalize = (str = "") =>
+        str.toLowerCase().replace(/\s+/g, " ").trim();
+      const order = ["sweet", "savoury", "plain"];
+      const aSub = normalize(a.subcategory?.name || "plain");
+      const bSub = normalize(b.subcategory?.name || "plain");
+      const aIndex = order.findIndex((k) => aSub.includes(k));
+      const bIndex = order.findIndex((k) => bSub.includes(k));
+      if (aIndex !== bIndex)
+        return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
+    }
+    if (a.isBestSeller !== b.isBestSeller) return a.isBestSeller ? -1 : 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+}, [menuWithOffers, activeCategory, activeSubcategory, searchQuery]);
  const isRaya = (item) => 
   item.name?.toLowerCase().includes("raya");
 
@@ -271,6 +267,23 @@ const regularItems = useMemo(() =>
   filteredMenu.filter(item => !isRaya(item)),
   [filteredMenu]
 );
+const groupedItems = useMemo(() => {
+  if (activeCategory !== "all") return {};
+
+  const grouped = {};
+
+  regularItems.forEach((item) => {
+    const categoryName = item.category?.name || "Others";
+
+    if (!grouped[categoryName]) {
+      grouped[categoryName] = [];
+    }
+
+    grouped[categoryName].push(item);
+  });
+
+  return grouped;
+}, [regularItems, activeCategory]);
 
 
   /* ======================
@@ -331,6 +344,40 @@ const regularItems = useMemo(() =>
           )}
         </button> */}
       </div>
+
+      {/* MOBILE SEARCH BAR */}
+<div className="md:hidden px-4 py-2 bg-white border-b border-gray-200">
+  <div className="relative">
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder="Search menu..."
+      className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50"
+    />
+    <svg
+      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+    {searchQuery && (
+      <button
+        onClick={() => setSearchQuery("")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+</div>
 
       {/* SIDEBAR OVERLAY */}
       {showSidebar && (
@@ -407,30 +454,48 @@ const regularItems = useMemo(() =>
         {/* MAIN CONTENT */}
         <main className="flex-1 overflow-y-auto md:pl-0">
           {/* DESKTOP HEADER */}
-          <div className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Our Menu</h1>
-              <p className="text-sm text-gray-500">
-                {filteredMenu.length}{" "}
-                {filteredMenu.length === 1 ? "item" : "items"} available
-              </p>
-            </div>
+          {/* DESKTOP HEADER */}
+<div className="hidden md:flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+  <div>
+    <h1 className="text-xl font-bold text-gray-900">Our Menu</h1>
+    <p className="text-sm text-gray-500">
+      {filteredMenu.length}{" "}
+      {filteredMenu.length === 1 ? "item" : "items"} available
+    </p>
+  </div>
 
-            {/* DESKTOP CART BUTTON */}
-            {/* {cartTotalItems > 0 && (
-              <button
-                onClick={() => setShowFulfillment(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <FiShoppingCart size={18} />
-                <span className="font-semibold">View Cart</span>
-                <span className="bg-white text-blue-600 px-2 py-0.5 rounded-full text-sm font-bold">
-                  {cartTotalItems}
-                </span>
-                <span className="font-bold">S${cartTotalPrice.toFixed(2)}</span>
-              </button>
-            )} */}
-          </div>
+  {/* SEARCH BAR */}
+  <div className="relative w-72">
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder="Search menu..."
+      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+    />
+    <svg
+      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      />
+    </svg>
+    {searchQuery && (
+      <button
+        onClick={() => setSearchQuery("")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+</div>
 
           {/* MENU GRID */}
           <div className="p-3 md:p-4 lg:p-6">
@@ -488,7 +553,7 @@ const regularItems = useMemo(() =>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                       {rayaItems.map((item) => (
                         <div key={item._id} className="relative">
-                          {/* Orange ribbon */}
+                         
                           <div
                             className="absolute top-3 left-0 z-10 bg-orange-500 text-white text-[10px] font-semibold px-2 py-1"
                             style={{
@@ -528,21 +593,50 @@ const regularItems = useMemo(() =>
                         <div className="flex-1 h-px bg-gray-200" />
                       </div>
                     )}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                      {regularItems.map((item) => (
-                        <MenuCard
-                          key={item._id}
-                          item={item}
-                          orders={orders}
-                          setOrders={setOrders}
-                          openCart={() => {
-                            const fulfillment =
-                              localStorage.getItem("fulfillmentData");
-                            if (!fulfillment) setShowFulfillment(true);
-                          }}
-                        />
-                      ))}
-                    </div>
+                    {activeCategory === "all" ? (
+  Object.keys(groupedItems).map((category) => (
+    <div key={category} className="mb-8">
+      {/* CATEGORY TITLE */}
+      <div className="flex items-center gap-3 mb-3">
+        <p className="text-sm font-semibold text-gray-800 uppercase">
+          {category}
+        </p>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+
+      {/* PRODUCTS */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+        {groupedItems[category].map((item) => (
+          <MenuCard
+            key={item._id}
+            item={item}
+            orders={orders}
+            setOrders={setOrders}
+            openCart={() => {
+              const fulfillment = localStorage.getItem("fulfillmentData");
+              if (!fulfillment) setShowFulfillment(true);
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  ))
+) : (
+  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+    {regularItems.map((item) => (
+      <MenuCard
+        key={item._id}
+        item={item}
+        orders={orders}
+        setOrders={setOrders}
+        openCart={() => {
+          const fulfillment = localStorage.getItem("fulfillmentData");
+          if (!fulfillment) setShowFulfillment(true);
+        }}
+      />
+    ))}
+  </div>
+)}
                   </div>
                 )}
               </>
