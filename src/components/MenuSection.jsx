@@ -86,7 +86,7 @@ const load = async () => {
     <section className="py-8 md:py-12 max-w-7xl mx-auto px-4">
       {/* Title */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl md:text-5xl font-serif">Our Menu</h2>
+        <h2 className="text-3xl md:text-5xl font-serif">Our Menuu</h2>
         <p className="text-sm text-gray-500 uppercase mt-2">
           Explore our delicious menu
         </p>
