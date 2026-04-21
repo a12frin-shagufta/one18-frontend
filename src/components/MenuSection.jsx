@@ -24,7 +24,7 @@ const load = async () => {
 
   const menu = await getMenu();
 
-  // SAME LOGIC AS MENU PAGE
+  // SAME LOGIC AS MENU PAGEt
   const sorted = menu.sort((a, b) => {
   const CATEGORY_ORDER = [
     // "bundles",
