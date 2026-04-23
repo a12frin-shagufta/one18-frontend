@@ -1,16 +1,20 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiMinus } from "react-icons/fi";
-
+import { useState } from "react";
+import AddOnModal from "./AddOnModal";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const navigate = useNavigate();
-const isOutOfStock = item.stock <= 0 || item.isAvailable === false;
+  const isOutOfStock = item.stock <= 0 || item.isAvailable === false;
 
   const hasMultipleVariants = item.variants.length > 1;
   const variant = item.variants[0];
   const key = `${item._id}_${variant.label}`;
   const qty = orders[key]?.qty || 0;
+  const [showAddOnModal, setShowAddOnModal] = useState(false);
+
+  const hasAddOns = item.addOns?.length > 0;
 
   const addSingleVariantToCart = (e, type) => {
     if (isOutOfStock) return; // ✅ ADD THIS
@@ -19,13 +23,13 @@ const isOutOfStock = item.stock <= 0 || item.isAvailable === false;
 
     setOrders((prev) => {
       const currentQty = prev[key]?.qty || 0;
-    let newQty =
-  type === "inc" ? currentQty + 1 : Math.max(0, currentQty - 1);
+      let newQty =
+        type === "inc" ? currentQty + 1 : Math.max(0, currentQty - 1);
 
-// 🚫 Prevent exceeding stock
-if (newQty > item.stock) {
-  newQty = item.stock;
-}
+      // 🚫 Prevent exceeding stock
+      if (newQty > item.stock) {
+        newQty = item.stock;
+      }
 
       if (newQty === 0) {
         const copy = { ...prev };
@@ -34,43 +38,66 @@ if (newQty > item.stock) {
       }
 
       return {
-  ...prev,
-  [key]: {
-    itemId: item._id,
-    name: item.name,
-    variant: variant.label,
-    qty: newQty,
-    price: variant.discountedPrice ?? variant.price,
-    image: item.images?.[0],
-    category: item.category?.name,
-    festival: item.festival ?? null, // ✅ ADD THIS LINE
-  },
-};
+        ...prev,
+        [key]: {
+          itemId: item._id,
+          name: item.name,
+          variant: variant.label,
+          qty: newQty,
+          price: variant.discountedPrice ?? variant.price,
+          image: item.images?.[0],
+          category: item.category?.name,
+          festival: item.festival ?? null, // ✅ ADD THIS LINE
+        },
+      };
     });
 
     if (type === "inc") {
-  const fulfillment = localStorage.getItem("fulfillmentData");
-  if (!fulfillment) {
-    openCart();
-  }
-}
-
+      const fulfillment = localStorage.getItem("fulfillmentData");
+      if (!fulfillment) {
+        openCart();
+      }
+    }
   };
 
+  // REPLACE your handleAddClick function:
   const handleAddClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
 
-    if (isOutOfStock) return; // ✅ ADD THIS
+    if (isOutOfStock) return;
 
-    if (hasMultipleVariants) {
-      navigate(`/product/${item.slug}`);
+    // ✅ If has add-ons OR multiple variants → open modal
+    if (hasAddOns || hasMultipleVariants) {
+      setShowAddOnModal(true);
       return;
     }
 
     addSingleVariantToCart(e, "inc");
   };
 
+  // ADD this handler for when modal confirms:
+  const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
+    const key = `${item._id}_${variant.label}`;
+
+    setOrders((prev) => ({
+      ...prev,
+      [key]: {
+        itemId: item._id,
+        name: item.name,
+        variant: variant.label,
+        price: totalPrice,
+        qty,
+        image: item.images?.[0],
+        category: item.category?.name,
+        festival: item.festival ?? null,
+        addOns,
+      },
+    }));
+
+    const fulfillment = localStorage.getItem("fulfillmentData");
+    if (!fulfillment) openCart();
+  };
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
       {/* IMAGE - Optimized for mobile */}
@@ -82,13 +109,11 @@ if (newQty > item.stock) {
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
           />
-
           {isOutOfStock && (
-  <div className="absolute bottom-2 left-2 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded">
-    Out of Stock
-  </div>
-)}
-
+            <div className="absolute bottom-2 left-2 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded">
+              Out of Stock
+            </div>
+          )}
           {/* Badges */}
           {item.offer && (
             <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
@@ -97,18 +122,17 @@ if (newQty > item.stock) {
                 : `Save $${item.offer.value}`}
             </div>
           )}
-
           {item.isBestSeller && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">
               Best Seller
             </div>
           )}
-          // After the isBestSeller badge, add:
-{item.isPromoEligible && (
-  <div className="absolute bottom-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
-    🎁 Buy 4 Get 1
-  </div>
-)}
+         
+          {item.isPromoEligible && (
+            <div className="absolute bottom-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+              🎁 Buy 4 Get 1
+            </div>
+          )}
         </div>
       </Link>
 
@@ -144,52 +168,64 @@ if (newQty > item.stock) {
 
         {/* ACTION BUTTONS - Mobile optimized */}
         <div className="mt-auto">
-         {isOutOfStock ? (
-  <button
-    disabled
-    className="w-full bg-gray-300 text-gray-600 text-sm font-semibold py-2.5 rounded-md cursor-not-allowed"
-  >
-    Out of Stock
-  </button>
-) : qty === 0 ? (
-  <button
-    onClick={handleAddClick}
-    className="w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-md transition-colors duration-200 active:scale-95"
-  >
-    {hasMultipleVariants ? "View Options" : "Add to Cart"}
-  </button>
-) : (
-  <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
-    <button
-      onClick={(e) => addSingleVariantToCart(e, "dec")}
-      className="w-7 h-7 flex items-center justify-center bg-white border border-gray-300 rounded-full active:bg-gray-100"
-    >
-      <FiMinus size={14} />
-    </button>
+          {isOutOfStock ? (
+            <button
+              disabled
+              className="w-full bg-gray-300 text-gray-600 text-sm font-semibold py-2.5 rounded-md cursor-not-allowed"
+            >
+              Out of Stock
+            </button>
+          ) : qty === 0 ? (
+            <button
+              onClick={handleAddClick}
+              className="w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-md transition-colors duration-200 active:scale-95"
+            >
+          {hasMultipleVariants || hasAddOns ? "Customise" : "Add to Cart"}
+            </button>
+          ) : (
+            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+              <button
+                onClick={(e) => addSingleVariantToCart(e, "dec")}
+                className="w-7 h-7 flex items-center justify-center bg-white border border-gray-300 rounded-full active:bg-gray-100"
+              >
+                <FiMinus size={14} />
+              </button>
 
-    <div className="flex flex-col items-center">
-      <span className="font-bold text-gray-900">{qty}</span>
-      <span className="text-xs text-gray-500">in cart</span>
-    </div>
+              <div className="flex flex-col items-center">
+                <span className="font-bold text-gray-900">{qty}</span>
+                <span className="text-xs text-gray-500">in cart</span>
+              </div>
 
-    <button
-  disabled={qty >= item.stock}
-  onClick={(e) => addSingleVariantToCart(e, "inc")}
-  className={`w-7 h-7 flex items-center justify-center border rounded-full
-    ${qty >= item.stock 
-      ? "bg-gray-200 cursor-not-allowed"
-      : "bg-white border-gray-300 active:bg-gray-100"
+              <button
+                disabled={qty >= item.stock}
+                onClick={(e) => addSingleVariantToCart(e, "inc")}
+                className={`w-7 h-7 flex items-center justify-center border rounded-full
+    ${
+      qty >= item.stock
+        ? "bg-gray-200 cursor-not-allowed"
+        : "bg-white border-gray-300 active:bg-gray-100"
     }`}
->
-      <FiPlus size={14} />
-    </button>
-  </div>
-)}
-
+              >
+                <FiPlus size={14} />
+              </button>
+            </div>
+          )}
+          
         </div>
+        
       </div>
-    </div>
+      {/* ADD-ON MODAL */}
+      {showAddOnModal && (
+        <AddOnModal
+          item={item}
+          onClose={() => setShowAddOnModal(false)}
+          onAddToCart={handleModalAddToCart}
+        />
+      )}
+
+    </div>  // ← this is your existing final closing div
   );
 };
+   
 
 export default MenuCard;

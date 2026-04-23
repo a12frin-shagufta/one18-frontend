@@ -25,6 +25,7 @@ const ProductDetail = () => {
   const [accordionOpen, setAccordionOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [showFulfillment, setShowFulfillment] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState({});
 
   /* ======================
      FETCH PRODUCT
@@ -94,13 +95,82 @@ const ProductDetail = () => {
     );
   }, [productWithOffer]);
 
+  // Single-select (radio)
+  const handleSingleAddOn = (groupName, option) => {
+    setSelectedAddOns((prev) => ({
+      ...prev,
+      [groupName]: option, // { label, price }
+    }));
+  };
+
+  // Multi-select (checkbox)
+  const handleMultiAddOn = (groupName, option, checked) => {
+    setSelectedAddOns((prev) => {
+      const existing = prev[groupName] || {};
+      if (checked) {
+        return {
+          ...prev,
+          [groupName]: { ...existing, [option.label]: option },
+        };
+      } else {
+        const updated = { ...existing };
+        delete updated[option.label];
+        return { ...prev, [groupName]: updated };
+      }
+    });
+  };
+
+  const addOnsTotal = useMemo(() => {
+    let total = 0;
+    Object.values(selectedAddOns).forEach((val) => {
+      if (val && typeof val === "object" && "price" in val) {
+        // single-select
+        total += Number(val.price) || 0;
+      } else if (val && typeof val === "object") {
+        // multi-select
+        Object.values(val).forEach((opt) => {
+          total += Number(opt.price) || 0;
+        });
+      }
+    });
+    return total;
+  }, [selectedAddOns]);
+
   /* ======================
      ADD TO CART
   ====================== */
   const addToCart = () => {
   if (!selectedVariant) return;
 
+  // ✅ Validate required groups
+  const requiredGroups = (product.addOns || []).filter((g) => g.required);
+  for (const group of requiredGroups) {
+    const picked = selectedAddOns[group.groupName];
+    const hasPick =
+      picked &&
+      (typeof picked.label === "string" || Object.keys(picked).length > 0);
+    if (!hasPick) {
+      toast.error(`Please select an option for "${group.groupName}"`);
+      return;
+    }
+  }
+
   const key = `${product._id}_${selectedVariant.label}`;
+  const basePrice = selectedVariant.discountedPrice ?? selectedVariant.price;
+
+  // Build flat add-ons array for cart
+  const chosenAddOns = [];
+  Object.entries(selectedAddOns).forEach(([groupName, val]) => {
+    if (val && typeof val === "object" && "label" in val) {
+      // single-select
+      chosenAddOns.push({ groupName, label: val.label, price: Number(val.price) || 0 });
+    } else if (val && typeof val === "object") {
+      // multi-select
+      Object.values(val).forEach((opt) => {
+        chosenAddOns.push({ groupName, label: opt.label, price: Number(opt.price) || 0 });
+      });
+    }
+  });
 
   setOrders((prev) => ({
     ...prev,
@@ -108,20 +178,18 @@ const ProductDetail = () => {
       itemId: product._id,
       name: product.name,
       variant: selectedVariant.label,
-      price: selectedVariant.discountedPrice ?? selectedVariant.price,
+      price: basePrice + addOnsTotal,   // ✅ base + add-ons
       qty,
       image: product.images?.[0],
       category: product.category,
-      festival: product.festival ?? null, // ✅ FIXED — was isFestive
+      festival: product.festival ?? null,
+      addOns: chosenAddOns,             // ✅ saved to cart
     },
   }));
 
   const fulfillment = localStorage.getItem("fulfillmentData");
-  if (!fulfillment) {
-    setShowFulfillment(true);
-  }
+  if (!fulfillment) setShowFulfillment(true);
 };
-
   /* ======================
      LOADING STATE
   ====================== */
@@ -191,7 +259,9 @@ const ProductDetail = () => {
             </div>
           )}
 
-         <p className="text-gray-600 mb-6 whitespace-pre-line">{product.description}</p>
+          <p className="text-gray-600 mb-6 whitespace-pre-line">
+            {product.description}
+          </p>
 
           {/* ================= VARIANT ACCORDION ================= */}
           <div className="border rounded-xl overflow-hidden mb-6">
@@ -258,13 +328,87 @@ const ProductDetail = () => {
             </button>
           </div>
 
+
+          {/* ================= ADD-ONS ================= */}
+{product.addOns?.length > 0 && (
+  <div className="space-y-4 mb-6">
+    {product.addOns.map((group) => (
+      <div key={group.groupName} className="border rounded-xl overflow-hidden">
+        {/* Group Header */}
+        <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
+          <div>
+            <p className="font-semibold text-gray-900">{group.groupName}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {group.required ? "Required · " : "Optional · "}
+              {group.multiSelect ? "Pick multiple" : "Pick one"}
+            </p>
+          </div>
+          {group.required && (
+            <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
+              Required
+            </span>
+          )}
+        </div>
+
+        {/* Options */}
+        <div className="divide-y">
+          {group.options.map((opt) => {
+            const isSelected = group.multiSelect
+              ? !!selectedAddOns[group.groupName]?.[opt.label]
+              : selectedAddOns[group.groupName]?.label === opt.label;
+
+            return (
+              <label
+                key={opt.label}
+                className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+              >
+                <div>
+                  <p className="font-medium text-gray-800">{opt.label}</p>
+                  {opt.price > 0 && (
+                    <p className="text-sm text-gray-500">+{formatPrice(opt.price)}</p>
+                  )}
+                  {opt.price === 0 && (
+                    <p className="text-sm text-green-600">Free</p>
+                  )}
+                </div>
+
+                {group.multiSelect ? (
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) =>
+                      handleMultiAddOn(group.groupName, opt, e.target.checked)
+                    }
+                    className="w-5 h-5 accent-[#1E3A8A]"
+                  />
+                ) : (
+                  <input
+                    type="radio"
+                    checked={isSelected}
+                    onChange={() => handleSingleAddOn(group.groupName, opt)}
+                    name={group.groupName}
+                    className="w-5 h-5 accent-[#1E3A8A]"
+                  />
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
           {/* ================= ADD TO CART ================= */}
           <button
-            onClick={addToCart}
-            className="w-full bg-[#1E3A8A] text-white py-4 rounded-sm text-lg font-semibold"
-          >
-            ADD TO CART
-          </button>
+  onClick={addToCart}
+  className="w-full bg-[#1E3A8A] text-white py-4 rounded-sm text-lg font-semibold"
+>
+  ADD TO CART —{" "}
+  {formatPrice(
+    ((selectedVariant?.discountedPrice ?? selectedVariant?.price) + addOnsTotal) * qty
+  )}
+</button>
         </div>
       </div>
 

@@ -226,6 +226,7 @@ const freeItem = useMemo(() => {
     variant: i.variant,
     price: i.price,
     qty: i.qty,
+    addOns: i.addOns || [], 
   })),
   // ✅ append free promo item if unlocked
   ...(freeItem
@@ -715,11 +716,26 @@ const freeItem = useMemo(() => {
                       {item.name}
                     </p>
                     {item.variant && (
-                      <p className="text-sm text-gray-500">{item.variant}</p>
-                    )}
-                    <p className="text-sm text-gray-600">
-                      ${formatPrice(item.price)} each
-                    </p>
+  <p className="text-sm text-gray-500">{item.variant}</p>
+)}
+
+{/* ✅ Show chosen add-ons */}
+{item.addOns?.length > 0 && (
+  <div className="mt-1 space-y-0.5">
+    {item.addOns.map((addon, i) => (
+      <p key={i} className="text-xs text-gray-500 flex justify-between">
+        <span>+ {addon.label}</span>
+        {addon.price > 0 && (
+          <span className="text-gray-400">+{formatPrice(addon.price)}</span>
+        )}
+      </p>
+    ))}
+  </div>
+)}
+
+<p className="text-sm text-gray-600">
+  {formatPrice(item.price)} each
+</p>
                   </div>
 
                   <div className="text-right">
