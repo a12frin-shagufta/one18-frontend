@@ -227,6 +227,7 @@ const freeItem = useMemo(() => {
     price: i.price,
     qty: i.qty,
     addOns: i.addOns || [], 
+    cakeMessage: i.cakeMessage || "",
   })),
   // ✅ append free promo item if unlocked
   ...(freeItem
@@ -717,6 +718,13 @@ const freeItem = useMemo(() => {
                     </p>
                     {item.variant && (
   <p className="text-sm text-gray-500">{item.variant}</p>
+)}
+
+{/* 🎂 Cake Message */}
+{item.cakeMessage && (
+  <p className="text-xs text-pink-600 italic mt-1">
+    🎂 "{item.cakeMessage}"
+  </p>
 )}
 
 {/* ✅ Show chosen add-ons */}

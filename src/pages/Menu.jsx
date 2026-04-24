@@ -18,6 +18,8 @@ import {
 import { useLocation } from "react-router-dom";
 import FulfillmentModal from "../components/FulfillmentModal";
 
+import CustomerNameModal from "../components/CustomerNameModal";
+
 const Menu = () => {
   const { categoryId } = useParams();
   const [menu, setMenu] = useState([]);
@@ -32,6 +34,7 @@ const Menu = () => {
   const [isFiltering, setIsFiltering] = useState(false);
   const [isMenuLoading, setIsMenuLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showNameModal, setShowNameModal] = useState(false);
 
 
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -83,6 +86,23 @@ const Menu = () => {
 
   console.log("ORDERS:", orders);
 
+  const handleOpenCart = () => {
+  const name = localStorage.getItem("customerName");
+  const fulfillment = localStorage.getItem("fulfillmentData");
+
+  if (!name) {
+    setShowNameModal(true);
+    return;
+  }
+
+  if (!fulfillment) {
+    setShowFulfillment(true);
+    return;
+  }
+
+  setIsCartOpen(true);
+};
+
   /* ======================
      CALCULATE TOTALS
   ====================== */
@@ -96,6 +116,10 @@ const Menu = () => {
       0,
     );
   }, [orders]);
+
+
+  
+
 
   /* ======================
      APPLY OFFERS
@@ -123,6 +147,16 @@ const Menu = () => {
       };
     });
   }, [menu, offers]);
+
+
+const handleSaveName = (name) => {
+  if (name) {
+    localStorage.setItem("customerName", name);
+  }
+
+  setShowNameModal(false);
+  setShowFulfillment(true);
+};
 
   /* ======================
      CATEGORY STRUCTURE
@@ -569,11 +603,7 @@ const groupedItems = useMemo(() => {
                               item={item}
                               orders={orders}
                               setOrders={setOrders}
-                              openCart={() => {
-                                const fulfillment =
-                                  localStorage.getItem("fulfillmentData");
-                                if (!fulfillment) setShowFulfillment(true);
-                              }}
+                             openCart={handleOpenCart}
                             />
                           </div>
                         </div>
@@ -612,10 +642,7 @@ const groupedItems = useMemo(() => {
             item={item}
             orders={orders}
             setOrders={setOrders}
-            openCart={() => {
-              const fulfillment = localStorage.getItem("fulfillmentData");
-              if (!fulfillment) setShowFulfillment(true);
-            }}
+           openCart={handleOpenCart}
           />
         ))}
       </div>
@@ -629,10 +656,7 @@ const groupedItems = useMemo(() => {
         item={item}
         orders={orders}
         setOrders={setOrders}
-        openCart={() => {
-          const fulfillment = localStorage.getItem("fulfillmentData");
-          if (!fulfillment) setShowFulfillment(true);
-        }}
+   openCart={handleOpenCart}
       />
     ))}
   </div>
@@ -654,6 +678,12 @@ const groupedItems = useMemo(() => {
         onClose={() => setShowFulfillment(false)}
         redirectToCheckout
       />
+
+      <CustomerNameModal
+  open={showNameModal}
+  onClose={() => setShowNameModal(false)}
+  onSave={handleSaveName}
+/>
     </div>
   );
 };

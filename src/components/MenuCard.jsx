@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiMinus } from "react-icons/fi";
 import { useState } from "react";
 import AddOnModal from "./AddOnModal";
+import CakeNameModal from "./CakeNameModal";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
   const key = `${item._id}_${variant.label}`;
   const qty = orders[key]?.qty || 0;
   const [showAddOnModal, setShowAddOnModal] = useState(false);
+  const [showCakeNameModal, setShowCakeNameModal] = useState(false);
+  const isWholeCake = item.category?.name?.toLowerCase().includes("whole cake");
 
   const hasAddOns = item.addOns?.length > 0;
 
@@ -51,30 +54,56 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
         },
       };
     });
-
-    if (type === "inc") {
-      const fulfillment = localStorage.getItem("fulfillmentData");
-      if (!fulfillment) {
-        openCart();
-      }
-    }
   };
+
+  //   if (type === "inc") {
+  //     const fulfillment = localStorage.getItem("fulfillmentData");
+  //     if (!fulfillment) {
+  //       openCart();
+  //     }
+  //   }
+  // };
 
   // REPLACE your handleAddClick function:
-  const handleAddClick = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+const handleAddClick = (e) => {
+  e.stopPropagation();
+  e.preventDefault();
+  if (isOutOfStock) return;
 
-    if (isOutOfStock) return;
+  if (hasAddOns || hasMultipleVariants) {
+    setShowAddOnModal(true);
+    return;
+  }
 
-    // ✅ If has add-ons OR multiple variants → open modal
-    if (hasAddOns || hasMultipleVariants) {
-      setShowAddOnModal(true);
-      return;
-    }
+  // Show cake name popup for whole cakes
+  if (isWholeCake) {
+    setShowCakeNameModal(true);
+    return;
+  }
 
-    addSingleVariantToCart(e, "inc");
-  };
+  openCart();
+};
+
+const handleCakeNameSave = (cakeName) => {
+  setShowCakeNameModal(false);
+
+  setOrders((prev) => ({
+    ...prev,
+    [key]: {
+      itemId: item._id,
+      name: item.name,
+      variant: variant.label,
+      qty: (prev[key]?.qty || 0) + 1,
+      price: variant.discountedPrice ?? variant.price,
+      image: item.images?.[0],
+      category: item.category?.name,
+      festival: item.festival ?? null,
+      cakeMessage: cakeName || null,  // ← was cakeName, now cakeMessage
+    },
+  }));
+
+  openCart();
+};
 
   // ADD this handler for when modal confirms:
   const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
@@ -95,8 +124,8 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
       },
     }));
 
-    const fulfillment = localStorage.getItem("fulfillmentData");
-    if (!fulfillment) openCart();
+    // const fulfillment = localStorage.getItem("fulfillmentData");
+    // if (!fulfillment) openCart();
   };
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
@@ -127,7 +156,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
               Best Seller
             </div>
           )}
-         
+
           {item.isPromoEligible && (
             <div className="absolute bottom-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
               🎁 Buy 4 Get 1
@@ -180,7 +209,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
               onClick={handleAddClick}
               className="w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-md transition-colors duration-200 active:scale-95"
             >
-          {hasMultipleVariants || hasAddOns ? "Customise" : "Add to Cart"}
+              {hasMultipleVariants || hasAddOns ? "Customise" : "Add to Cart"}
             </button>
           ) : (
             <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
@@ -210,9 +239,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
               </button>
             </div>
           )}
-          
         </div>
-        
       </div>
       {/* ADD-ON MODAL */}
       {showAddOnModal && (
@@ -223,9 +250,16 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
         />
       )}
 
-    </div>  // ← this is your existing final closing div
+      {showCakeNameModal && (
+  <CakeNameModal
+    open={showCakeNameModal}
+    itemName={item.name}
+    onClose={() => setShowCakeNameModal(false)}
+    onSave={handleCakeNameSave}
+  />
+)}
+    </div> // ← this is your existing final closing div
   );
 };
-   
 
 export default MenuCard;

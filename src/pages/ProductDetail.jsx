@@ -26,6 +26,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showFulfillment, setShowFulfillment] = useState(false);
   const [selectedAddOns, setSelectedAddOns] = useState({});
+  const [cakeMessage, setCakeMessage] = useState("");
 
   /* ======================
      FETCH PRODUCT
@@ -184,6 +185,7 @@ const ProductDetail = () => {
       category: product.category,
       festival: product.festival ?? null,
       addOns: chosenAddOns,             // ✅ saved to cart
+      cakeMessage: cakeMessage || "",
     },
   }));
 
@@ -396,6 +398,28 @@ const ProductDetail = () => {
         </div>
       </div>
     ))}
+  </div>
+)}
+
+{/* ================= CAKE MESSAGE ================= */}
+{product.category?.name?.toLowerCase().includes("cake") && (
+  <div className="mb-6">
+    <label className="block text-sm font-semibold text-gray-800 mb-2">
+      🎂 Message on Cake (Optional)
+    </label>
+
+    <input
+      type="text"
+      value={cakeMessage}
+      onChange={(e) => setCakeMessage(e.target.value)}
+      maxLength={40}
+      placeholder="e.g. Happy Birthday Sara ❤️"
+      className="w-full border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
+    />
+
+    <p className="text-xs text-gray-500 mt-1">
+      Max 40 characters
+    </p>
   </div>
 )}
 
