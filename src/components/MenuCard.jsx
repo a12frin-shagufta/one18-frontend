@@ -11,7 +11,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
 
   const hasMultipleVariants = item.variants.length > 1;
   const variant = item.variants[0];
-const key = `${item._id}_${variant.label}_${cakeMessage || "default"}`;
+const key = `${item._id}_${variant.label}`;
   const qty = orders[key]?.qty || 0;
   const [showAddOnModal, setShowAddOnModal] = useState(false);
   const [showCakeNameModal, setShowCakeNameModal] = useState(false);
