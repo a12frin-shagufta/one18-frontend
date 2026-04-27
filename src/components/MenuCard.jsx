@@ -11,36 +11,40 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
 
   const hasMultipleVariants = item.variants.length > 1;
   const variant = item.variants[0];
-  const key = `${item._id}_${variant.label}`;
+const key = `${item._id}_${variant.label}_${cakeMessage || "default"}`;
   const qty = orders[key]?.qty || 0;
   const [showAddOnModal, setShowAddOnModal] = useState(false);
   const [showCakeNameModal, setShowCakeNameModal] = useState(false);
   const isWholeCake = item.category?.name?.toLowerCase().includes("whole cake");
 
   const hasAddOns = item.addOns?.length > 0;
-
   const addSingleVariantToCart = (e, type) => {
-    if (isOutOfStock) return; // ✅ ADD THIS
+    if (isOutOfStock) return;
     e.stopPropagation();
     e.preventDefault();
 
     setOrders((prev) => {
       const currentQty = prev[key]?.qty || 0;
+
       let newQty =
         type === "inc" ? currentQty + 1 : Math.max(0, currentQty - 1);
 
-      // 🚫 Prevent exceeding stock
       if (newQty > item.stock) {
         newQty = item.stock;
       }
 
+      // ✅ REMOVE ITEM
       if (newQty === 0) {
         const copy = { ...prev };
         delete copy[key];
+
+        localStorage.setItem("cart", JSON.stringify(copy)); // 🔥 FIX
+
         return copy;
       }
 
-      return {
+      // ✅ ADD / UPDATE ITEM
+      const updated = {
         ...prev,
         [key]: {
           itemId: item._id,
@@ -50,9 +54,13 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
           price: variant.discountedPrice ?? variant.price,
           image: item.images?.[0],
           category: item.category?.name,
-          festival: item.festival ?? null, // ✅ ADD THIS LINE
+          festival: item.festival ?? null,
         },
       };
+
+      localStorage.setItem("cart", JSON.stringify(updated)); // 🔥 FIX
+
+      return updated;
     });
   };
 
@@ -68,6 +76,7 @@ const MenuCard = ({ item, orders, setOrders, openCart }) => {
 const handleAddClick = (e) => {
   e.stopPropagation();
   e.preventDefault();
+
   if (isOutOfStock) return;
 
   if (hasAddOns || hasMultipleVariants) {
@@ -75,58 +84,66 @@ const handleAddClick = (e) => {
     return;
   }
 
-  // Show cake name popup for whole cakes
   if (isWholeCake) {
     setShowCakeNameModal(true);
     return;
   }
 
-  openCart();
-};
-
-const handleCakeNameSave = (cakeName) => {
-  setShowCakeNameModal(false);
-
-  setOrders((prev) => ({
-    ...prev,
-    [key]: {
-      itemId: item._id,
-      name: item.name,
-      variant: variant.label,
-      qty: (prev[key]?.qty || 0) + 1,
-      price: variant.discountedPrice ?? variant.price,
-      image: item.images?.[0],
-      category: item.category?.name,
-      festival: item.festival ?? null,
-      cakeMessage: cakeName || null,  // ← was cakeName, now cakeMessage
-    },
-  }));
-
-  openCart();
-};
-
-  // ADD this handler for when modal confirms:
-  const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
-    const key = `${item._id}_${variant.label}`;
-
-    setOrders((prev) => ({
+  // ✅ SIMPLE PRODUCT → ADD DIRECTLY
+  setOrders((prev) => {
+    const updated = {
       ...prev,
       [key]: {
         itemId: item._id,
         name: item.name,
         variant: variant.label,
-        price: totalPrice,
-        qty,
+        qty: (prev[key]?.qty || 0) + 1,
+        price: variant.discountedPrice ?? variant.price,
         image: item.images?.[0],
         category: item.category?.name,
         festival: item.festival ?? null,
-        addOns,
       },
-    }));
+    };
 
-    // const fulfillment = localStorage.getItem("fulfillmentData");
-    // if (!fulfillment) openCart();
-  };
+    localStorage.setItem("cart", JSON.stringify(updated)); // 🔥 IMPORTANT
+
+    return updated;
+  });
+
+  openCart(); // open after adding
+};
+
+  
+
+  // ADD this handler for when modal confirms:
+  const handleCakeNameSave = (cakeName) => {
+  setShowCakeNameModal(false);
+
+  setOrders((prev) => {
+    const updated = {
+      ...prev,
+      [key]: {
+        itemId: item._id,
+        name: item.name,
+        variant: variant.label,
+        qty: (prev[key]?.qty || 0) + 1,
+        price: variant.discountedPrice ?? variant.price,
+        image: item.images?.[0],
+        category: item.category?.name,
+        festival: item.festival ?? null,
+        cakeMessage: cakeName || "",
+      },
+    };
+
+    localStorage.setItem("cart", JSON.stringify(updated)); // 🔥 FIX
+
+    return updated;
+  });
+
+  openCart();
+};
+
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden flex flex-col h-full">
       {/* IMAGE - Optimized for mobile */}
@@ -251,13 +268,13 @@ const handleCakeNameSave = (cakeName) => {
       )}
 
       {showCakeNameModal && (
-  <CakeNameModal
-    open={showCakeNameModal}
-    itemName={item.name}
-    onClose={() => setShowCakeNameModal(false)}
-    onSave={handleCakeNameSave}
-  />
-)}
+        <CakeNameModal
+          open={showCakeNameModal}
+          itemName={item.name}
+          onClose={() => setShowCakeNameModal(false)}
+          onSave={handleCakeNameSave}
+        />
+      )}
     </div> // ← this is your existing final closing div
   );
 };

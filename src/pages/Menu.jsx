@@ -28,7 +28,7 @@ const Menu = () => {
   const [activeSubcategory, setActiveSubcategory] = useState("all");
   const [expandedCategories, setExpandedCategories] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  
   const [offers, setOffers] = useState([]);
   const [showFulfillment, setShowFulfillment] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -86,7 +86,8 @@ const Menu = () => {
 
   console.log("ORDERS:", orders);
 
-  const handleOpenCart = () => {
+// Menu.jsx — replace handleOpenCart with this:
+const handleOpenCart = () => {
   const name = localStorage.getItem("customerName");
   const fulfillment = localStorage.getItem("fulfillmentData");
 
@@ -100,7 +101,8 @@ const Menu = () => {
     return;
   }
 
-  setIsCartOpen(true);
+  // ✅ Fire global event — Navbar's CartDrawer will open
+  window.dispatchEvent(new Event("open-cart"));
 };
 
   /* ======================
@@ -149,13 +151,17 @@ const Menu = () => {
   }, [menu, offers]);
 
 
+// Menu.jsx — replace your current handleSaveName with this:
 const handleSaveName = (name) => {
-  if (name) {
-    localStorage.setItem("customerName", name);
-  }
-
+  if (name) localStorage.setItem("customerName", name);
   setShowNameModal(false);
-  setShowFulfillment(true);
+
+  const fulfillment = localStorage.getItem("fulfillmentData");
+  if (!fulfillment) {
+    setShowFulfillment(true);
+  } else {
+    window.dispatchEvent(new Event("open-cart"));
+  }
 };
 
   /* ======================
@@ -670,7 +676,7 @@ const groupedItems = useMemo(() => {
       </div>
 
       {/* CART DRAWER */}
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {/* <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} /> */}
 
       {/* FULFILLMENT MODAL */}
       <FulfillmentModal

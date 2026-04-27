@@ -18,14 +18,30 @@ import { DEFAULT_BRANCH } from "../config/defaultBranch";
 import axios from "axios";
 
 const Checkout = () => {
+  // TEMPORARY DEBUG — remove after fixing
+console.log("RAW localStorage cart:", localStorage.getItem("cart"));
+console.log("ALL localStorage keys:", Object.keys(localStorage));
+
   const navigate = useNavigate();
   const { orders, clearCart } = useCart();
   const clickLock = useRef(false);
 
-  const items = Object.values(orders);
+ 
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const items = useMemo(() => {
+  const contextItems = Object.values(orders);
+  if (contextItems.length > 0) return contextItems;
+  
+  // Fallback: read directly from localStorage
+  try {
+    const saved = localStorage.getItem("cart");
+    return saved ? Object.values(JSON.parse(saved)) : [];
+  } catch {
+    return [];
+  }
+}, [orders]);
 
   // const [showPayNowQR, setShowPayNowQR] = useState(false);
   // const [isMarkingPaid, setIsMarkingPaid] = useState(false);
@@ -721,7 +737,11 @@ const freeItem = useMemo(() => {
 )}
 
 {/* 🎂 Cake Message */}
-{item.cakeMessage && (
+
+
+{/* 🎂 Cake Message */}
+{/* 🎂 Cake Message */}
+{item.cakeMessage && item.cakeMessage.trim() !== "" && (
   <p className="text-xs text-pink-600 italic mt-1">
     🎂 "{item.cakeMessage}"
   </p>
@@ -838,11 +858,10 @@ const freeItem = useMemo(() => {
             </div>
 
             <button
-              onClick={() => {
-                if (isProcessing) return;
-                setIsProcessing(true);
-                placeOrder();
-              }}
+             onClick={() => {
+  if (isProcessing) return;
+  placeOrder(); // ✅ let placeOrder manage its own state
+}}
               disabled={isProcessing || items.length === 0}
               className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
             >

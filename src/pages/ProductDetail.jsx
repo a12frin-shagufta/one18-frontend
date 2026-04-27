@@ -6,6 +6,7 @@ import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { formatPrice } from "../utils/currency";
 import FulfillmentModal from "../components/FulfillmentModal";
 
+
 import {
   getBestOfferForItem,
   calculateDiscountedPrice,
@@ -140,54 +141,91 @@ const ProductDetail = () => {
   /* ======================
      ADD TO CART
   ====================== */
-  const addToCart = () => {
-  if (!selectedVariant) return;
+const addToCart = () => {
+  console.log("🟢 ADD TO CART CLICKED");
 
-  // ✅ Validate required groups
+  if (!selectedVariant) {
+    console.log("❌ No variant selected");
+    return;
+  }
+
+  console.log("✅ Variant:", selectedVariant);
+
+  // Validate required add-ons
   const requiredGroups = (product.addOns || []).filter((g) => g.required);
   for (const group of requiredGroups) {
     const picked = selectedAddOns[group.groupName];
     const hasPick =
       picked &&
       (typeof picked.label === "string" || Object.keys(picked).length > 0);
+
     if (!hasPick) {
-      toast.error(`Please select an option for "${group.groupName}"`);
+      console.log("❌ Missing required add-on:", group.groupName);
+      alert(`Please select an option for "${group.groupName}"`);
       return;
     }
   }
 
   const key = `${product._id}_${selectedVariant.label}`;
-  const basePrice = selectedVariant.discountedPrice ?? selectedVariant.price;
+  console.log("🔑 KEY:", key);
 
-  // Build flat add-ons array for cart
+  const itemBasePrice =
+    selectedVariant.discountedPrice ?? selectedVariant.price;
+
+  // Build add-ons
   const chosenAddOns = [];
   Object.entries(selectedAddOns).forEach(([groupName, val]) => {
     if (val && typeof val === "object" && "label" in val) {
-      // single-select
-      chosenAddOns.push({ groupName, label: val.label, price: Number(val.price) || 0 });
+      chosenAddOns.push({
+        groupName,
+        label: val.label,
+        price: Number(val.price) || 0,
+      });
     } else if (val && typeof val === "object") {
-      // multi-select
       Object.values(val).forEach((opt) => {
-        chosenAddOns.push({ groupName, label: opt.label, price: Number(opt.price) || 0 });
+        chosenAddOns.push({
+          groupName,
+          label: opt.label,
+          price: Number(opt.price) || 0,
+        });
       });
     }
   });
 
-  setOrders((prev) => ({
-    ...prev,
-    [key]: {
-      itemId: product._id,
-      name: product.name,
-      variant: selectedVariant.label,
-      price: basePrice + addOnsTotal,   // ✅ base + add-ons
-      qty,
-      image: product.images?.[0],
-      category: product.category,
-      festival: product.festival ?? null,
-      addOns: chosenAddOns,             // ✅ saved to cart
-      cakeMessage: cakeMessage || "",
-    },
-  }));
+  console.log("🧩 AddOns:", chosenAddOns);
+
+  const newItem = {
+    itemId: product._id,
+    name: product.name,
+    variant: selectedVariant.label,
+    price: itemBasePrice + addOnsTotal,
+    qty,
+    image: product.images?.[0],
+    category: product.category,
+    festival: product.festival ?? null,
+    addOns: chosenAddOns,
+    cakeMessage: cakeMessage.trim(),
+  };
+
+  console.log("📦 NEW ITEM:", newItem);
+
+  // BEFORE SAVE
+  console.log("📂 BEFORE:", localStorage.getItem("cart"));
+
+  const current = JSON.parse(localStorage.getItem("cart") || "{}");
+  current[key] = newItem;
+
+  localStorage.setItem("cart", JSON.stringify(current));
+
+  // AFTER SAVE
+  console.log("📂 AFTER:", localStorage.getItem("cart"));
+
+  // React state
+  setOrders((prev) => {
+    const updated = { ...prev, [key]: newItem };
+    console.log("⚡ STATE UPDATED:", updated);
+    return updated;
+  });
 
   const fulfillment = localStorage.getItem("fulfillmentData");
   if (!fulfillment) setShowFulfillment(true);
@@ -330,109 +368,123 @@ const ProductDetail = () => {
             </button>
           </div>
 
-
           {/* ================= ADD-ONS ================= */}
-{product.addOns?.length > 0 && (
-  <div className="space-y-4 mb-6">
-    {product.addOns.map((group) => (
-      <div key={group.groupName} className="border rounded-xl overflow-hidden">
-        {/* Group Header */}
-        <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
-          <div>
-            <p className="font-semibold text-gray-900">{group.groupName}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {group.required ? "Required · " : "Optional · "}
-              {group.multiSelect ? "Pick multiple" : "Pick one"}
-            </p>
-          </div>
-          {group.required && (
-            <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
-              Required
-            </span>
-          )}
-        </div>
+          {product.addOns?.length > 0 && (
+            <div className="space-y-4 mb-6">
+              {product.addOns.map((group) => (
+                <div
+                  key={group.groupName}
+                  className="border rounded-xl overflow-hidden"
+                >
+                  {/* Group Header */}
+                  <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        {group.groupName}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {group.required ? "Required · " : "Optional · "}
+                        {group.multiSelect ? "Pick multiple" : "Pick one"}
+                      </p>
+                    </div>
+                    {group.required && (
+                      <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
+                        Required
+                      </span>
+                    )}
+                  </div>
 
-        {/* Options */}
-        <div className="divide-y">
-          {group.options.map((opt) => {
-            const isSelected = group.multiSelect
-              ? !!selectedAddOns[group.groupName]?.[opt.label]
-              : selectedAddOns[group.groupName]?.label === opt.label;
+                  {/* Options */}
+                  <div className="divide-y">
+                    {group.options.map((opt) => {
+                      const isSelected = group.multiSelect
+                        ? !!selectedAddOns[group.groupName]?.[opt.label]
+                        : selectedAddOns[group.groupName]?.label === opt.label;
 
-            return (
-              <label
-                key={opt.label}
-                className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
-              >
-                <div>
-                  <p className="font-medium text-gray-800">{opt.label}</p>
-                  {opt.price > 0 && (
-                    <p className="text-sm text-gray-500">+{formatPrice(opt.price)}</p>
-                  )}
-                  {opt.price === 0 && (
-                    <p className="text-sm text-green-600">Free</p>
-                  )}
+                      return (
+                        <label
+                          key={opt.label}
+                          className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+                        >
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {opt.label}
+                            </p>
+                            {opt.price > 0 && (
+                              <p className="text-sm text-gray-500">
+                                +{formatPrice(opt.price)}
+                              </p>
+                            )}
+                            {opt.price === 0 && (
+                              <p className="text-sm text-green-600">Free</p>
+                            )}
+                          </div>
+
+                          {group.multiSelect ? (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) =>
+                                handleMultiAddOn(
+                                  group.groupName,
+                                  opt,
+                                  e.target.checked,
+                                )
+                              }
+                              className="w-5 h-5 accent-[#1E3A8A]"
+                            />
+                          ) : (
+                            <input
+                              type="radio"
+                              checked={isSelected}
+                              onChange={() =>
+                                handleSingleAddOn(group.groupName, opt)
+                              }
+                              name={group.groupName}
+                              className="w-5 h-5 accent-[#1E3A8A]"
+                            />
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
 
-                {group.multiSelect ? (
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) =>
-                      handleMultiAddOn(group.groupName, opt, e.target.checked)
-                    }
-                    className="w-5 h-5 accent-[#1E3A8A]"
-                  />
-                ) : (
-                  <input
-                    type="radio"
-                    checked={isSelected}
-                    onChange={() => handleSingleAddOn(group.groupName, opt)}
-                    name={group.groupName}
-                    className="w-5 h-5 accent-[#1E3A8A]"
-                  />
-                )}
+          {/* ================= CAKE MESSAGE ================= */}
+          {product.category?.name?.toLowerCase().includes("cake") && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                🎂 Message on Cake (Optional)
               </label>
-            );
-          })}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
 
-{/* ================= CAKE MESSAGE ================= */}
-{product.category?.name?.toLowerCase().includes("cake") && (
-  <div className="mb-6">
-    <label className="block text-sm font-semibold text-gray-800 mb-2">
-      🎂 Message on Cake (Optional)
-    </label>
+              <input
+                type="text"
+                value={cakeMessage}
+                onChange={(e) => setCakeMessage(e.target.value)}
+                maxLength={40}
+                placeholder="e.g. Happy Birthday Sara ❤️"
+                className="w-full border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
+              />
 
-    <input
-      type="text"
-      value={cakeMessage}
-      onChange={(e) => setCakeMessage(e.target.value)}
-      maxLength={40}
-      placeholder="e.g. Happy Birthday Sara ❤️"
-      className="w-full border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
-    />
-
-    <p className="text-xs text-gray-500 mt-1">
-      Max 40 characters
-    </p>
-  </div>
-)}
+              <p className="text-xs text-gray-500 mt-1">Max 40 characters</p>
+            </div>
+          )}
 
           {/* ================= ADD TO CART ================= */}
           <button
-  onClick={addToCart}
-  className="w-full bg-[#1E3A8A] text-white py-4 rounded-sm text-lg font-semibold"
->
-  ADD TO CART —{" "}
-  {formatPrice(
-    ((selectedVariant?.discountedPrice ?? selectedVariant?.price) + addOnsTotal) * qty
-  )}
-</button>
+            onClick={addToCart}
+            className="w-full bg-[#1E3A8A] text-white py-4 rounded-sm text-lg font-semibold"
+          >
+            ADD TO CART —{" "}
+            {formatPrice(
+              ((selectedVariant?.discountedPrice ?? selectedVariant?.price) +
+                addOnsTotal) *
+                qty,
+            )}
+          </button>
         </div>
       </div>
 

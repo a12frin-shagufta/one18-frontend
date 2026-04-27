@@ -80,6 +80,8 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   const [postalStatus, setPostalStatus] = useState("idle");
   const [postalMessage, setPostalMessage] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(null);
+  const [deliveryArea, setDeliveryArea] = useState("");
+  
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const cartSubtotal = useMemo(
@@ -122,11 +124,29 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
   }, [hasFestiveCookies]);
 
   // ── Re-validate postal when subtotal changes ──────────────────────────────
-  useEffect(() => {
-    if (postalCode.length === 6) {
-      handlePostalChange({ target: { value: postalCode } });
+// ✅ Call the API directly with the known-good value
+useEffect(() => {
+  if (postalCode.length !== 6) return;
+
+  const checkDelivery = async () => {
+    setPostalStatus("checking");
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/delivery/check`, {
+        postalCode,           // use state directly, not via event handler
+        subtotal: cartSubtotal,
+      });
+      setPostalStatus("success");
+      setDeliveryFee(res.data.deliveryFee);
+      setPostalMessage(`Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`);
+      setDeliveryArea(res.data.area); 
+    } catch (err) {
+      setPostalStatus("error");
+      setPostalMessage(err.response?.data?.message || "Delivery not available");
     }
-  }, [cartSubtotal]);
+  };
+
+  checkDelivery();
+}, [cartSubtotal]); // postalCode intentionally omitted — only re-runs when subtotal changes;
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handlePostalChange = async (e) => {
@@ -198,6 +218,7 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         pickupDate,
         pickupTime,
         postalCode,
+        area: deliveryArea, 
         deliveryDate,
         deliveryTime,
         deliveryFee,

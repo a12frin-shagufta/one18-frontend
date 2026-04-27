@@ -23,6 +23,13 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Navbar.jsx — add this useEffect
+useEffect(() => {
+  const openCart = () => setIsCartOpen(true);
+  window.addEventListener("open-cart", openCart);
+  return () => window.removeEventListener("open-cart", openCart);
+}, []);
+
   const navItems = [
     { to: "/", label: "Home" },
     { to: "/best-sellers", label: "Best Sellers" },
