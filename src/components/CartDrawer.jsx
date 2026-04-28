@@ -417,14 +417,22 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {!fulfillment && (
-                <button
-                  onClick={() => { onClose(); window.dispatchEvent(new Event("open-fulfillment")); }}
-                  className="w-full bg-[#1E3A8A] text-white py-3 rounded-xl font-semibold"
-                >
-                  Continue with selection
-                </button>
-              )}
+             <button
+  onClick={() => {
+    onClose();
+    if (!fulfillment) {
+      // Ask Pickup/Delivery only NOW — at checkout time
+      window.dispatchEvent(new Event("open-fulfillment"));
+    } else {
+      navigate("/checkout");
+    }
+  }}
+  className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold"
+>
+  {fulfillment
+    ? `Proceed to Checkout · ${formatPrice(total)}`
+    : "Proceed to Checkout"}
+</button>
 
               {fulfillment && (
                 <button

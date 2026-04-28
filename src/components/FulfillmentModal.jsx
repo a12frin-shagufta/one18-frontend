@@ -222,7 +222,7 @@ useEffect(() => {
         deliveryDate,
         deliveryTime,
         deliveryFee,
-        area,
+ 
       }),
     );
 
@@ -623,6 +623,8 @@ useEffect(() => {
               )}
             </div>
           )}
+
+          
 
           {/* ── Step: delivery_branch ── */}
           {step === "delivery_branch" && (

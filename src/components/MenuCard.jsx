@@ -110,7 +110,6 @@ const handleAddClick = (e) => {
     return updated;
   });
 
-  openCart(); // open after adding
 };
 
   
@@ -140,7 +139,34 @@ const handleAddClick = (e) => {
     return updated;
   });
 
-  openCart();
+};
+
+const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
+  const addOnKey = addOns.length
+    ? "_" + addOns.map((a) => a.label).join("_")
+    : "";
+  const key = `${item._id}_${variant.label}${addOnKey}`;
+
+  setOrders((prev) => {
+    const existing = prev[key];
+    const updated = {
+      ...prev,
+      [key]: {
+        itemId: item._id,
+        name: item.name,
+        variant: variant.label,
+        qty: (existing?.qty || 0) + qty,
+        price: totalPrice,                      // price per unit including add-ons
+        image: item.images?.[0],
+        category: item.category?.name,
+        festival: item.festival ?? null,
+        addOns: addOns,                         // store chosen add-ons for display
+      },
+    };
+
+    localStorage.setItem("cart", JSON.stringify(updated));
+    return updated;
+  });
 };
 
 
