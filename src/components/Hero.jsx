@@ -12,8 +12,8 @@ const Hero = () => {
           {/* Duplicate for seamless loop */}
           {[...Array(2)].map((_, i) => (
             <span key={i} className="flex items-center gap-8 px-8 text-sm font-semibold tracking-wide">
-              <span>🎁 BUY 4 GET 1 FREE — Selected items only</span>
-              <span>·</span>
+              {/* <span>🎁 BUY 4 GET 1 FREE — Selected items only</span>
+              <span>·</span> */}
               <span>🥐 Fresh baked daily</span>
               <span>·</span>
               <span>✅ 100% Halal Certified</span>
@@ -21,9 +21,9 @@ const Hero = () => {
               {/* <span>🚚 Island-wide delivery available</span> */}
               <span>·</span>
               <span>⭐ 4.9 Rating on Google</span>
-              <span>·</span>
-              <span>🎁 BUY 4 GET 1 FREE — Add eligible items to unlock</span>
-              <span>·</span>
+              
+              {/* <span>🎁 BUY 4 GET 1 FREE — Add eligible items to unlock</span>
+              <span>·</span> */}
             </span>
           ))}
         </div>
