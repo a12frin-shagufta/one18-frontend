@@ -63,9 +63,7 @@ const TreatsSection = () => {
               key={index}
               className="group cursor-pointer"
               onClick={() => {
-                if (item.whatsapp) {
-                  window.open(item.whatsapp, "_blank");
-                } else if (item.pdf) {
+                if (item.pdf) {
                   window.open(item.pdf, "_blank");
                 } else {
                   navigate(item.link || "/menu");
@@ -85,15 +83,14 @@ const TreatsSection = () => {
               </h3>
 
               {/* ✅ WhatsApp Button INSIDE card */}
-              
-{item.whatsapp && (
+
+              {item.whatsapp && (
   <button
     onClick={(e) => {
-      e.stopPropagation();
+      e.stopPropagation(); // 🔥 VERY IMPORTANT
       window.open(item.whatsapp, "_blank");
     }}
-    className="mt-2 text-sm text-white/80 hover:text-green-400 transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-md px-3 py-1.5 w-fit mx-auto bg-green-600/10 hover:bg-green-600/20"
-    aria-label="Contact via WhatsApp for enquiry"
+    className="mt-2 text-sm text-white/80 hover:text-green-400 transition flex items-center justify-center gap-1.5 cursor-pointer px-3 py-1.5 w-fit mx-auto"
   >
     <FaWhatsapp className="w-4 h-4" />
     <span>For enquiry</span>

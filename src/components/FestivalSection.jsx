@@ -65,7 +65,7 @@ useEffect(() => {
     {/* {festival.name} */}
   </h2>
 
-  <p
+  {/* <p
     className="
       mt-3
       text-sm md:text-base
@@ -75,7 +75,7 @@ useEffect(() => {
     "
   >
       RAYA OPEN HOUSE PACKAGE
-  </p>
+  </p> */}
 </div>
 
 
