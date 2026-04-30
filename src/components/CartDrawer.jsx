@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  X, Plus, Minus, Trash2, MapPin, Calendar, Clock, Gift,
+  X,
+  Plus,
+  Minus,
+  Trash2,
+  MapPin,
+  Calendar,
+  Clock,
+  Gift,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/currency";
@@ -87,7 +94,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
   // ids for quick lookup
   const promoItemIds = useMemo(
     () => new Set(promoItems.map((p) => p._id)),
-    [promoItems]
+    [promoItems],
   );
 
   // count eligible items in cart (sum of qty)
@@ -95,9 +102,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
     () =>
       items.reduce(
         (sum, i) => (promoItemIds.has(i.itemId) ? sum + i.qty : sum),
-        0
+        0,
       ),
-    [items, promoItemIds]
+    [items, promoItemIds],
   );
 
   const promoUnlocked = promoQty >= 4;
@@ -135,7 +142,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
 
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.price * i.qty, 0),
-    [items]
+    [items],
   );
   const deliveryFee =
     fulfillment?.type === "delivery"
@@ -188,7 +195,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-blue-600 font-semibold">{items.length}</span>
+                <span className="text-blue-600 font-semibold">
+                  {items.length}
+                </span>
               </div>
               <h2 className="text-xl font-bold text-gray-900">Your Cart</h2>
             </div>
@@ -198,7 +207,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 : `${items.length} item${items.length > 1 ? "s" : ""} added`}
             </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
             <X size={24} className="text-gray-600" />
           </button>
         </div>
@@ -206,19 +218,23 @@ const CartDrawer = ({ isOpen, onClose }) => {
         {/* CONTENT */}
         <div className="flex flex-col h-[calc(100%-140px)] sm:h-[calc(100%-160px)] overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-
             {/* EMPTY STATE */}
             {items.length === 0 && (
               <div className="flex flex-col items-center justify-center text-center px-4 py-16 sm:py-24">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 bg-blue-50 rounded-full flex items-center justify-center mb-6">
                   <span className="text-4xl sm:text-5xl">🛒</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                  Your cart is empty
+                </h3>
                 <p className="text-gray-500 mb-8 max-w-sm">
                   Looks like you haven't added any delicious items yet
                 </p>
                 <button
-                  onClick={() => { onClose(); navigate("/menu"); }}
+                  onClick={() => {
+                    onClose();
+                    navigate("/menu");
+                  }}
                   className="w-full max-w-xs bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-semibold shadow-lg"
                 >
                   Go to Menu
@@ -232,50 +248,84 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="p-2 bg-blue-100 rounded-lg">
-                      <MapPin size={20} className={fulfillment.type === "pickup" ? "text-blue-600" : "text-green-600"} />
+                      <MapPin
+                        size={20}
+                        className={
+                          fulfillment.type === "pickup"
+                            ? "text-blue-600"
+                            : "text-green-600"
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-700 capitalize">{fulfillment.type}</p>
+                      <p className="text-sm font-medium text-gray-700 capitalize">
+                        {fulfillment.type}
+                      </p>
                       <p className="text-xs text-gray-500">
-                        {fulfillment.type === "pickup" ? "Store pickup" : "Home delivery"}
+                        {fulfillment.type === "pickup"
+                          ? "Store pickup"
+                          : "Home delivery"}
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <MapPin size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                    <MapPin
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
+                    />
                     <div className="flex-1">
                       <p className="text-sm text-gray-500">
-                        {fulfillment.type === "pickup" ? "Pickup from" : "Delivering to"}
+                        {fulfillment.type === "pickup"
+                          ? "Pickup from"
+                          : "Delivering to"}
                       </p>
                       <p className="font-semibold text-gray-900 text-sm">
-                        {fulfillment.type === "pickup" ? fulfillment.branch?.name : fulfillment.postalCode}
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.branch?.name
+                          : fulfillment.postalCode}
                       </p>
                       {fulfillment.type === "pickup" && (
-                        <p className="text-xs text-gray-500 mt-1">{fulfillment.branch?.address}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {fulfillment.branch?.address}
+                        </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Calendar size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                    <Calendar
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
+                    />
                     <div className="flex-1">
                       <p className="text-sm text-gray-500">
-                        {fulfillment.type === "pickup" ? "Pickup date" : "Delivery date"}
+                        {fulfillment.type === "pickup"
+                          ? "Pickup date"
+                          : "Delivery date"}
                       </p>
                       <p className="font-semibold text-gray-900 text-sm">
-                        {fulfillment.type === "pickup" ? fulfillment.pickupDate : fulfillment.deliveryDate}
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.pickupDate
+                          : fulfillment.deliveryDate}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Clock size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                    <Clock
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
+                    />
                     <div className="flex-1">
                       <p className="text-sm text-gray-500">
-                        {fulfillment.type === "pickup" ? "Pickup time" : "Delivery time"}
+                        {fulfillment.type === "pickup"
+                          ? "Pickup time"
+                          : "Delivery time"}
                       </p>
                       <p className="font-semibold text-gray-900 text-sm">
-                        {fulfillment.type === "pickup" ? fulfillment.pickupTime : fulfillment.deliveryTime}
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.pickupTime
+                          : fulfillment.deliveryTime}
                       </p>
                     </div>
                   </div>
@@ -293,9 +343,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
                     <div className="flex items-center justify-between mb-1.5">
                       <p className="text-sm font-medium text-amber-800">
-                        🎁 Add {4 - promoQty} more promo item{4 - promoQty > 1 ? "s" : ""} for a FREE one!
+                        🎁 Add {4 - promoQty} more promo item
+                        {4 - promoQty > 1 ? "s" : ""} for a FREE one!
                       </p>
-                      <span className="text-xs font-bold text-amber-700">{promoQty}/4</span>
+                      <span className="text-xs font-bold text-amber-700">
+                        {promoQty}/4
+                      </span>
                     </div>
                     <div className="w-full bg-amber-200 rounded-full h-2">
                       <div
@@ -331,7 +384,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="font-semibold text-gray-900 truncate">{item.name}</h4>
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {item.name}
+                              </h4>
                               {/* ✅ badge if promo-eligible */}
                               {promoItemIds.has(item.itemId) && (
                                 <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">
@@ -339,7 +394,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1">{item.variant}</p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {item.variant}
+                            </p>
                             <p className="font-bold text-gray-900 text-lg mt-2">
                               {formatPrice(item.price * item.qty)}
                             </p>
@@ -348,7 +405,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                             onClick={() => removeItem(item)}
                             className="p-2 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
                           >
-                            <Trash2 size={18} className="text-gray-400 hover:text-red-500" />
+                            <Trash2
+                              size={18}
+                              className="text-gray-400 hover:text-red-500"
+                            />
                           </button>
                         </div>
                         <div className="flex items-center justify-between mt-4">
@@ -359,7 +419,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
                             >
                               <Minus size={16} className="text-gray-600" />
                             </button>
-                            <span className="w-8 text-center font-semibold text-gray-900">{item.qty}</span>
+                            <span className="w-8 text-center font-semibold text-gray-900">
+                              {item.qty}
+                            </span>
                             <button
                               onClick={() => updateQty(item, "inc")}
                               className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -367,7 +429,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
                               <Plus size={16} className="text-gray-600" />
                             </button>
                           </div>
-                          <p className="text-sm text-gray-500">{formatPrice(item.price)} each</p>
+                          <p className="text-sm text-gray-500">
+                            {formatPrice(item.price)} each
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -417,11 +481,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-             <button
+              <button
   onClick={() => {
     onClose();
     if (!fulfillment) {
-      // Ask Pickup/Delivery only NOW — at checkout time
       window.dispatchEvent(new Event("open-fulfillment"));
     } else {
       navigate("/checkout");
@@ -433,15 +496,6 @@ const CartDrawer = ({ isOpen, onClose }) => {
     ? `Proceed to Checkout · ${formatPrice(total)}`
     : "Proceed to Checkout"}
 </button>
-
-              {fulfillment && (
-                <button
-                  onClick={() => { onClose(); navigate("/checkout"); }}
-                  className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold"
-                >
-                  Proceed to Checkout · {formatPrice(total)}
-                </button>
-              )}
             </div>
           )}
         </div>
