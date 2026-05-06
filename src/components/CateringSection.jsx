@@ -52,12 +52,12 @@ const CateringSection = () => {
               >
                 Place An Order
               </button>
-              <button 
-                onClick={() => navigate("/find-us")}
-                className="bg-[#F4A300] text-[#1E3A8A] px-6 sm:px-8 py-3 rounded-full hover:bg-[#ffb733] transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto text-center"
-              >
-                Contact for Quote
-              </button>
+              <a
+  href="tel:91111712"
+  className="bg-[#F4A300] text-[#1E3A8A] px-6 sm:px-8 py-3 rounded-full hover:bg-[#ffb733] transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto text-center inline-block"
+>
+  Contact for Quote
+</a>
             </div>
           </div>
 
