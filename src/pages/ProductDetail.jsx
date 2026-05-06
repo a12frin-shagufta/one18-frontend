@@ -228,7 +228,11 @@ const addToCart = () => {
   });
 
   const fulfillment = localStorage.getItem("fulfillmentData");
-  if (!fulfillment) setShowFulfillment(true);
+if (!fulfillment) {
+  setShowFulfillment(true);
+} else {
+  window.dispatchEvent(new Event("open-cart")); // ← opens CartDrawer
+}
 };
   /* ======================
      LOADING STATE
@@ -493,10 +497,13 @@ const addToCart = () => {
         onClose={() => setIsCartOpen(false)}
       /> */}
       <FulfillmentModal
-        open={showFulfillment}
-        onClose={() => setShowFulfillment(false)}
-        redirectToCheckout={true}
-      />
+  open={showFulfillment}
+  onClose={() => {
+    setShowFulfillment(false);
+    window.dispatchEvent(new Event("open-cart")); // ← open cart after fulfillment
+  }}
+  redirectToCheckout={true}
+/>
     </div>
   );
 };

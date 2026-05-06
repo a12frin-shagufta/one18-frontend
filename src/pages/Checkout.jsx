@@ -28,6 +28,7 @@ console.log("ALL localStorage keys:", Object.keys(localStorage));
 
  
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderNote, setOrderNote] = useState(() => localStorage.getItem("orderNote") || "");
   const [errors, setErrors] = useState({});
   const [paymentMethod, setPaymentMethod] = useState("stripe");
   const items = useMemo(() => {
@@ -178,7 +179,7 @@ const freeItem = useMemo(() => {
       const fulfillment = JSON.parse(
         localStorage.getItem("fulfillmentData") || "{}",
       );
-      const orderNote = localStorage.getItem("orderNote") || "";
+      // const orderNote = localStorage.getItem("orderNote") || "";
 
       if (!fulfillment?.type) {
         alert("Fulfillment details missing, please go back");
@@ -350,6 +351,12 @@ const freeItem = useMemo(() => {
   //       }, 8000); // 8 seconds
   //     });
   // }, [createdOrderId]);
+
+
+  const handleNoteChange = (value) => {
+  setOrderNote(value);
+  localStorage.setItem("orderNote", value);
+};
 
   console.log("subtotal =", subtotal);
   console.log("deliveryFee =", deliveryFee);
@@ -666,6 +673,27 @@ const freeItem = useMemo(() => {
         {/* RIGHT COLUMN - Payment & Order Summary */}
         <div className="space-y-6">
           {/* Payment Method */}
+
+          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
+  <div className="flex items-center gap-3 mb-4">
+    <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
+      📝
+    </div>
+    <h2 className="text-xl font-serif font-semibold text-gray-900">
+      Order Notes
+    </h2>
+  </div>
+  <textarea
+    value={orderNote}
+    onChange={(e) => handleNoteChange(e.target.value)}
+    rows={3}
+    maxLength={300}
+    placeholder="Any special requests? (e.g. allergies, gift wrapping, delivery instructions...)"
+    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black focus:border-transparent outline-none resize-none transition-all"
+  />
+  <p className="text-xs text-gray-400 text-right mt-1">{orderNote.length}/300</p>
+</section>
+
           <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
