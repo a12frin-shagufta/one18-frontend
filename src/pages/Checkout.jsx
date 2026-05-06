@@ -363,7 +363,7 @@ const freeItem = useMemo(() => {
   console.log("totalAmount =", totalAmount);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-28">
       {/* HEADER */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -875,45 +875,39 @@ const freeItem = useMemo(() => {
       </div>
 
       {/* Floating Payment Button - Mobile Responsive */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-white/95 border-t shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-center sm:text-left">
-              <p className="text-sm text-gray-600">Total amount</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatPrice(totalAmount)}
-              </p>
-            </div>
-
-            <button
-             onClick={() => {
-  if (isProcessing) return;
-  placeOrder(); // ✅ let placeOrder manage its own state
-}}
-              disabled={isProcessing || items.length === 0}
-              className="w-full sm:w-auto sm:max-w-md bg-black hover:bg-gray-900 text-white py-4 px-8 rounded-full text-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed relative group"
-            >
-              {isProcessing ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader className="w-5 h-5 animate-spin" />
-                  Processing...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <span>Pay Now</span>
-                  <span className="opacity-75">•</span>
-                  <span>{formatPrice(totalAmount)}</span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-            </button>
-          </div>
-
-          <p className="text-center text-xs text-gray-500 mt-3">
-            By placing your order, you agree to our Terms & Conditions
-          </p>
-        </div>
+     {/* Floating Payment Button */}
+<div style={{position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50}} 
+  className="bg-white border-t shadow-xl">
+  <div className="max-w-6xl mx-auto px-4 py-3">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <p className="text-xs text-gray-500">Total</p>
+        <p className="text-xl font-bold text-gray-900">
+          {formatPrice(totalAmount)}
+        </p>
       </div>
+
+      <button
+        onClick={() => { if (isProcessing) return; placeOrder(); }}
+        disabled={isProcessing || items.length === 0}
+        className="flex-1 max-w-xs bg-black hover:bg-gray-900 text-white py-3 px-6 rounded-full text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isProcessing ? (
+          <div className="flex items-center justify-center gap-2">
+            <Loader className="w-4 h-4 animate-spin" />
+            Processing...
+          </div>
+        ) : (
+          <span>Pay Now • {formatPrice(totalAmount)}</span>
+        )}
+      </button>
+    </div>
+
+    <p className="text-center text-xs text-gray-400 mt-2">
+      By placing your order, you agree to our Terms & Conditions
+    </p>
+  </div>
+</div>
 
       {/* PayNow Modal - COMPACT VERSION */}
       
