@@ -146,13 +146,30 @@ const freeItem = useMemo(() => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const subtotal = useMemo(() => {
-    return items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  }, [items]);
+const wordingFee = useMemo(() => {
+  return items.reduce((sum, item) => {
+    const hasMessage =
+      item.cakeMessage && item.cakeMessage.trim() !== "";
+
+    return hasMessage ? sum + (5 * item.qty) : sum;
+  }, 0);
+}, [items]);
+
+const subtotal = useMemo(() => {
+  return items.reduce((sum, item) => {
+    const basePrice = item.price * item.qty;
+
+    const wordingExtra =
+      item.cakeMessage && item.cakeMessage.trim() !== ""
+        ? 5 * item.qty
+        : 0;
+
+    return sum + basePrice + wordingExtra;
+  }, 0);
+}, [items]);
 
   const deliveryFee =
-    fulfillment?.type === "delivery" ? Number(fulfillment.deliveryFee) || 0 : 0;
-
+  fulfillment?.type === "delivery" ? (Number(fulfillment.deliveryFee) || 0) + 5 : 0;
   const totalAmount = subtotal + deliveryFee;
 
   const handleInputChange = (field, value) => {
@@ -245,6 +262,10 @@ const freeItem = useMemo(() => {
     qty: i.qty,
     addOns: i.addOns || [], 
     cakeMessage: i.cakeMessage || "",
+cakeMessageFee:
+  i.cakeMessage && i.cakeMessage.trim() !== ""
+    ? 5
+    : 0,
   })),
   // ✅ append free promo item if unlocked
   ...(freeItem
@@ -262,7 +283,7 @@ const freeItem = useMemo(() => {
 ],
         subtotal,
         deliveryFee,
-        totalAmount,
+        totalAmount: subtotal + deliveryFee,
       };
 
       // if (paymentMethod === "paynow") {
@@ -770,9 +791,15 @@ const freeItem = useMemo(() => {
 {/* 🎂 Cake Message */}
 {/* 🎂 Cake Message */}
 {item.cakeMessage && item.cakeMessage.trim() !== "" && (
-  <p className="text-xs text-pink-600 italic mt-1">
-    🎂 "{item.cakeMessage}"
-  </p>
+  <div className="mt-1 space-y-1">
+    <p className="text-xs text-pink-600 italic">
+      🎂 "{item.cakeMessage}"
+    </p>
+
+    <p className="text-xs text-orange-600 font-medium">
+      Wording fee +{formatPrice(5)}
+    </p>
+  </div>
 )}
 
 {/* ✅ Show chosen add-ons */}
@@ -831,10 +858,17 @@ const freeItem = useMemo(() => {
             </div>
 
             <div className="mt-6 pt-6 border-t space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">{formatPrice(subtotal)}</span>
-              </div>
+             {wordingFee > 0 && (
+  <div className="flex justify-between items-center">
+    <span className="text-gray-600">
+      Cake wording
+    </span>
+
+    <span className="font-medium text-orange-600">
+      +{formatPrice(wordingFee)}
+    </span>
+  </div>
+)}
 
               {fulfillment?.type === "delivery" && (
                 <div className="flex justify-between items-center">

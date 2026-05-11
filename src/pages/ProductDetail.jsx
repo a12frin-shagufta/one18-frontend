@@ -458,24 +458,48 @@ if (!fulfillment) {
           )}
 
           {/* ================= CAKE MESSAGE ================= */}
-          {product.category?.name?.toLowerCase().includes("cake") && (
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                🎂 Message on Cake (Optional)
-              </label>
+      {/* ================= CAKE MESSAGE ================= */}
+{product.category?.name?.toLowerCase().includes("cake") && (
+  <div className="mb-6 border rounded-2xl p-4 bg-white">
+    
+    <div className="flex items-center justify-between mb-2">
+      <label className="text-sm font-semibold text-gray-800">
+        🎂 Message on Cake
+      </label>
 
-              <input
-                type="text"
-                value={cakeMessage}
-                onChange={(e) => setCakeMessage(e.target.value)}
-                maxLength={40}
-                placeholder="e.g. Happy Birthday Sara ❤️"
-                className="w-full border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
-              />
+      <span className="text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-1 rounded-full">
+        +$5 extra
+      </span>
+    </div>
 
-              <p className="text-xs text-gray-500 mt-1">Max 40 characters</p>
-            </div>
-          )}
+    <input
+      type="text"
+      value={cakeMessage}
+      onChange={(e) => setCakeMessage(e.target.value)}
+      maxLength={40}
+      placeholder="e.g. Happy Birthday Sara ❤️"
+      className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
+    />
+
+    <div className="flex items-center justify-between mt-2">
+      <p className="text-xs text-gray-500">
+        Custom cake wording will incur an additional charge.
+      </p>
+
+      <p className="text-xs text-gray-400">
+        {cakeMessage.length}/40
+      </p>
+    </div>
+
+    {cakeMessage.trim() !== "" && (
+      <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+        <p className="text-sm font-medium text-orange-700">
+          🎂 Cake wording added • +{formatPrice(5)}
+        </p>
+      </div>
+    )}
+  </div>
+)}
 
           {/* ================= ADD TO CART ================= */}
           <button
@@ -484,10 +508,12 @@ if (!fulfillment) {
           >
             ADD TO CART —{" "}
             {formatPrice(
-              ((selectedVariant?.discountedPrice ?? selectedVariant?.price) +
-                addOnsTotal) *
-                qty,
-            )}
+  (
+    (selectedVariant?.discountedPrice ?? selectedVariant?.price) +
+    addOnsTotal +
+    (cakeMessage.trim() !== "" ? 5 : 0)
+  ) * qty,
+)}
           </button>
         </div>
       </div>

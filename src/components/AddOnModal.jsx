@@ -8,6 +8,7 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(item.variants[0]);
   const [selectedAddOns, setSelectedAddOns] = useState({});
   const [qty, setQty] = useState(1);
+  const [cakeMessage, setCakeMessage] = useState("");
 
   // Single-select (radio)
   const handleSingleAddOn = (groupName, option) => {
@@ -44,7 +45,11 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
   }, [selectedAddOns]);
 
   const basePrice = selectedVariant?.discountedPrice ?? selectedVariant?.price ?? 0;
-  const totalPrice = (basePrice + addOnsTotal) * qty;
+ const wordingFee =
+  cakeMessage.trim() !== "" ? 5 : 0;
+
+const totalPrice =
+  (basePrice + addOnsTotal + wordingFee) * qty;
 
   const handleSubmit = () => {
     // Validate required groups
@@ -74,12 +79,13 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
       }
     });
 
-    onAddToCart({
-      variant: selectedVariant,
-      addOns: chosenAddOns,
-      qty,
-      totalPrice: basePrice + addOnsTotal,
-    });
+onAddToCart({
+  variant: selectedVariant,
+  addOns: chosenAddOns,
+  qty,
+  cakeMessage,
+  totalPrice: basePrice + addOnsTotal + wordingFee,
+});
 
     onClose();
   };
@@ -218,25 +224,46 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
             ))}
 
             {/* Quantity */}
-            <div className="flex items-center justify-between border rounded-xl px-4 py-3">
-              <span className="font-semibold text-gray-900 text-sm">Quantity</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-full hover:bg-gray-50"
-                >
-                  <FiMinus size={14} />
-                </button>
-                <span className="font-bold w-5 text-center">{qty}</span>
-                <button
-                  onClick={() => setQty((q) => Math.min(item.stock, q + 1))}
-                  disabled={qty >= item.stock}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-full hover:bg-gray-50 disabled:opacity-40"
-                >
-                  <FiPlus size={14} />
-                </button>
-              </div>
-            </div>
+            <div className="border rounded-xl overflow-hidden">
+  <div className="px-4 py-3 bg-gray-50">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="font-semibold text-gray-900 text-sm">
+          Cake Wording
+        </p>
+
+        <p className="text-xs text-gray-500 mt-0.5">
+          Optional custom message on cake
+        </p>
+      </div>
+
+      <span className="text-xs bg-orange-100 text-orange-700 font-semibold px-2 py-1 rounded-full">
+        +{formatPrice(5)}
+      </span>
+    </div>
+  </div>
+
+  <div className="p-4 space-y-2">
+    <input
+      type="text"
+      maxLength={40}
+      placeholder='Example: "Happy Birthday Emma"'
+      value={cakeMessage}
+      onChange={(e) => setCakeMessage(e.target.value)}
+      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]"
+    />
+
+    <div className="flex items-center justify-between">
+      <p className="text-xs text-orange-600">
+        Custom wording adds +{formatPrice(5)}
+      </p>
+
+      <p className="text-xs text-gray-400">
+        {cakeMessage.length}/40
+      </p>
+    </div>
+  </div>
+</div>
           </div>
 
           {/* Footer — Add to Cart button */}

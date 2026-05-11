@@ -20,9 +20,21 @@ const CakeNameModal = ({ open, onClose, onSave, itemName }) => {
           Personalise your cake
         </h2>
 
-        <p className="text-sm text-gray-500 mb-5">
-          Would you like a name on your <span className="font-medium text-gray-700">{itemName}</span>? This is optional.
-        </p>
+       <div className="mt-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+  <div className="flex items-center justify-between">
+    <p className="text-sm font-medium text-orange-700">
+      🎂 Custom cake wording
+    </p>
+
+    <span className="text-sm font-bold text-orange-700">
+      +$5
+    </span>
+  </div>
+
+  <p className="text-xs text-orange-600 mt-1">
+    Additional charge applies for personalised cake wording.
+  </p>
+</div>
 
         <input
           type="text"

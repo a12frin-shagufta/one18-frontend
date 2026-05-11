@@ -140,10 +140,31 @@ const CartDrawer = ({ isOpen, onClose }) => {
     return data ? JSON.parse(data) : null;
   }, [isOpen, items.length]);
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.price * i.qty, 0),
-    [items],
-  );
+const wordingFee = useMemo(
+  () =>
+    items.reduce((sum, item) => {
+      const hasMessage =
+        item.cakeMessage &&
+        item.cakeMessage.trim() !== "";
+
+      return hasMessage ? sum + (5 * item.qty) : sum;
+    }, 0),
+  [items],
+);
+
+const subtotal = useMemo(
+  () =>
+    items.reduce((sum, i) => {
+      const wordingExtra =
+        i.cakeMessage &&
+        i.cakeMessage.trim() !== ""
+          ? 5 * i.qty
+          : 0;
+
+      return sum + (i.price * i.qty) + wordingExtra;
+    }, 0),
+  [items],
+);
   const deliveryFee =
     fulfillment?.type === "delivery"
       ? Number(fulfillment?.deliveryFee ?? 0)
@@ -394,9 +415,17 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {item.variant}
-                            </p>
+                           {item.cakeMessage && item.cakeMessage.trim() !== "" && (
+  <div className="mt-2 space-y-1">
+    <p className="text-xs text-pink-600 italic">
+      🎂 "{item.cakeMessage}"
+    </p>
+
+    <p className="text-xs text-orange-600 font-medium">
+      Custom wording +{formatPrice(5)}
+    </p>
+  </div>
+)}
                             <p className="font-bold text-gray-900 text-lg mt-2">
                               {formatPrice(item.price * item.qty)}
                             </p>
@@ -454,10 +483,24 @@ const CartDrawer = ({ isOpen, onClose }) => {
           {items.length > 0 && (
             <div className="border-t border-gray-100 bg-white p-4 sm:p-6 space-y-4">
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
-                </div>
+               <div className="flex justify-between">
+  <span className="text-gray-600">Items subtotal</span>
+  <span>
+    {formatPrice(subtotal - wordingFee)}
+  </span>
+</div>
+
+{wordingFee > 0 && (
+  <div className="flex justify-between">
+    <span className="text-orange-600">
+      Cake wording
+    </span>
+
+    <span className="font-medium text-orange-600">
+      +{formatPrice(wordingFee)}
+    </span>
+  </div>
+)}
                 {/* ✅ show free item saving */}
                 {freeItem && (
                   <div className="flex justify-between text-green-600">
