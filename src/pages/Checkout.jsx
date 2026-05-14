@@ -168,8 +168,10 @@ const subtotal = useMemo(() => {
   }, 0);
 }, [items]);
 
-  const deliveryFee =
-  fulfillment?.type === "delivery" ? (Number(fulfillment.deliveryFee) || 0) + 5 : 0;
+const deliveryFee =
+  fulfillment?.type === "delivery" ? (Number(fulfillment.deliveryFee) || 0) : 0;
+
+
   const totalAmount = subtotal + deliveryFee;
 
   const handleInputChange = (field, value) => {
