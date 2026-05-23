@@ -39,7 +39,31 @@ const getMinDate = () => {
 };
 
 // Generate next N tile dates starting from minDate
-const getTileDates = (count = 7) => {
+// const getTileDates = (count = 7) => {
+//   const dates = [];
+//   const base = new Date();
+  
+//   base.setDate(base.getDate() + 3);
+//   for (let i = 0; i < count; i++) {
+//     const d = new Date(base);
+//     d.setDate(base.getDate() + i);
+//     const yyyy = d.getFullYear();
+//     const mm = String(d.getMonth() + 1).padStart(2, "0");
+//     const dd = String(d.getDate()).padStart(2, "0");
+//     dates.push({
+//       value: `${yyyy}-${mm}-${dd}`,
+//       day: d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
+//       date: d.getDate(),
+//       month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
+//     });
+//   }
+//   return dates;
+// };
+
+// ✅ Blocked dates — customers cannot select these
+const BLOCKED_DATES = ["2026-05-27"];
+
+const getTileDates = (count = 30) => {
   const dates = [];
   const base = new Date();
   base.setDate(base.getDate() + 3);
@@ -49,8 +73,13 @@ const getTileDates = (count = 7) => {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
+    const value = `${yyyy}-${mm}-${dd}`;
+
+    // ✅ Skip blocked dates
+    if (BLOCKED_DATES.includes(value)) continue;
+
     dates.push({
-      value: `${yyyy}-${mm}-${dd}`,
+      value,
       day: d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase(),
       date: d.getDate(),
       month: d.toLocaleDateString("en-US", { month: "short" }).toUpperCase(),
