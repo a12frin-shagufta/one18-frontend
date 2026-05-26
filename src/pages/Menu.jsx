@@ -24,8 +24,8 @@ const Menu = () => {
   const { categoryId } = useParams();
   const [menu, setMenu] = useState([]);
   const { orders, setOrders } = useCart();
-  const [activeCategory, setActiveCategory] = useState(categoryId || "all");
-  const [activeSubcategory, setActiveSubcategory] = useState("all");
+const [activeCategory, setActiveCategory] = useState(() => sessionStorage.getItem("activeCategory") || categoryId || "all");
+const [activeSubcategory, setActiveSubcategory] = useState(() => sessionStorage.getItem("activeSubcategory") || "all");
   const [expandedCategories, setExpandedCategories] = useState({});
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -306,10 +306,12 @@ const handleSaveName = (name) => {
   /* ======================
      HANDLERS
   ====================== */
-  const handleCategoryClick = (id) => {
-    setIsFiltering(true);
-    setActiveCategory(id);
-    setActiveSubcategory("all");
+const handleCategoryClick = (id) => {
+  setIsFiltering(true);
+  setActiveCategory(id);
+  setActiveSubcategory("all");
+  sessionStorage.setItem("activeCategory", id);
+  sessionStorage.setItem("activeSubcategory", "all");
 
     if (id !== "all") {
       setExpandedCategories((prev) => ({
@@ -323,8 +325,9 @@ const handleSaveName = (name) => {
   };
 
   const handleSubcategoryClick = (id) => {
-    setIsFiltering(true);
-    setActiveSubcategory(id);
+  setIsFiltering(true);
+  setActiveSubcategory(id);
+  sessionStorage.setItem("activeSubcategory", id);
     if (window.innerWidth < 768) setShowSidebar(false);
     setTimeout(() => setIsFiltering(false), 200);
   };
@@ -458,7 +461,9 @@ const handleSaveName = (name) => {
                                 : "text-gray-600 hover:bg-gray-50"
                             }`}
                         >
-                          <span className="capitalize">{sub.name}</span>
+                          <span className="capitalize">
+  {cat.name.toLowerCase() === "croissants" ? `Regular ${sub.name}` : sub.name}
+</span>
                         </button>
                       ))}
                     </div>
