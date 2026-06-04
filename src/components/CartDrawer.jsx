@@ -171,27 +171,57 @@ const subtotal = useMemo(
       : 0;
   const total = subtotal + deliveryFee;
 
-  const updateQty = (item, type) => {
-    const key = `${item.itemId}_${item.variant}`;
-    setOrders((prev) => {
-      const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
-      if (qty <= 0) {
-        const copy = { ...prev };
-        delete copy[key];
-        return copy;
-      }
-      return { ...prev, [key]: { ...prev[key], qty } };
-    });
-  };
+  // const updateQty = (item, type) => {
+  //   const key = `${item.itemId}_${item.variant}`;
+  //   setOrders((prev) => {
+  //     const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
+  //     if (qty <= 0) {
+  //       const copy = { ...prev };
+  //       delete copy[key];
+  //       return copy;
+  //     }
+  //     return { ...prev, [key]: { ...prev[key], qty } };
+  //   });
+  // };
 
-  const removeItem = (item) => {
-    const key = `${item.itemId}_${item.variant}`;
-    setOrders((prev) => {
+  // const removeItem = (item) => {
+  //   const key = `${item.itemId}_${item.variant}`;
+  //   setOrders((prev) => {
+  //     const copy = { ...prev };
+  //     delete copy[key];
+  //     return copy;
+  //   });
+  // };
+
+
+  const getCartKey = (item) => {
+  const addOnKey = item.addOns?.length
+    ? "_" + item.addOns.map((a) => a.label).join("_")
+    : "";
+  return `${item.itemId}_${item.variant}${addOnKey}`;
+};
+
+const updateQty = (item, type) => {
+  const key = getCartKey(item);
+  setOrders((prev) => {
+    const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
+    if (qty <= 0) {
       const copy = { ...prev };
       delete copy[key];
       return copy;
-    });
-  };
+    }
+    return { ...prev, [key]: { ...prev[key], qty } };
+  });
+};
+
+const removeItem = (item) => {
+  const key = getCartKey(item);
+  setOrders((prev) => {
+    const copy = { ...prev };
+    delete copy[key];
+    return copy;
+  });
+};
 
   return (
     <>
@@ -393,7 +423,7 @@ const subtotal = useMemo(
                 <div className="space-y-4">
                   {items.map((item) => (
                     <div
-                      key={`${item.itemId}_${item.variant}`}
+                     key={getCartKey(item)}
                       className="flex gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200"
                     >
                       <img

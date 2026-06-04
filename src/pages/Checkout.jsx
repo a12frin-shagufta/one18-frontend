@@ -19,8 +19,8 @@ import axios from "axios";
 
 const Checkout = () => {
   // TEMPORARY DEBUG — remove after fixing
-console.log("RAW localStorage cart:", localStorage.getItem("cart"));
-console.log("ALL localStorage keys:", Object.keys(localStorage));
+// console.log("RAW localStorage cart:", localStorage.getItem("cart"));
+// console.log("ALL localStorage keys:", Object.keys(localStorage));
 
   const navigate = useNavigate();
   const { orders, clearCart } = useCart();
@@ -82,8 +82,8 @@ const freeItem = useMemo(() => {
     phone: "65", // ✅ Singapore default
   });
 
-  console.log("ORDERS =", orders);
-  console.log("ITEMS =", items);
+  // console.log("ORDERS =", orders);
+  // console.log("ITEMS =", items);
 
   useEffect(() => {
     const savedCustomer = localStorage.getItem("checkoutCustomer");
@@ -154,7 +154,6 @@ const wordingFee = useMemo(() => {
     return hasMessage ? sum + (5 * item.qty) : sum;
   }, 0);
 }, [items]);
-
 const subtotal = useMemo(() => {
   return items.reduce((sum, item) => {
     const basePrice = item.price * item.qty;
@@ -164,7 +163,13 @@ const subtotal = useMemo(() => {
         ? 5 * item.qty
         : 0;
 
-    return sum + basePrice + wordingExtra;
+    // ✅ Add-on prices
+    const addOnExtra = (item.addOns || []).reduce(
+      (a, addon) => a + (addon.price || 0),
+      0
+    ) * item.qty;
+
+    return sum + basePrice + wordingExtra + addOnExtra;
   }, 0);
 }, [items]);
 
@@ -381,9 +386,9 @@ cakeMessageFee:
   localStorage.setItem("orderNote", value);
 };
 
-  console.log("subtotal =", subtotal);
-  console.log("deliveryFee =", deliveryFee);
-  console.log("totalAmount =", totalAmount);
+  // console.log("subtotal =", subtotal);
+  // console.log("deliveryFee =", deliveryFee);
+  // console.log("totalAmount =", totalAmount);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-28">

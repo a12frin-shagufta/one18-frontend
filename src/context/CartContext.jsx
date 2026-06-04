@@ -10,7 +10,7 @@ export const CartProvider = ({ children }) => {
   localStorage.getItem("guestCart_v2");
 
 return saved ? JSON.parse(saved) : {};
-    return saved ? JSON.parse(saved) : {};
+    
   });
 
   // ✅ Save cart on every change
