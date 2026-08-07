@@ -58,7 +58,7 @@ const handleSubscribe = async () => {
         <div>
           {/* LOGO */}
           <img
-            src="/images/mobilelogo.png" // 🔥 put your logo in /public/logo.png
+            src="https://shop.one18bakery.com/wp-content/uploads/2026/07/cropped-46.png" // 🔥 put your logo in /public/logo.png
             alt="One18 Bakery"
             className="h-14 mb-4"
           />

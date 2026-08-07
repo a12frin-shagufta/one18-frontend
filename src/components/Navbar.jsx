@@ -32,6 +32,7 @@ useEffect(() => {
 
   const navItems = [
     { to: "/", label: "Home" },
+     { to: "/menu", label: "Our Menu" },
     { to: "/best-sellers", label: "Best Sellers" },
     // { 
     //   label: "Menu",
@@ -57,7 +58,7 @@ useEffect(() => {
             {/* LEFT LOGO */}
             <Link to="/" className="flex-shrink-0 flex items-center space-x-3">
               <img
-                src="/images/mobilelogo.png"
+                src="https://shop.one18bakery.com/wp-content/uploads/2026/07/cropped-47-300x205.png"
                 alt="Bakery Logo"
                 className="h-10 md:h-12 w-auto object-contain"
               />
