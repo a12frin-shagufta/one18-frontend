@@ -74,6 +74,15 @@ const FreeItemPicker = ({ promoItems, selectedFreeItem, onSelect }) => (
 );
 // ────────────────────────────────────────────────────────────────────────────
 
+// Sum of an item's add-on cost for ONE unit of the item.
+// Quantity-mode add-ons: price is per-unit, so multiply by addon.quantity.
+// Regular (checkbox/radio) add-ons: no quantity field, treat as qty 1.
+const getAddOnUnitTotal = (item) =>
+  (item.addOns || []).reduce((sum, addon) => {
+    const qty = addon.quantity ?? 1;
+    return sum + (Number(addon.price) || 0) * qty;
+  }, 0);
+
 const CartDrawer = ({ isOpen, onClose }) => {
   const { orders, setOrders } = useCart();
   const navigate = useNavigate();
@@ -171,32 +180,12 @@ const subtotal = useMemo(
       : 0;
   const total = subtotal + deliveryFee;
 
-  // const updateQty = (item, type) => {
-  //   const key = `${item.itemId}_${item.variant}`;
-  //   setOrders((prev) => {
-  //     const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
-  //     if (qty <= 0) {
-  //       const copy = { ...prev };
-  //       delete copy[key];
-  //       return copy;
-  //     }
-  //     return { ...prev, [key]: { ...prev[key], qty } };
-  //   });
-  // };
-
-  // const removeItem = (item) => {
-  //   const key = `${item.itemId}_${item.variant}`;
-  //   setOrders((prev) => {
-  //     const copy = { ...prev };
-  //     delete copy[key];
-  //     return copy;
-  //   });
-  // };
-
-
   const getCartKey = (item) => {
   const addOnKey = item.addOns?.length
-    ? "_" + item.addOns.map((a) => a.label).join("_")
+    ? "_" +
+      item.addOns
+        .map((a) => `${a.label}${a.quantity ? `x${a.quantity}` : ""}`)
+        .join("_")
     : "";
   return `${item.itemId}_${item.variant}${addOnKey}`;
 };
@@ -293,7 +282,7 @@ const removeItem = (item) => {
               </div>
             )}
 
-            {/* FULFILLMENT SUMMARY */}
+            {/* 🎀 🎀 🎀 🎀 FULFILLMENT SUMMARY 🎀  🎀 🎀 🎀 🎀 */}
             {items.length > 0 && fulfillment && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 mb-4">
                 <div className="flex items-start justify-between mb-3">
@@ -410,16 +399,6 @@ const removeItem = (item) => {
                   </div>
                 )}
 
-                {/* ✅ PROMO TEASER (shows when 0 eligible items in cart) */}
-                {/* {promoItems.length > 0 && promoQty === 0 && (
-                  <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 flex items-center gap-3">
-                    <span className="text-xl">🎁</span>
-                    <p className="text-sm text-purple-700">
-                      Buy <span className="font-bold">4 eligible items</span> and get 1 FREE!
-                    </p>
-                  </div>
-                )} */}
-
                 <div className="space-y-4">
                   {items.map((item) => (
                     <div
@@ -445,6 +424,38 @@ const removeItem = (item) => {
                                 </span>
                               )}
                             </div>
+
+                            {item.variant && (
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {item.variant}
+                              </p>
+                            )}
+
+                            {/* ✅ Add-ons (with quantities when present) */}
+                            {item.addOns?.length > 0 && (
+                              <div className="mt-1.5 space-y-0.5">
+                                {item.addOns.map((addon, i) => (
+                                  <p
+                                    key={i}
+                                    className="text-xs text-gray-500 flex justify-between gap-2"
+                                  >
+                                    <span>
+                                      + {addon.label}
+                                      {addon.quantity ? ` × ${addon.quantity}` : ""}
+                                    </span>
+                                    {addon.price > 0 && (
+                                      <span className="text-gray-400 flex-shrink-0">
+                                        +
+                                        {formatPrice(
+                                          addon.price * (addon.quantity || 1),
+                                        )}
+                                      </span>
+                                    )}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
                            {item.cakeMessage && item.cakeMessage.trim() !== "" && (
   <div className="mt-2 space-y-1">
     <p className="text-xs text-pink-600 italic">

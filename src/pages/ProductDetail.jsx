@@ -97,7 +97,7 @@ const ProductDetail = () => {
     );
   }, [productWithOffer]);
 
-  // Single-select (radio)
+  // Single-select (radio) — price mode only
   const handleSingleAddOn = (groupName, option) => {
     setSelectedAddOns((prev) => ({
       ...prev,
@@ -105,30 +105,79 @@ const ProductDetail = () => {
     }));
   };
 
-  // Multi-select (checkbox)
-  const handleMultiAddOn = (groupName, option, checked) => {
+  // Multi-select (checkbox) — price mode only, respects maxSelect (max # of options)
+  const handleMultiAddOn = (group, option, checked) => {
     setSelectedAddOns((prev) => {
-      const existing = prev[groupName] || {};
+      const existing = prev[group.groupName] || {};
+
       if (checked) {
+        const currentCount = Object.keys(existing).length;
+        if (group.maxSelect && currentCount >= Number(group.maxSelect)) {
+          alert(`You can only select up to ${group.maxSelect} options for "${group.groupName}"`);
+          return prev;
+        }
         return {
           ...prev,
-          [groupName]: { ...existing, [option.label]: option },
+          [group.groupName]: { ...existing, [option.label]: option },
         };
       } else {
         const updated = { ...existing };
         delete updated[option.label];
-        return { ...prev, [groupName]: updated };
+        return { ...prev, [group.groupName]: updated };
       }
+    });
+  };
+
+  // Quantity mode — increment/decrement a specific option, respects maxSelect (max total quantity)
+  const getGroupQuantityTotal = (groupName) => {
+    const groupVal = selectedAddOns[groupName] || {};
+    return Object.values(groupVal).reduce(
+      (sum, v) => sum + (typeof v === "number" ? v : 0),
+      0,
+    );
+  };
+
+  const handleQuantityAddOn = (group, option, delta) => {
+    setSelectedAddOns((prev) => {
+      const existing = prev[group.groupName] || {};
+      const currentQty = existing[option.label] || 0;
+      const groupTotal = Object.values(existing).reduce(
+        (sum, v) => sum + (typeof v === "number" ? v : 0),
+        0,
+      );
+
+      const nextQty = Math.max(0, currentQty + delta);
+
+      // Block increasing past the group's max total quantity
+      if (
+        delta > 0 &&
+        group.maxSelect &&
+        groupTotal + delta > Number(group.maxSelect)
+      ) {
+        return prev;
+      }
+
+      const updated = { ...existing, [option.label]: nextQty };
+      return { ...prev, [group.groupName]: updated };
     });
   };
 
   const addOnsTotal = useMemo(() => {
     let total = 0;
-    Object.values(selectedAddOns).forEach((val) => {
-      if (val && typeof val === "object" && "price" in val) {
+    (product?.addOns || []).forEach((group) => {
+      const val = selectedAddOns[group.groupName];
+      if (!val) return;
+
+      if (group.mode === "quantity") {
+        // sum of (option price * quantity) — usually price is 0 for pure quantity pickers
+        Object.entries(val).forEach(([label, qty]) => {
+          const opt = group.options.find((o) => o.label === label);
+          if (opt) total += (Number(opt.price) || 0) * (Number(qty) || 0);
+        });
+      } else if (typeof val === "object" && "price" in val) {
         // single-select
         total += Number(val.price) || 0;
-      } else if (val && typeof val === "object") {
+      } else if (typeof val === "object") {
         // multi-select
         Object.values(val).forEach((opt) => {
           total += Number(opt.price) || 0;
@@ -136,7 +185,7 @@ const ProductDetail = () => {
       }
     });
     return total;
-  }, [selectedAddOns]);
+  }, [selectedAddOns, product]);
 
   /* ======================
      ADD TO CART
@@ -154,6 +203,21 @@ const addToCart = () => {
   // Validate required add-ons
   const requiredGroups = (product.addOns || []).filter((g) => g.required);
   for (const group of requiredGroups) {
+    if (group.mode === "quantity") {
+      const total = getGroupQuantityTotal(group.groupName);
+      if (total <= 0) {
+        alert(`Please select at least one option for "${group.groupName}"`);
+        return;
+      }
+      if (group.maxSelect && total !== Number(group.maxSelect)) {
+        alert(
+          `Please select exactly ${group.maxSelect} for "${group.groupName}" (currently ${total})`,
+        );
+        return;
+      }
+      continue;
+    }
+
     const picked = selectedAddOns[group.groupName];
     const hasPick =
       picked &&
@@ -174,17 +238,32 @@ const addToCart = () => {
 
   // Build add-ons
   const chosenAddOns = [];
-  Object.entries(selectedAddOns).forEach(([groupName, val]) => {
-    if (val && typeof val === "object" && "label" in val) {
+  (product.addOns || []).forEach((group) => {
+    const val = selectedAddOns[group.groupName];
+    if (!val) return;
+
+    if (group.mode === "quantity") {
+      Object.entries(val).forEach(([label, qtyVal]) => {
+        if (Number(qtyVal) > 0) {
+          const opt = group.options.find((o) => o.label === label);
+          chosenAddOns.push({
+            groupName: group.groupName,
+            label,
+            price: Number(opt?.price) || 0,
+            quantity: Number(qtyVal),
+          });
+        }
+      });
+    } else if (typeof val === "object" && "label" in val) {
       chosenAddOns.push({
-        groupName,
+        groupName: group.groupName,
         label: val.label,
         price: Number(val.price) || 0,
       });
-    } else if (val && typeof val === "object") {
+    } else if (typeof val === "object") {
       Object.values(val).forEach((opt) => {
         chosenAddOns.push({
-          groupName,
+          groupName: group.groupName,
           label: opt.label,
           price: Number(opt.price) || 0,
         });
@@ -375,85 +454,175 @@ if (!fulfillment) {
           {/* ================= ADD-ONS ================= */}
           {product.addOns?.length > 0 && (
             <div className="space-y-4 mb-6">
-              {product.addOns.map((group) => (
-                <div
-                  key={group.groupName}
-                  className="border rounded-xl overflow-hidden"
-                >
-                  {/* Group Header */}
-                  <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {group.groupName}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {group.required ? "Required · " : "Optional · "}
-                        {group.multiSelect ? "Pick multiple" : "Pick one"}
-                      </p>
+              {product.addOns.map((group) => {
+                const isQuantityMode = group.mode === "quantity";
+                const groupTotal = isQuantityMode
+                  ? getGroupQuantityTotal(group.groupName)
+                  : null;
+                const atMax =
+                  isQuantityMode &&
+                  group.maxSelect &&
+                  groupTotal >= Number(group.maxSelect);
+
+                return (
+                  <div
+                    key={group.groupName}
+                    className="border rounded-xl overflow-hidden"
+                  >
+                    {/* Group Header */}
+                    <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          {group.groupName}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {group.required ? "Required · " : "Optional · "}
+                          {isQuantityMode
+                            ? `Pick quantities${
+                                group.maxSelect
+                                  ? ` (max ${group.maxSelect})`
+                                  : ""
+                              }`
+                            : group.multiSelect
+                            ? `Pick multiple${
+                                group.maxSelect
+                                  ? ` (max ${group.maxSelect})`
+                                  : ""
+                              }`
+                            : "Pick one"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isQuantityMode && group.maxSelect && (
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded-full ${
+                              atMax
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {groupTotal} of {group.maxSelect}
+                          </span>
+                        )}
+                        {group.required && (
+                          <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
+                            Required
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {group.required && (
-                      <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
-                        Required
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Options */}
-                  <div className="divide-y">
-                    {group.options.map((opt) => {
-                      const isSelected = group.multiSelect
-                        ? !!selectedAddOns[group.groupName]?.[opt.label]
-                        : selectedAddOns[group.groupName]?.label === opt.label;
+                    {/* Options */}
+                    <div className="divide-y">
+                      {group.options.map((opt) => {
+                        if (isQuantityMode) {
+                          const currentQty =
+                            selectedAddOns[group.groupName]?.[opt.label] || 0;
 
-                      return (
-                        <label
-                          key={opt.label}
-                          className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
-                        >
-                          <div>
-                            <p className="font-medium text-gray-800">
-                              {opt.label}
-                            </p>
-                            {opt.price > 0 && (
-                              <p className="text-sm text-gray-500">
-                                +{formatPrice(opt.price)}
+                          return (
+                            <div
+                              key={opt.label}
+                              className="flex justify-between items-center px-4 py-3"
+                            >
+                              <div>
+                                <p className="font-medium text-gray-800">
+                                  {opt.label}
+                                </p>
+                                {opt.price > 0 && (
+                                  <p className="text-sm text-gray-500">
+                                    +{formatPrice(opt.price)} each
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleQuantityAddOn(group, opt, -1)
+                                  }
+                                  disabled={currentQty <= 0}
+                                  className="w-8 h-8 flex items-center justify-center border rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  <FiMinus size={14} />
+                                </button>
+                                <span className="w-6 text-center font-semibold">
+                                  {currentQty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleQuantityAddOn(group, opt, 1)
+                                  }
+                                  disabled={
+                                    group.maxSelect &&
+                                    groupTotal >= Number(group.maxSelect)
+                                  }
+                                  className="w-8 h-8 flex items-center justify-center border rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  <FiPlus size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Price mode (existing checkbox / radio behavior)
+                        const isSelected = group.multiSelect
+                          ? !!selectedAddOns[group.groupName]?.[opt.label]
+                          : selectedAddOns[group.groupName]?.label ===
+                            opt.label;
+
+                        return (
+                          <label
+                            key={opt.label}
+                            className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+                          >
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                {opt.label}
                               </p>
-                            )}
-                            {opt.price === 0 && (
-                              <p className="text-sm text-green-600">Free</p>
-                            )}
-                          </div>
+                              {opt.price > 0 && (
+                                <p className="text-sm text-gray-500">
+                                  +{formatPrice(opt.price)}
+                                </p>
+                              )}
+                              {opt.price === 0 && (
+                                <p className="text-sm text-green-600">Free</p>
+                              )}
+                            </div>
 
-                          {group.multiSelect ? (
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) =>
-                                handleMultiAddOn(
-                                  group.groupName,
-                                  opt,
-                                  e.target.checked,
-                                )
-                              }
-                              className="w-5 h-5 accent-[#1E3A8A]"
-                            />
-                          ) : (
-                            <input
-                              type="radio"
-                              checked={isSelected}
-                              onChange={() =>
-                                handleSingleAddOn(group.groupName, opt)
-                              }
-                              name={group.groupName}
-                              className="w-5 h-5 accent-[#1E3A8A]"
-                            />
-                          )}
-                        </label>
-                      );
-                    })}
+                            {group.multiSelect ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) =>
+                                  handleMultiAddOn(
+                                    group,
+                                    opt,
+                                    e.target.checked,
+                                  )
+                                }
+                                className="w-5 h-5 accent-[#1E3A8A]"
+                              />
+                            ) : (
+                              <input
+                                type="radio"
+                                checked={isSelected}
+                                onChange={() =>
+                                  handleSingleAddOn(group.groupName, opt)
+                                }
+                                name={group.groupName}
+                                className="w-5 h-5 accent-[#1E3A8A]"
+                              />
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

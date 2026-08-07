@@ -44,19 +44,6 @@ const Checkout = () => {
   }
 }, [orders]);
 
-  // const [showPayNowQR, setShowPayNowQR] = useState(false);
-  // const [isMarkingPaid, setIsMarkingPaid] = useState(false);
-  // const [canConfirmPaid, setCanConfirmPaid] = useState(false);
-  // const [paymentProof, setPaymentProof] = useState(null);
-  // const [isUploading, setIsUploading] = useState(false);
-
-  // const [createdOrderId, setCreatedOrderId] = useState(null);
-  // const [qrCode, setQrCode] = useState(null);
-  // const [qrReference, setQrReference] = useState(null);
-
-  // const [paymentProof, setPaymentProof] = useState(null);
-  // const [isUploading, setIsUploading] = useState(false);
-
   const location = useLocation();
 
   const fulfillment = useMemo(() => {
@@ -81,9 +68,6 @@ const freeItem = useMemo(() => {
 
     phone: "65", // ✅ Singapore default
   });
-
-  // console.log("ORDERS =", orders);
-  // console.log("ITEMS =", items);
 
   useEffect(() => {
     const savedCustomer = localStorage.getItem("checkoutCustomer");
@@ -154,6 +138,11 @@ const wordingFee = useMemo(() => {
     return hasMessage ? sum + (5 * item.qty) : sum;
   }, 0);
 }, [items]);
+
+// ⚠️ item.price already includes add-on cost — it's baked in when the item
+// is added to cart (see ProductDetail's addOnsTotal). Do NOT add add-on
+// price again here or it double-counts. Add-ons are shown below for
+// display purposes only.
 const subtotal = useMemo(() => {
   return items.reduce((sum, item) => {
     const basePrice = item.price * item.qty;
@@ -163,13 +152,7 @@ const subtotal = useMemo(() => {
         ? 5 * item.qty
         : 0;
 
-    // ✅ Add-on prices
-    const addOnExtra = (item.addOns || []).reduce(
-      (a, addon) => a + (addon.price || 0),
-      0
-    ) * item.qty;
-
-    return sum + basePrice + wordingExtra + addOnExtra;
+    return sum + basePrice + wordingExtra;
   }, 0);
 }, [items]);
 
@@ -203,7 +186,6 @@ const deliveryFee =
       const fulfillment = JSON.parse(
         localStorage.getItem("fulfillmentData") || "{}",
       );
-      // const orderNote = localStorage.getItem("orderNote") || "";
 
       if (!fulfillment?.type) {
         alert("Fulfillment details missing, please go back");
@@ -293,22 +275,6 @@ cakeMessageFee:
         totalAmount: subtotal + deliveryFee,
       };
 
-      // if (paymentMethod === "paynow") {
-      //   const res = await axios.post(`${BACKEND_URL}/api/orders`, {
-      //     ...payload,
-      //     paymentMethod: "paynow",
-      //   });
-
-      //   const orderId = res.data.order._id;
-
-      //   setCreatedOrderId(orderId);
-      //   setShowPayNowQR(true);
-      //   setCanConfirmPaid(false);
-      //   setIsProcessing(false);
-      //   clickLock.current = false;
-      //   return;
-      // }
-
       if (paymentMethod === "stripe") {
         const res = await axios.post(
           `${BACKEND_URL}/api/payment/create-checkout-session`,
@@ -350,45 +316,10 @@ cakeMessageFee:
     localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
   }, [customer]);
 
-  // useEffect(() => {
-  //   if (!showPayNowQR) return;
-
-  //   setCanConfirmPaid(false);
-
-  //   const t = setTimeout(() => {
-  //     setCanConfirmPaid(true);
-  //   }, 8000);
-
-  //   return () => clearTimeout(t);
-  // }, [showPayNowQR]);
-
-  // useEffect(() => {
-  //   if (!createdOrderId) return;
-
-  //   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-  //   axios
-  //     .get(`${BACKEND_URL}/api/paynow/qr/${createdOrderId}`)
-  //     .then(res => {
-  //       setQrCode(res.data.qr);
-  //       setQrReference(res.data.reference);
-
-  //       // ✅ enable confirm after delay
-  //       setTimeout(() => {
-  //         setCanConfirmPaid(true);
-  //       }, 8000); // 8 seconds
-  //     });
-  // }, [createdOrderId]);
-
-
   const handleNoteChange = (value) => {
   setOrderNote(value);
   localStorage.setItem("orderNote", value);
 };
-
-  // console.log("subtotal =", subtotal);
-  // console.log("deliveryFee =", deliveryFee);
-  // console.log("totalAmount =", totalAmount);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-28">
@@ -770,7 +701,9 @@ cakeMessageFee:
             <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
               {items.map((item) => (
                 <div
-                  key={`${item.itemId}_${item.variant}`}
+                  key={`${item.itemId}_${item.variant}_${(item.addOns || [])
+                    .map((a) => `${a.label}${a.quantity ? `x${a.quantity}` : ""}`)
+                    .join("_")}`}
                   className="flex gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors"
                 >
                   <div className="relative flex-shrink-0">
@@ -793,10 +726,6 @@ cakeMessageFee:
 )}
 
 {/* 🎂 Cake Message */}
-
-
-{/* 🎂 Cake Message */}
-{/* 🎂 Cake Message */}
 {item.cakeMessage && item.cakeMessage.trim() !== "" && (
   <div className="mt-1 space-y-1">
     <p className="text-xs text-pink-600 italic">
@@ -809,14 +738,19 @@ cakeMessageFee:
   </div>
 )}
 
-{/* ✅ Show chosen add-ons */}
+{/* ✅ Show chosen add-ons (with quantities when present) */}
 {item.addOns?.length > 0 && (
   <div className="mt-1 space-y-0.5">
     {item.addOns.map((addon, i) => (
-      <p key={i} className="text-xs text-gray-500 flex justify-between">
-        <span>+ {addon.label}</span>
+      <p key={i} className="text-xs text-gray-500 flex justify-between gap-2">
+        <span>
+          + {addon.label}
+          {addon.quantity ? ` × ${addon.quantity}` : ""}
+        </span>
         {addon.price > 0 && (
-          <span className="text-gray-400">+{formatPrice(addon.price)}</span>
+          <span className="text-gray-400 flex-shrink-0">
+            +{formatPrice(addon.price * (addon.quantity || 1))}
+          </span>
         )}
       </p>
     ))}
@@ -916,7 +850,6 @@ cakeMessageFee:
       </div>
 
       {/* Floating Payment Button - Mobile Responsive */}
-     {/* Floating Payment Button */}
 <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50}} 
   className="bg-white border-t shadow-xl">
   <div className="max-w-6xl mx-auto px-4 py-3">
@@ -949,9 +882,6 @@ cakeMessageFee:
     </p>
   </div>
 </div>
-
-      {/* PayNow Modal - COMPACT VERSION */}
-      
     </div>
   );
 };

@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 const CateringSection = () => {
   const navigate = useNavigate();
-  
+
+  const whatsappURL = `https://wa.me/91111712?text=${encodeURIComponent("Hi! I'd like to get a quote for catering 🎂")}`;
+
   return (
     <section className="bg-[#1E3A8A] py-8 md:py-12 lg:py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -52,12 +54,16 @@ const CateringSection = () => {
               >
                 Place An Order
               </button>
+
+              {/* ✅ Changed from tel: to WhatsApp */}
               <a
-  href="tel:91111712"
-  className="bg-[#F4A300] text-[#1E3A8A] px-6 sm:px-8 py-3 rounded-full hover:bg-[#ffb733] transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto text-center inline-block"
->
-  Contact for Quote
-</a>
+                href={whatsappURL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#F4A300] text-[#1E3A8A] px-6 sm:px-8 py-3 rounded-full hover:bg-[#ffb733] transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto text-center inline-block"
+              >
+                Contact for Quote
+              </a>
             </div>
           </div>
 
@@ -66,25 +72,23 @@ const CateringSection = () => {
             <div className="relative w-full max-w-sm sm:max-w-md lg:max-w-lg">
               <div className="relative pb-[100%] sm:pb-[90%] lg:pb-[80%] overflow-hidden rounded-3xl sm:rounded-[40px] shadow-2xl">
                 <video
-  src="/images/cat.mp4"
-  autoPlay
-  loop
-  muted
-  playsInline
-  className="absolute inset-0 w-full h-full object-cover"
->
-  Your browser does not support the video tag.
-</video>
+                  src="/images/cat.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
-              
-              {/* Decorative elements for better visual appeal */}
               <div className="hidden sm:block absolute -bottom-4 -right-4 w-24 h-24 bg-[#F4A300]/20 rounded-full -z-10"></div>
               <div className="hidden sm:block absolute -top-4 -left-4 w-16 h-16 bg-white/10 rounded-full -z-10"></div>
             </div>
           </div>
         </div>
 
-        {/* Additional responsive info section for larger screens */}
+        {/* Stats */}
         <div className="hidden lg:grid grid-cols-2 md:grid-cols-4 gap-6 mt-12 pt-8 border-t border-white/20">
           {[
             { label: "Year Experience", value: "7+" },
