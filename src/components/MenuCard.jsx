@@ -4,6 +4,7 @@ import { FiPlus, FiMinus } from "react-icons/fi";
 import { useState } from "react";
 import AddOnModal from "./AddOnModal";
 import { getCartKey } from "../utils/cartKey";
+import { trackAddToCart } from "../utils/metaPixel";
 import CakeNameModal from "./CakeNameModal";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
@@ -149,6 +150,8 @@ const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
     variant: variant.label,
     addOns,
   });
+
+  trackAddToCart({ product: item, variant, qty, unitPrice: totalPrice });
 
   setOrders((prev) => {
     const existing = prev[key];

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext"; // ✅ ADD
+import { trackPurchase } from "../utils/metaPixel";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -30,6 +31,17 @@ const PaymentSuccess = () => {
         });
 
         setMsg(res.data.message || "Payment successful ✅");
+
+        // ✅ Meta Pixel Purchase. Deduped two ways: the server tells us if this
+        // session was already verified, and trackPurchase keys on orderNumber
+        // so a refresh or a back-button visit can't double-count revenue.
+        if (!res.data.alreadyVerified) {
+          trackPurchase({
+            orderNumber: res.data.orderNumber,
+            value: res.data.amount,
+            currency: res.data.currency || "SGD",
+          });
+        }
 
         // ✅ clear cart ✅✅✅
         clearCart();

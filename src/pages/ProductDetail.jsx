@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { formatPrice } from "../utils/currency";
 import { getCartKey } from "../utils/cartKey";
+import { trackViewContent, trackAddToCart } from "../utils/metaPixel";
 import QuantityAddOnGroup from "../components/QuantityAddOnGroup";
 import { validateSelection } from "../utils/addonRules";
 import FulfillmentModal from "../components/FulfillmentModal";
@@ -160,6 +161,11 @@ const ProductDetail = () => {
   /* ======================
      ADD TO CART
   ====================== */
+  // ✅ ViewContent once the product is loaded (not on every re-render)
+  useEffect(() => {
+    if (product?._id) trackViewContent(product, selectedVariant);
+  }, [product?._id]);
+
 const addToCart = () => {
   console.log("🟢 ADD TO CART CLICKED");
 
@@ -266,6 +272,13 @@ const addToCart = () => {
   // ✅ include add-ons + wording, so two different bundles of the same product
   // are separate lines instead of silently overwriting each other
   const key = getCartKey(newItem);
+
+  trackAddToCart({
+    product,
+    variant: selectedVariant,
+    qty: newItem.qty,
+    unitPrice: newItem.price,
+  });
 
   const current = JSON.parse(localStorage.getItem("cart") || "{}");
   current[key] = newItem;

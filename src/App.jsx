@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
+import { initPixel, trackPageView } from "./utils/metaPixel";
 import { useEffect } from "react";
 
 import Navbar from "./components/Navbar";
@@ -27,6 +28,16 @@ import ChatWidget from "./components/ChatWidget";
 
 function App() {
   const location = useLocation();
+
+  // ✅ Meta Pixel: a SPA only loads index.html once, so PageView has to fire on
+  // each route change or Meta sees a single page per visit.
+  useEffect(() => {
+    initPixel();
+  }, []);
+
+  useEffect(() => {
+    trackPageView();
+  }, [location.pathname]);
 
   useEffect(() => {
     const savedBranch = localStorage.getItem("selectedBranch");

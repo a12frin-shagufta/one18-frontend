@@ -14,6 +14,7 @@ import { formatPrice } from "../utils/currency";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import FulfillmentModal from "./FulfillmentModal";
+import { trackInitiateCheckout } from "../utils/metaPixel";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -576,6 +577,7 @@ const removeItem = (item) => {
       setShowFulfillment(true);
       return;
     }
+    trackInitiateCheckout({ items, value: total });
     onClose();
     navigate("/checkout");
   }}
