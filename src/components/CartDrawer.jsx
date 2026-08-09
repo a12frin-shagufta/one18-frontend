@@ -13,6 +13,7 @@ import { useCart } from "../context/CartContext";
 import { formatPrice } from "../utils/currency";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import FulfillmentModal from "./FulfillmentModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -86,7 +87,14 @@ const getAddOnUnitTotal = (item) =>
 const CartDrawer = ({ isOpen, onClose }) => {
   const { orders, setOrders } = useCart();
   const navigate = useNavigate();
-  const items = Object.values(orders);
+  // ✅ FIX: carry the real cart key with each line. The drawer used to rebuild
+  // the key from scratch, but the add paths stored a DIFFERENT format, so
+  // delete/qty were mutating a key that didn't exist — silently doing nothing.
+  // Using the stored key also repairs carts saved before this fix.
+  const items = Object.entries(orders).map(([_key, value]) => ({
+    ...value,
+    _key,
+  }));
 
   // ── promo state ────────────────────────────────────────────────────────────
   const [promoItems, setPromoItems] = useState([]);
@@ -144,10 +152,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
     }
   }, [items.length]);
 
+  const [showFulfillment, setShowFulfillment] = useState(false);
+
   const fulfillment = useMemo(() => {
     const data = localStorage.getItem("fulfillmentData");
     return data ? JSON.parse(data) : null;
-  }, [isOpen, items.length]);
+  }, [isOpen, items.length, showFulfillment]);
 
 const wordingFee = useMemo(
   () =>
@@ -180,18 +190,8 @@ const subtotal = useMemo(
       : 0;
   const total = subtotal + deliveryFee;
 
-  const getCartKey = (item) => {
-  const addOnKey = item.addOns?.length
-    ? "_" +
-      item.addOns
-        .map((a) => `${a.label}${a.quantity ? `x${a.quantity}` : ""}`)
-        .join("_")
-    : "";
-  return `${item.itemId}_${item.variant}${addOnKey}`;
-};
-
 const updateQty = (item, type) => {
-  const key = getCartKey(item);
+  const key = item._key;
   setOrders((prev) => {
     const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
     if (qty <= 0) {
@@ -204,7 +204,7 @@ const updateQty = (item, type) => {
 };
 
 const removeItem = (item) => {
-  const key = getCartKey(item);
+  const key = item._key;
   setOrders((prev) => {
     const copy = { ...prev };
     delete copy[key];
@@ -402,7 +402,7 @@ const removeItem = (item) => {
                 <div className="space-y-4">
                   {items.map((item) => (
                     <div
-                     key={getCartKey(item)}
+                      key={item._key}
                       className="flex gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200"
                     >
                       <img
@@ -567,12 +567,17 @@ const removeItem = (item) => {
 
               <button
   onClick={() => {
-    onClose();
+    // ✅ FIX: the fulfillment modal used to be opened with a global event that
+    // ONLY pages/Menu.jsx listened for. From any other page (product page,
+    // home, best sellers, category) this button silently did nothing — the
+    // drawer just closed. The modal is now rendered by the drawer itself, so
+    // checkout works from everywhere.
     if (!fulfillment) {
-      window.dispatchEvent(new Event("open-fulfillment"));
-    } else {
-      navigate("/checkout");
+      setShowFulfillment(true);
+      return;
     }
+    onClose();
+    navigate("/checkout");
   }}
   className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold"
 >
@@ -584,6 +589,17 @@ const removeItem = (item) => {
           )}
         </div>
       </div>
+
+      {/* ✅ Fulfillment modal now lives with the drawer, so "Proceed to
+          Checkout" works on every page. On save it navigates to /checkout. */}
+      <FulfillmentModal
+        open={showFulfillment}
+        onClose={() => {
+          setShowFulfillment(false);
+          onClose(); // close the drawer too, so it isn't left over the checkout page
+        }}
+        redirectToCheckout
+      />
     </>
   );
 };

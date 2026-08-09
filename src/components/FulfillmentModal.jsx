@@ -197,7 +197,19 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
     // ── Delivery details → go to branch selection ──
     if (step === "delivery_details") {
       let valid = true;
-      if (postalStatus !== "success") { valid = false; }
+      // ✅ FIX: this used to fail silently — the Continue button did nothing and
+      // no message appeared, so customers had no idea what was wrong.
+      if (postalStatus !== "success") {
+        setPostalMessage(
+          postalCode.length !== 6
+            ? "Please enter your 6-digit postal code"
+            : postalStatus === "checking"
+              ? "Checking your postal code, one moment..."
+              : postalMessage || "We can't deliver to this postal code yet",
+        );
+        setPostalStatus(postalStatus === "checking" ? "checking" : "error");
+        valid = false;
+      }
       if (!deliveryDate) { setDeliveryDateError("Please select a delivery date"); valid = false; }
       if (!deliveryTime) { setDeliveryTimeError("Please select a delivery time"); valid = false; }
       if (!valid) return;

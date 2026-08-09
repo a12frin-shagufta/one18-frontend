@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiPlus, FiMinus } from "react-icons/fi";
 import { useState } from "react";
 import AddOnModal from "./AddOnModal";
+import { getCartKey } from "../utils/cartKey";
 import CakeNameModal from "./CakeNameModal";
 
 const MenuCard = ({ item, orders, setOrders, openCart }) => {
@@ -142,10 +143,12 @@ const handleAddClick = (e) => {
 };
 
 const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
-  const addOnKey = addOns.length
-    ? "_" + addOns.map((a) => a.label).join("_")
-    : "";
-  const key = `${item._id}_${variant.label}${addOnKey}`;
+  // ✅ same key format as everywhere else (labels + quantities + wording)
+  const key = getCartKey({
+    itemId: item._id,
+    variant: variant.label,
+    addOns,
+  });
 
   setOrders((prev) => {
     const existing = prev[key];

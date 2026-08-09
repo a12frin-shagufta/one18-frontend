@@ -6,7 +6,7 @@ const locations = [
     title: "Tampines St 81",
     tag: "THE ORIGINAL",
     address: [
-      "Blk 826 Tampines Street 81",
+      "Blk 826 Tampines Street 81", //. i just want to attend a few thing 
       "#01-118",
       "Singapore 520826",
     ],

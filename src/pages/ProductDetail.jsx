@@ -4,6 +4,9 @@ import axios from "axios";
 import { useCart } from "../context/CartContext";
 import { FiPlus, FiMinus, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { formatPrice } from "../utils/currency";
+import { getCartKey } from "../utils/cartKey";
+import QuantityAddOnGroup from "../components/QuantityAddOnGroup";
+import { validateSelection } from "../utils/addonRules";
 import FulfillmentModal from "../components/FulfillmentModal";
 
 
@@ -128,39 +131,6 @@ const ProductDetail = () => {
     });
   };
 
-  // Quantity mode — increment/decrement a specific option, respects maxSelect (max total quantity)
-  const getGroupQuantityTotal = (groupName) => {
-    const groupVal = selectedAddOns[groupName] || {};
-    return Object.values(groupVal).reduce(
-      (sum, v) => sum + (typeof v === "number" ? v : 0),
-      0,
-    );
-  };
-
-  const handleQuantityAddOn = (group, option, delta) => {
-    setSelectedAddOns((prev) => {
-      const existing = prev[group.groupName] || {};
-      const currentQty = existing[option.label] || 0;
-      const groupTotal = Object.values(existing).reduce(
-        (sum, v) => sum + (typeof v === "number" ? v : 0),
-        0,
-      );
-
-      const nextQty = Math.max(0, currentQty + delta);
-
-      // Block increasing past the group's max total quantity
-      if (
-        delta > 0 &&
-        group.maxSelect &&
-        groupTotal + delta > Number(group.maxSelect)
-      ) {
-        return prev;
-      }
-
-      const updated = { ...existing, [option.label]: nextQty };
-      return { ...prev, [group.groupName]: updated };
-    });
-  };
 
   const addOnsTotal = useMemo(() => {
     let total = 0;
@@ -201,22 +171,24 @@ const addToCart = () => {
   console.log("✅ Variant:", selectedVariant);
 
   // Validate required add-ons
-  const requiredGroups = (product.addOns || []).filter((g) => g.required);
-  for (const group of requiredGroups) {
-    if (group.mode === "quantity") {
-      const total = getGroupQuantityTotal(group.groupName);
-      if (total <= 0) {
-        alert(`Please select at least one option for "${group.groupName}"`);
-        return;
-      }
-      if (group.maxSelect && total !== Number(group.maxSelect)) {
-        alert(
-          `Please select exactly ${group.maxSelect} for "${group.groupName}" (currently ${total})`,
-        );
-        return;
-      }
-      continue;
+  // ✅ Quantity groups: step / min per option / max types / exact total
+  for (const group of (product.addOns || []).filter(
+    (g) => g.mode === "quantity",
+  )) {
+    const { valid, errors } = validateSelection(
+      group,
+      selectedAddOns[group.groupName] || {},
+    );
+    if (!valid) {
+      alert(`${group.groupName}: ${errors[0]}`);
+      return;
     }
+  }
+
+  const requiredGroups = (product.addOns || []).filter(
+    (g) => g.required && g.mode !== "quantity",
+  );
+  for (const group of requiredGroups) {
 
     const picked = selectedAddOns[group.groupName];
     const hasPick =
@@ -230,8 +202,7 @@ const addToCart = () => {
     }
   }
 
-  const key = `${product._id}_${selectedVariant.label}`;
-  console.log("🔑 KEY:", key);
+  // key is built AFTER newItem exists (it depends on add-ons + wording)
 
   const itemBasePrice =
     selectedVariant.discountedPrice ?? selectedVariant.price;
@@ -251,6 +222,7 @@ const addToCart = () => {
             label,
             price: Number(opt?.price) || 0,
             quantity: Number(qtyVal),
+            mode: "quantity",
           });
         }
       });
@@ -290,6 +262,10 @@ const addToCart = () => {
 
   // BEFORE SAVE
   console.log("📂 BEFORE:", localStorage.getItem("cart"));
+
+  // ✅ include add-ons + wording, so two different bundles of the same product
+  // are separate lines instead of silently overwriting each other
+  const key = getCartKey(newItem);
 
   const current = JSON.parse(localStorage.getItem("cart") || "{}");
   current[key] = newItem;
@@ -454,141 +430,65 @@ if (!fulfillment) {
           {/* ================= ADD-ONS ================= */}
           {product.addOns?.length > 0 && (
             <div className="space-y-4 mb-6">
-              {product.addOns.map((group) => {
-                const isQuantityMode = group.mode === "quantity";
-                const groupTotal = isQuantityMode
-                  ? getGroupQuantityTotal(group.groupName)
-                  : null;
-                const atMax =
-                  isQuantityMode &&
-                  group.maxSelect &&
-                  groupTotal >= Number(group.maxSelect);
-
-                return (
+              {product.addOns.map((group) =>
+                group.mode === "quantity" ? (
+                  /* ✅ Shared picker — enforces step / min per option /
+                     max types / exact total (e.g. 12pc croissant bundle) */
+                  <QuantityAddOnGroup
+                    key={group.groupName}
+                    group={group}
+                    value={selectedAddOns[group.groupName] || {}}
+                    onChange={(next) =>
+                      setSelectedAddOns((prev) => ({
+                        ...prev,
+                        [group.groupName]: next,
+                      }))
+                    }
+                  />
+                ) : (
                   <div
                     key={group.groupName}
                     className="border rounded-xl overflow-hidden"
                   >
-                    {/* Group Header */}
                     <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-gray-900 text-sm">
                           {group.groupName}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {group.required ? "Required · " : "Optional · "}
-                          {isQuantityMode
-                            ? `Pick quantities${
-                                group.maxSelect
-                                  ? ` (max ${group.maxSelect})`
-                                  : ""
-                              }`
-                            : group.multiSelect
-                            ? `Pick multiple${
-                                group.maxSelect
-                                  ? ` (max ${group.maxSelect})`
-                                  : ""
-                              }`
-                            : "Pick one"}
+                          {group.multiSelect ? "Pick multiple" : "Pick one"}
+                          {group.maxSelect ? ` (max ${group.maxSelect})` : ""}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {isQuantityMode && group.maxSelect && (
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${
-                              atMax
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {groupTotal} of {group.maxSelect}
-                          </span>
-                        )}
-                        {group.required && (
-                          <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
-                            Required
-                          </span>
-                        )}
-                      </div>
+                      {group.required && (
+                        <span className="text-xs bg-red-100 text-red-600 font-medium px-2 py-1 rounded-full">
+                          Required
+                        </span>
+                      )}
                     </div>
 
-                    {/* Options */}
                     <div className="divide-y">
                       {group.options.map((opt) => {
-                        if (isQuantityMode) {
-                          const currentQty =
-                            selectedAddOns[group.groupName]?.[opt.label] || 0;
-
-                          return (
-                            <div
-                              key={opt.label}
-                              className="flex justify-between items-center px-4 py-3"
-                            >
-                              <div>
-                                <p className="font-medium text-gray-800">
-                                  {opt.label}
-                                </p>
-                                {opt.price > 0 && (
-                                  <p className="text-sm text-gray-500">
-                                    +{formatPrice(opt.price)} each
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleQuantityAddOn(group, opt, -1)
-                                  }
-                                  disabled={currentQty <= 0}
-                                  className="w-8 h-8 flex items-center justify-center border rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                  <FiMinus size={14} />
-                                </button>
-                                <span className="w-6 text-center font-semibold">
-                                  {currentQty}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleQuantityAddOn(group, opt, 1)
-                                  }
-                                  disabled={
-                                    group.maxSelect &&
-                                    groupTotal >= Number(group.maxSelect)
-                                  }
-                                  className="w-8 h-8 flex items-center justify-center border rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                  <FiPlus size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        // Price mode (existing checkbox / radio behavior)
                         const isSelected = group.multiSelect
                           ? !!selectedAddOns[group.groupName]?.[opt.label]
-                          : selectedAddOns[group.groupName]?.label ===
-                            opt.label;
+                          : selectedAddOns[group.groupName]?.label === opt.label;
 
                         return (
                           <label
                             key={opt.label}
-                            className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50 transition"
+                            className="flex justify-between items-center px-4 py-3 cursor-pointer hover:bg-gray-50"
                           >
                             <div>
-                              <p className="font-medium text-gray-800">
+                              <p className="text-sm font-medium text-gray-800">
                                 {opt.label}
                               </p>
-                              {opt.price > 0 && (
-                                <p className="text-sm text-gray-500">
+                              {opt.price > 0 ? (
+                                <p className="text-xs text-gray-500">
                                   +{formatPrice(opt.price)}
                                 </p>
-                              )}
-                              {opt.price === 0 && (
-                                <p className="text-sm text-green-600">Free</p>
+                              ) : (
+                                <p className="text-xs text-green-600">Free</p>
                               )}
                             </div>
 
@@ -597,11 +497,7 @@ if (!fulfillment) {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={(e) =>
-                                  handleMultiAddOn(
-                                    group,
-                                    opt,
-                                    e.target.checked,
-                                  )
+                                  handleMultiAddOn(group, opt, e.target.checked)
                                 }
                                 className="w-5 h-5 accent-[#1E3A8A]"
                               />
@@ -621,8 +517,8 @@ if (!fulfillment) {
                       })}
                     </div>
                   </div>
-                );
-              })}
+                ),
+              )}
             </div>
           )}
 
