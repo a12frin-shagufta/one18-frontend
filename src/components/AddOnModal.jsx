@@ -3,12 +3,16 @@ import React, { useState, useMemo } from "react";
 import { FiX, FiPlus, FiMinus } from "react-icons/fi";
 import { formatPrice } from "../utils/currency";
 import { toast } from "react-toastify";
+import QuantityAddOnGroup from "./QuantityAddOnGroup";
+import { validateSelection } from "../utils/addonRules";
 
 const AddOnModal = ({ item, onClose, onAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(item.variants[0]);
   const [selectedAddOns, setSelectedAddOns] = useState({});
   const [qty, setQty] = useState(1);
   const [cakeMessage, setCakeMessage] = useState("");
+  // ✅ quantity-mode groups (e.g. 12pc croissant bundle): { group: { label: qty } }
+  const [qtySelections, setQtySelections] = useState({});
 
   // Single-select (radio)
   const handleSingleAddOn = (groupName, option) => {
@@ -41,8 +45,18 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
         });
       }
     });
+    // quantity-mode groups: price x qty (usually 0 for pure bundles)
+    (item.addOns || []).forEach((group) => {
+      if (group.mode !== "quantity") return;
+      const sel = qtySelections[group.groupName] || {};
+      Object.entries(sel).forEach(([label, q]) => {
+        const opt = group.options.find((o) => o.label === label);
+        if (opt) total += (Number(opt.price) || 0) * (Number(q) || 0);
+      });
+    });
+
     return total;
-  }, [selectedAddOns]);
+  }, [selectedAddOns, qtySelections, item.addOns]);
 
   const basePrice = selectedVariant?.discountedPrice ?? selectedVariant?.price ?? 0;
  const wordingFee =
@@ -52,8 +66,23 @@ const totalPrice =
   (basePrice + addOnsTotal + wordingFee) * qty;
 
   const handleSubmit = () => {
-    // Validate required groups
-    const requiredGroups = (item.addOns || []).filter((g) => g.required);
+    // ✅ Quantity groups: enforce step / min-per-option / max types / total
+    for (const group of (item.addOns || []).filter(
+      (g) => g.mode === "quantity",
+    )) {
+      const { valid, errors } = validateSelection(
+        group,
+        qtySelections[group.groupName] || {},
+      );
+      if (!valid) {
+        toast.error(`${group.groupName}: ${errors[0]}`);
+        return;
+      }
+    }
+
+    // Validate required groups (price mode)
+    const requiredGroups = (item.addOns || [])
+      .filter((g) => g.required && g.mode !== "quantity");
     for (const group of requiredGroups) {
       const picked = selectedAddOns[group.groupName];
       const hasPick =
@@ -69,6 +98,25 @@ const totalPrice =
 
     // Build flat add-ons array
     const chosenAddOns = [];
+
+    // quantity groups first — carry the count so the kitchen knows how many
+    (item.addOns || []).forEach((group) => {
+      if (group.mode !== "quantity") return;
+      const sel = qtySelections[group.groupName] || {};
+      Object.entries(sel).forEach(([label, q]) => {
+        if (Number(q) > 0) {
+          const opt = group.options.find((o) => o.label === label);
+          chosenAddOns.push({
+            groupName: group.groupName,
+            label,
+            price: Number(opt?.price) || 0,
+            quantity: Number(q),
+            mode: "quantity",
+          });
+        }
+      });
+    });
+
     Object.entries(selectedAddOns).forEach(([groupName, val]) => {
       if (val && "label" in val) {
         chosenAddOns.push({ groupName, label: val.label, price: Number(val.price) || 0 });
@@ -162,7 +210,20 @@ onAddToCart({
             )}
 
             {/* Add-On Groups */}
-            {(item.addOns || []).map((group) => (
+            {(item.addOns || []).map((group) =>
+              group.mode === "quantity" ? (
+                <QuantityAddOnGroup
+                  key={group.groupName}
+                  group={group}
+                  value={qtySelections[group.groupName] || {}}
+                  onChange={(next) =>
+                    setQtySelections((prev) => ({
+                      ...prev,
+                      [group.groupName]: next,
+                    }))
+                  }
+                />
+              ) : (
               <div key={group.groupName} className="border rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 flex justify-between items-center">
                   <div>
@@ -221,7 +282,8 @@ onAddToCart({
                   })}
                 </div>
               </div>
-            ))}
+              ),
+            )}
 
             {/* Quantity */}
             <div className="border rounded-xl overflow-hidden">
