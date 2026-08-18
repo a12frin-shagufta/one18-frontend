@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { formatPrice } from "../utils/currency";
+import { useBundleCheck } from "../utils/useBundleCheck";
 import {
   CheckCircle,
   ChevronLeft,
@@ -45,6 +46,10 @@ const Checkout = () => {
 }, [orders]);
 
   const location = useLocation();
+
+  // ✅ Guard against bundles whose flavour quantities don't add up (e.g. an old
+  // cart saved before the quantity picker existed). Fails open — see the hook.
+  const { getIssues, firstIssueMessage } = useBundleCheck();
 
   const fulfillment = useMemo(() => {
     const data = localStorage.getItem("fulfillmentData");
@@ -174,6 +179,16 @@ const deliveryFee =
     if (clickLock.current) return;
     clickLock.current = true;
     if (!validateForm()) {
+      clickLock.current = false;
+      setIsProcessing(false);
+      return;
+    }
+
+    // ✅ Stop a broken bundle BEFORE Stripe. The server would reject it too,
+    // but only after the customer has filled in the whole form and pressed pay.
+    const bundleProblem = firstIssueMessage(items);
+    if (bundleProblem) {
+      alert(bundleProblem);
       clickLock.current = false;
       setIsProcessing(false);
       return;
@@ -737,6 +752,17 @@ cakeMessageFee:
     </p>
   </div>
 )}
+
+{/* ⚠️ Bundle quantities don't add up */}
+{getIssues(item).map((issue, ii) => (
+  <p
+    key={ii}
+    className="mt-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1"
+  >
+    ⚠ {issue.actual} of {issue.expected} pieces selected — please remove
+    this item and add it again
+  </p>
+))}
 
 {/* ✅ Show chosen add-ons (with quantities when present) */}
 {item.addOns?.length > 0 && (

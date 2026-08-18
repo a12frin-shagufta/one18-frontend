@@ -14,6 +14,7 @@ import { formatPrice } from "../utils/currency";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import FulfillmentModal from "./FulfillmentModal";
+import { useBundleCheck } from "../utils/useBundleCheck";
 import { trackInitiateCheckout } from "../utils/metaPixel";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -154,6 +155,9 @@ const CartDrawer = ({ isOpen, onClose }) => {
   }, [items.length]);
 
   const [showFulfillment, setShowFulfillment] = useState(false);
+
+  // ✅ Flag bundles whose flavours don't add up to the box size
+  const { getIssues, hasIssues } = useBundleCheck();
 
   const fulfillment = useMemo(() => {
     const data = localStorage.getItem("fulfillmentData");
@@ -457,6 +461,17 @@ const removeItem = (item) => {
                               </div>
                             )}
 
+                            {/* ⚠️ Bundle doesn't add up */}
+                            {getIssues(item).map((issue, ii) => (
+                              <p
+                                key={ii}
+                                className="mt-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1"
+                              >
+                                ⚠ {issue.actual} of {issue.expected} pieces —
+                                remove and add again to pick flavours
+                              </p>
+                            ))}
+
                            {item.cakeMessage && item.cakeMessage.trim() !== "" && (
   <div className="mt-2 space-y-1">
     <p className="text-xs text-pink-600 italic">
@@ -573,6 +588,9 @@ const removeItem = (item) => {
     // home, best sellers, category) this button silently did nothing — the
     // drawer just closed. The modal is now rendered by the drawer itself, so
     // checkout works from everywhere.
+    // ✅ don't let a broken bundle reach checkout
+    if (hasIssues(items)) return;
+
     if (!fulfillment) {
       setShowFulfillment(true);
       return;
@@ -581,11 +599,14 @@ const removeItem = (item) => {
     onClose();
     navigate("/checkout");
   }}
-  className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold"
+  disabled={hasIssues(items)}
+  className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
 >
-  {fulfillment
-    ? `Proceed to Checkout · ${formatPrice(total)}`
-    : "Proceed to Checkout"}
+  {hasIssues(items)
+    ? "Fix the highlighted item to continue"
+    : fulfillment
+      ? `Proceed to Checkout · ${formatPrice(total)}`
+      : "Proceed to Checkout"}
 </button>
             </div>
           )}
