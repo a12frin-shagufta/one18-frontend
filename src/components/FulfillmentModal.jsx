@@ -132,7 +132,11 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
         setDeliveryFee(res.data.deliveryFee);
         setDeliveryArea(res.data.area);
         setPostalMessage(
-          `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`,
+          res.data.deliveryFee === 0
+            ? `Delivering to ${res.data.area} • Free delivery 🎉`
+            : `Delivering to ${res.data.area} • Fee S$${Number(
+                res.data.deliveryFee,
+              ).toFixed(2)}`,
         );
       } catch (err) {
         setPostalStatus("error");
@@ -162,7 +166,11 @@ const FulfillmentModal = ({ open, onClose, redirectToCheckout }) => {
       setDeliveryFee(res.data.deliveryFee);
       setDeliveryArea(res.data.area);
       setPostalMessage(
-        `Delivering to ${res.data.area} • Fee S$${res.data.deliveryFee}`,
+        res.data.deliveryFee === 0
+          ? `Delivering to ${res.data.area} • Free delivery 🎉`
+          : `Delivering to ${res.data.area} • Fee S$${Number(
+              res.data.deliveryFee,
+            ).toFixed(2)}`,
       );
     } catch (err) {
       setPostalStatus("error");
@@ -463,7 +471,9 @@ setShowAccessError?.(false);
                 <div className="bg-gray-50 border border-gray-200 p-3.5 rounded-xl text-sm">
                   Delivery Fee:{" "}
                   <span className="font-semibold">
-                    {deliveryFee === 0 ? "🎉 Free" : `S$${deliveryFee}`}
+                    {deliveryFee === 0
+                      ? "🎉 Free"
+                      : `S$${Number(deliveryFee).toFixed(2)}`}
                   </span>
                 </div>
               )}

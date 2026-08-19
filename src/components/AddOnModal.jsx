@@ -62,6 +62,9 @@ const AddOnModal = ({ item, onClose, onAddToCart }) => {
  const wordingFee =
   cakeMessage.trim() !== "" ? 5 : 0;
 
+// What the customer actually pays, for the button label only.
+// The wording fee is displayed here but deliberately excluded from the price
+// stored on the cart line — see the comment in handleSubmit.
 const totalPrice =
   (basePrice + addOnsTotal + wordingFee) * qty;
 
@@ -127,12 +130,17 @@ const totalPrice =
       }
     });
 
+// ⚠️ totalPrice must NOT include the cake wording fee.
+// The $5 is added separately in two places downstream — the cart/checkout
+// subtotal, and a dedicated Stripe line item (cakeMessageFee). Baking it in
+// here as well charged it twice: a $60 cake with wording came to $70.
+// ProductDetail already excludes it; this keeps both add paths identical.
 onAddToCart({
   variant: selectedVariant,
   addOns: chosenAddOns,
   qty,
   cakeMessage,
-  totalPrice: basePrice + addOnsTotal + wordingFee,
+  totalPrice: basePrice + addOnsTotal,
 });
 
     onClose();
