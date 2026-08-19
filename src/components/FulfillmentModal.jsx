@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { X, Store, Truck, ArrowLeft, CheckCircle } from "lucide-react";
+import { X, Store, Truck, ArrowLeft, CheckCircle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
@@ -352,8 +352,10 @@ setShowAccessError?.(false);
 
   // ── JSX ────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl flex flex-col max-h-[92vh] sm:max-h-[90vh] overflow-hidden">
+    /* z-[10000] sits above the floating WhatsApp widget (z-[9999]), which was
+       covering the Delivery button on phones. */
+    <div className="fixed inset-0 z-[10000] bg-black/60 flex items-end sm:items-center justify-center sm:p-4">
+      <div className="w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90dvh] sm:max-h-[90vh] overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b shrink-0">
@@ -368,7 +370,7 @@ setShowAccessError?.(false);
                 <ArrowLeft size={20} />
               </button>
             )}
-            <h2 className="font-semibold text-[17px]">
+            <h2 className="font-semibold text-[15px] sm:text-[17px] leading-snug">
               {step === "select" && "How would you like to receive your order?"}
               {step === "pickup" && "Pickup Details"}
               {step === "delivery_details" && "Delivery Details"}
@@ -385,30 +387,58 @@ setShowAccessError?.(false);
 
           {/* ── Step: select ── */}
           {step === "select" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <button
-                onClick={() => setStep("pickup")}
-                className="border rounded-xl p-6 sm:p-8 text-center hover:shadow-md hover:border-blue-600 active:scale-[0.98] transition flex flex-col justify-between"
-              >
-                <div>
-                  <Store className="mx-auto text-blue-700 mb-4" size={40} />
-                  <h3 className="font-semibold text-xl">Pickup</h3>
-                  <p className="text-sm text-gray-600 mt-2">Self-collect from our store</p>
-                </div>
-                <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">Select</div>
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
+              {[
+                {
+                  id: "pickup",
+                  icon: <Store className="text-blue-700 w-[22px] h-[22px] sm:w-10 sm:h-10 sm:mx-auto sm:mb-4" />,
+                  title: "Pickup",
+                  blurb: "Self-collect from our store",
+                  go: () => setStep("pickup"),
+                },
+                {
+                  id: "delivery",
+                  icon: <Truck className="text-blue-700 w-[22px] h-[22px] sm:w-10 sm:h-10 sm:mx-auto sm:mb-4" />,
+                  title: "Delivery",
+                  blurb: "Delivered to your doorstep",
+                  go: () => setStep("delivery_details"),
+                },
+              ].map(({ id, icon, title, blurb, go }) => (
+                <button
+                  key={id}
+                  onClick={go}
+                  className="w-full border rounded-xl text-left sm:text-center hover:border-blue-600 hover:shadow-md active:scale-[0.99] transition
+                             flex items-center gap-4 p-4
+                             sm:flex-col sm:justify-between sm:gap-0 sm:p-8"
+                >
+                  <span className="shrink-0 w-11 h-11 sm:w-auto sm:h-auto rounded-full bg-blue-50 sm:bg-transparent flex items-center justify-center">
+                    {/* Tailwind w-/h- override lucide's size attribute, so the
+                        icon stays 40px on desktop as before, 22px on phones */}
+                    {icon}
+                  </span>
 
-              <button
-                onClick={() => setStep("delivery_details")}
-                className="border rounded-xl p-6 sm:p-8 text-center hover:shadow-md hover:border-blue-600 active:scale-[0.98] transition flex flex-col justify-between"
-              >
-                <div>
-                  <Truck className="mx-auto text-blue-700 mb-4" size={40} />
-                  <h3 className="font-semibold text-xl">Delivery</h3>
-                  <p className="text-sm text-gray-600 mt-2">Delivered to your doorstep</p>
-                </div>
-                <div className="mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">Select</div>
-              </button>
+                  <span className="flex-1 min-w-0 sm:flex-none">
+                    <span className="block font-semibold text-base sm:text-xl">
+                      {title}
+                    </span>
+                    <span className="block text-[13px] sm:text-sm text-gray-600 sm:mt-2">
+                      {blurb}
+                    </span>
+                  </span>
+
+                  {/* Mobile: a chevron reads as "go". Desktop keeps the button.
+                      w-full is explicit because Safari doesn't stretch flex
+                      children inside a <button>, which made this a small
+                      left-aligned box on iPhone. */}
+                  <ChevronRight
+                    className="shrink-0 text-gray-400 sm:hidden"
+                    size={20}
+                  />
+                  <span className="hidden sm:block w-full mt-6 bg-blue-800 text-yellow-300 py-3 rounded-lg font-semibold">
+                    Select
+                  </span>
+                </button>
+              ))}
             </div>
           )}
 
