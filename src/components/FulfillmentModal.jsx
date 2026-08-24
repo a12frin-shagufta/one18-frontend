@@ -352,9 +352,12 @@ setShowAccessError?.(false);
 
   // ── JSX ────────────────────────────────────────────────────────────────────
   return (
-    /* z-[10000] sits above the floating WhatsApp widget (z-[9999]), which was
-       covering the Delivery button on phones. */
-    <div className="fixed inset-0 z-[10000] bg-black/60 flex items-end sm:items-center justify-center sm:p-4">
+    /* Stacking order, highest last:
+         ChatWidget      z-[9999]   (floating WhatsApp button)
+         CartDrawer      z-[10000]
+         this modal      z-[10001]
+       The WhatsApp widget used to cover the Delivery button on phones. */
+    <div className="fixed inset-0 z-[10001] bg-black/60 flex items-end sm:items-center justify-center sm:p-4">
       <div className="w-full max-w-2xl bg-white rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90dvh] sm:max-h-[90vh] overflow-hidden">
 
         {/* HEADER */}

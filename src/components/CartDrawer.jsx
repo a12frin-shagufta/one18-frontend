@@ -232,7 +232,7 @@ const removeItem = (item) => {
     <>
       {/* OVERLAY */}
       <div
-        className={`fixed inset-0 z-40 transition-all duration-300 ${
+        className={`fixed inset-0 z-[9999] transition-all duration-300 ${
           isOpen
             ? "bg-black/50 backdrop-blur-sm"
             : "bg-transparent pointer-events-none"
@@ -242,7 +242,7 @@ const removeItem = (item) => {
 
       {/* DRAWER */}
       <div
-        className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-white z-50 shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-white z-[10000] shadow-2xl transition-transform duration-300 ease-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -578,12 +578,23 @@ const removeItem = (item) => {
                     <span className="font-medium">- FREE</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery</span>
-                  <span className="font-medium">
-                    {deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}
-                  </span>
-                </div>
+                {/* Only show a delivery line once delivery is actually chosen.
+                    It used to render "Free" for every cart — including before
+                    a fulfillment method was picked, and for pickup orders —
+                    which promised free delivery on a $49 cart that would in
+                    fact be charged $6.99. */}
+                {fulfillment?.type === "delivery" && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delivery</span>
+                    <span
+                      className={`font-medium ${
+                        deliveryFee === 0 ? "text-green-600" : ""
+                      }`}
+                    >
+                      {deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}
+                    </span>
+                  </div>
+                )}
 
                 {fulfillment?.type === "delivery" &&
                   subtotal >= 30 &&
