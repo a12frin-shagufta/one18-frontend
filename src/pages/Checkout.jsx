@@ -161,8 +161,12 @@ const subtotal = useMemo(() => {
   }, 0);
 }, [items]);
 
+/* Recomputed from the current subtotal rather than read from fulfillmentData,
+   which holds whatever was quoted when the postcode was entered. The server
+   calculates the same way and charges its own figure, so these must agree.
+   Thresholds mirror DELIVERY_RULES in the backend's routes/deliveryRoutes.js. */
 const deliveryFee =
-  fulfillment?.type === "delivery" ? (Number(fulfillment.deliveryFee) || 0) : 0;
+  fulfillment?.type === "delivery" ? (subtotal >= 60 ? 0 : 6.99) : 0;
 
 
   const totalAmount = subtotal + deliveryFee;

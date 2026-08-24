@@ -189,11 +189,22 @@ const subtotal = useMemo(
     }, 0),
   [items],
 );
-  const deliveryFee =
-    fulfillment?.type === "delivery"
-      ? Number(fulfillment?.deliveryFee ?? 0)
-      : 0;
+  /* The fee in fulfillmentData was quoted when the customer entered their
+     postcode. If the cart changed since, that figure is stale — a $45 cart
+     quoted $6.99 kept paying $6.99 even after growing past the $60 free
+     threshold. Recompute from the CURRENT subtotal so the cart shows what the
+     server will actually charge. Keep these numbers in step with
+     DELIVERY_RULES in the backend's routes/deliveryRoutes.js. */
+  const deliveryFee = useMemo(() => {
+    if (fulfillment?.type !== "delivery") return 0;
+    return subtotal >= 60 ? 0 : 6.99;
+  }, [fulfillment?.type, subtotal]);
+
   const total = subtotal + deliveryFee;
+
+  // Delivery has a $30 minimum; pickup has none.
+  const belowDeliveryMinimum =
+    fulfillment?.type === "delivery" && subtotal < 30;
 
 const updateQty = (item, type) => {
   const key = item._key;
@@ -573,6 +584,14 @@ const removeItem = (item) => {
                     {deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}
                   </span>
                 </div>
+
+                {fulfillment?.type === "delivery" &&
+                  subtotal >= 30 &&
+                  subtotal < 60 && (
+                    <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                      Add {formatPrice(60 - subtotal)} more for free delivery
+                    </p>
+                  )}
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
@@ -591,6 +610,9 @@ const removeItem = (item) => {
     // ✅ don't let a broken bundle reach checkout
     if (hasIssues(items)) return;
 
+    // ✅ delivery has a $30 minimum
+    if (belowDeliveryMinimum) return;
+
     if (!fulfillment) {
       setShowFulfillment(true);
       return;
@@ -599,14 +621,16 @@ const removeItem = (item) => {
     onClose();
     navigate("/checkout");
   }}
-  disabled={hasIssues(items)}
+  disabled={hasIssues(items) || belowDeliveryMinimum}
   className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
 >
   {hasIssues(items)
     ? "Fix the highlighted item to continue"
-    : fulfillment
-      ? `Proceed to Checkout · ${formatPrice(total)}`
-      : "Proceed to Checkout"}
+    : belowDeliveryMinimum
+      ? `Add ${formatPrice(30 - subtotal)} more for delivery`
+      : fulfillment
+        ? `Proceed to Checkout · ${formatPrice(total)}`
+        : "Proceed to Checkout"}
 </button>
             </div>
           )}
