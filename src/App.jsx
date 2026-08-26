@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { initPixel, trackPageView } from "./utils/metaPixel";
 import { useEffect } from "react";
 
+import AnnouncementBar from "./components/AnnouncementBar";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -60,6 +61,7 @@ function App() {
 
   return (
     <>
+      <AnnouncementBar />
       <Navbar />
       <NewsletterPopup/>
 
