@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import { initPixel, trackPageView } from "./utils/metaPixel";
+import { initGTM, gtmPageView } from "./utils/googleTagManager";
 import { useEffect } from "react";
 
 import AnnouncementBar from "./components/AnnouncementBar";
@@ -34,10 +35,14 @@ function App() {
   // each route change or Meta sees a single page per visit.
   useEffect(() => {
     initPixel();
+     initGTM();
   }, []);
 
   useEffect(() => {
     trackPageView();
+    // GTM's built-in Page View trigger only fires once in a SPA, so tags that
+    // need to run per page use a "Custom Event: route_change" trigger.
+    gtmPageView(location.pathname);
   }, [location.pathname]);
 
   useEffect(() => {
