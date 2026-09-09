@@ -143,12 +143,18 @@ const handleAddClick = (e) => {
 
 };
 
-const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
-  // ✅ same key format as everywhere else (labels + quantities + wording)
+const handleModalAddToCart = ({ variant, addOns, qty, totalPrice, cakeMessage }) => {
+  // ⚠️ cakeMessage was being dropped here. AddOnModal collects it and passes it
+  // out, but it never reached the cart line — so for anything ordered from the
+  // menu grid the $5 wording fee was never charged (the fee is derived from
+  // item.cakeMessage downstream) and the kitchen never saw the message.
+  // The product page path always stored it, which is why only some orders
+  // were affected.
   const key = getCartKey({
     itemId: item._id,
     variant: variant.label,
     addOns,
+    cakeMessage,
   });
 
   trackAddToCart({ product: item, variant, qty, unitPrice: totalPrice });
@@ -167,6 +173,7 @@ const handleModalAddToCart = ({ variant, addOns, qty, totalPrice }) => {
         category: item.category?.name,
         festival: item.festival ?? null,
         addOns: addOns,                         // store chosen add-ons for display
+        cakeMessage: cakeMessage || "",          // drives the $5 wording fee
       },
     };
 
