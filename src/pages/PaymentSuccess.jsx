@@ -32,16 +32,23 @@ const PaymentSuccess = () => {
 
         setMsg(res.data.message || "Payment successful ✅");
 
-        // ✅ Meta Pixel Purchase. Deduped two ways: the server tells us if this
-        // session was already verified, and trackPurchase keys on orderNumber
-        // so a refresh or a back-button visit can't double-count revenue.
-        if (!res.data.alreadyVerified) {
-          trackPurchase({
-            orderNumber: res.data.orderNumber,
-            value: res.data.amount,
-            currency: res.data.currency || "SGD",
-          });
-        }
+        // ✅ Meta Pixel Purchase.
+        //
+        // ⚠️ This used to be wrapped in `if (!res.data.alreadyVerified)`, which
+        // silently suppressed most Purchase events. The Stripe webhook usually
+        // marks a card order paid BEFORE the browser finishes redirecting here,
+        // so verify replies alreadyVerified:true and the event never fired —
+        // which is why the ads reporting showed no purchases.
+        //
+        // Firing unconditionally is safe: trackPurchase keys on orderNumber,
+        // storing a flag in localStorage and passing the same value as Meta's
+        // eventID, so a refresh, a back-button visit, or a duplicate server
+        // event all deduplicate rather than double-counting revenue.
+        trackPurchase({
+          orderNumber: res.data.orderNumber,
+          value: res.data.amount,
+          currency: res.data.currency || "SGD",
+        });
 
         // ✅ clear cart ✅✅✅
         clearCart();

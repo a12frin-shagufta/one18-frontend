@@ -120,14 +120,24 @@ const handleAddClick = (e) => {
   const handleCakeNameSave = (cakeName) => {
   setShowCakeNameModal(false);
 
+  // ⚠️ Must use the shared cart key, which includes the wording. The simple
+  // `${item._id}_${variant.label}` key ignores it, so ordering two cakes with
+  // DIFFERENT messages collapsed them into one line — the second message
+  // overwrote the first and both cakes were piped with the same name.
+  const cakeKey = getCartKey({
+    itemId: item._id,
+    variant: variant.label,
+    cakeMessage: cakeName,
+  });
+
   setOrders((prev) => {
     const updated = {
       ...prev,
-      [key]: {
+      [cakeKey]: {
         itemId: item._id,
         name: item.name,
         variant: variant.label,
-        qty: (prev[key]?.qty || 0) + 1,
+        qty: (prev[cakeKey]?.qty || 0) + 1,
         price: variant.discountedPrice ?? variant.price,
         image: item.images?.[0],
         category: item.category?.name,
