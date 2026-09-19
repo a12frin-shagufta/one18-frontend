@@ -1,837 +1,566 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
-import { useCart } from "../context/CartContext";
-import { useNavigate } from "react-router-dom";
-import { formatPrice } from "../utils/currency";
-import { useBundleCheck } from "../utils/useBundleCheck";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle,
-  ChevronLeft,
-  AlertCircle,
-  Loader,
   X,
-  Upload,
+  Plus,
+  Minus,
+  Trash2,
+  MapPin,
+  Calendar,
+  Clock,
+  Gift,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
-import { DEFAULT_BRANCH } from "../config/defaultBranch";
-
+import { useCart } from "../context/CartContext";
+import { formatPrice } from "../utils/currency";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import FulfillmentModal from "./FulfillmentModal";
+import { useBundleCheck } from "../utils/useBundleCheck";
+import { trackInitiateCheckout } from "../utils/metaPixel";
 
-const Checkout = () => {
-  // TEMPORARY DEBUG — remove after fixing
-// console.log("RAW localStorage cart:", localStorage.getItem("cart"));
-// console.log("ALL localStorage keys:", Object.keys(localStorage));
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+// ─── inline FreeItemPicker ───────────────────────────────────────────────────
+const FreeItemPicker = ({ promoItems, selectedFreeItem, onSelect }) => (
+  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 mt-2">
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
+        <Gift size={18} className="text-green-600" />
+      </div>
+      <div>
+        <p className="font-bold text-green-800 text-sm">Buy 4 Get 1 Free!</p>
+        <p className="text-xs text-green-600">Pick your free item below</p>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-3 gap-2">
+      {promoItems.map((item) => {
+        const isSelected = selectedFreeItem?._id === item._id;
+        return (
+          <button
+            key={item._id}
+            onClick={() => onSelect(isSelected ? null : item)}
+            className={`rounded-xl border-2 p-1.5 text-left transition-all ${
+              isSelected
+                ? "border-green-500 bg-green-100 shadow-md scale-[1.03]"
+                : "border-gray-200 bg-white hover:border-green-300"
+            }`}
+          >
+            <img
+              src={item.images?.[0]}
+              alt={item.name}
+              className="w-full aspect-square object-cover rounded-lg mb-1"
+            />
+            <p className="text-[11px] font-medium text-gray-800 truncate leading-tight">
+              {item.name}
+            </p>
+            <p className="text-[11px] text-green-600 font-bold">FREE</p>
+          </button>
+        );
+      })}
+    </div>
+
+    {selectedFreeItem && (
+      <div className="mt-3 flex items-center gap-2 bg-green-100 rounded-xl px-3 py-2">
+        <span className="text-green-600 text-sm">✅</span>
+        <p className="text-sm text-green-700 font-medium">
+          {selectedFreeItem.name} added free!
+        </p>
+        <button
+          onClick={() => onSelect(null)}
+          className="ml-auto text-green-500 hover:text-green-700"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    )}
+  </div>
+);
+// ────────────────────────────────────────────────────────────────────────────
+
+// Sum of an item's add-on cost for ONE unit of the item.
+// Quantity-mode add-ons: price is per-unit, so multiply by addon.quantity.
+// Regular (checkbox/radio) add-ons: no quantity field, treat as qty 1.
+const getAddOnUnitTotal = (item) =>
+  (item.addOns || []).reduce((sum, addon) => {
+    const qty = addon.quantity ?? 1;
+    return sum + (Number(addon.price) || 0) * qty;
+  }, 0);
+
+const CartDrawer = ({ isOpen, onClose }) => {
+  const { orders, setOrders } = useCart();
   const navigate = useNavigate();
-  const { orders, clearCart } = useCart();
-  const clickLock = useRef(false);
+  // ✅ FIX: carry the real cart key with each line. The drawer used to rebuild
+  // the key from scratch, but the add paths stored a DIFFERENT format, so
+  // delete/qty were mutating a key that didn't exist — silently doing nothing.
+  // Using the stored key also repairs carts saved before this fix.
+  const items = Object.entries(orders).map(([_key, value]) => ({
+    ...value,
+    _key,
+  }));
 
- 
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [orderNote, setOrderNote] = useState(() => localStorage.getItem("orderNote") || "");
-  const [errors, setErrors] = useState({});
-  const [paymentMethod, setPaymentMethod] = useState("stripe");
-  const items = useMemo(() => {
-  const contextItems = Object.values(orders);
-  if (contextItems.length > 0) return contextItems;
-  
-  // Fallback: read directly from localStorage
-  try {
-    const saved = localStorage.getItem("cart");
-    return saved ? Object.values(JSON.parse(saved)) : [];
-  } catch {
-    return [];
-  }
-}, [orders]);
+  // ── promo state ────────────────────────────────────────────────────────────
+  const [promoItems, setPromoItems] = useState([]);
+  const [freeItem, setFreeItem] = useState(null);
 
-  const location = useLocation();
+  // fetch promo-eligible items once
+  useEffect(() => {
+    axios
+      .get(`${BACKEND_URL}/api/promo/items`)
+      .then((res) => setPromoItems(res.data || []))
+      .catch(console.error);
+  }, []);
 
-  // ✅ Guard against bundles whose flavour quantities don't add up (e.g. an old
-  // cart saved before the quantity picker existed). Fails open — see the hook.
-  const { getIssues, firstIssueMessage } = useBundleCheck();
+  // ids for quick lookup
+  const promoItemIds = useMemo(
+    () => new Set(promoItems.map((p) => p._id)),
+    [promoItems],
+  );
+
+  // count eligible items in cart (sum of qty)
+  const promoQty = useMemo(
+    () =>
+      items.reduce(
+        (sum, i) => (promoItemIds.has(i.itemId) ? sum + i.qty : sum),
+        0,
+      ),
+    [items, promoItemIds],
+  );
+
+  const promoUnlocked = promoQty >= 4;
+
+  // clear free item if promo no longer qualifies
+  useEffect(() => {
+    if (!promoUnlocked) setFreeItem(null);
+  }, [promoUnlocked]);
+
+  // persist free item to localStorage so checkout can read it
+  useEffect(() => {
+    if (freeItem) {
+      localStorage.setItem("promoFreeItem", JSON.stringify(freeItem));
+    } else {
+      localStorage.removeItem("promoFreeItem");
+    }
+  }, [freeItem]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => (document.body.style.overflow = "");
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      localStorage.removeItem("fulfillmentData");
+    }
+  }, [items.length]);
+
+  const [showFulfillment, setShowFulfillment] = useState(false);
+
+  // ✅ Flag bundles whose flavours don't add up to the box size
+  const { getIssues, hasIssues } = useBundleCheck();
 
   const fulfillment = useMemo(() => {
     const data = localStorage.getItem("fulfillmentData");
     return data ? JSON.parse(data) : null;
-  }, []);
+  }, [isOpen, items.length, showFulfillment]);
 
-  // ✅ Read promo free item from localStorage
-const freeItem = useMemo(() => {
-  const data = localStorage.getItem("promoFreeItem");
-  return data ? JSON.parse(data) : null;
-}, []);
+const wordingFee = useMemo(
+  () =>
+    items.reduce((sum, item) => {
+      const hasMessage =
+        item.cakeMessage &&
+        item.cakeMessage.trim() !== "";
 
-  const [customer, setCustomer] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    company: "",
-    address: "",
-    apartment: "",
-    postalCode: "",
+      return hasMessage ? sum + (5 * item.qty) : sum;
+    }, 0),
+  [items],
+);
 
-    phone: "65", // ✅ Singapore default
+const subtotal = useMemo(
+  () =>
+    items.reduce((sum, i) => {
+      const wordingExtra =
+        i.cakeMessage &&
+        i.cakeMessage.trim() !== ""
+          ? 5 * i.qty
+          : 0;
+
+      return sum + (i.price * i.qty) + wordingExtra;
+    }, 0),
+  [items],
+);
+  /* The fee in fulfillmentData was quoted when the customer entered their
+     postcode. If the cart changed since, that figure is stale — a $45 cart
+     quoted $8.99 kept paying $8.99 even after growing past the $80 free
+     threshold. Recompute from the CURRENT subtotal so the cart shows what the
+     server will actually charge. Keep these numbers in step with
+     DELIVERY_RULES in the backend's routes/deliveryRoutes.js. */
+  const deliveryFee = useMemo(() => {
+    if (fulfillment?.type !== "delivery") return 0;
+    return subtotal >= 80 ? 0 : 8.99;
+  }, [fulfillment?.type, subtotal]);
+
+  const total = subtotal + deliveryFee;
+
+  // Delivery has a $30 minimum; pickup has none.
+  const belowDeliveryMinimum =
+    fulfillment?.type === "delivery" && subtotal < 30;
+
+const updateQty = (item, type) => {
+  const key = item._key;
+  setOrders((prev) => {
+    const qty = type === "inc" ? item.qty + 1 : item.qty - 1;
+    if (qty <= 0) {
+      const copy = { ...prev };
+      delete copy[key];
+      return copy;
+    }
+    return { ...prev, [key]: { ...prev[key], qty } };
   });
+};
 
-  useEffect(() => {
-    const savedCustomer = localStorage.getItem("checkoutCustomer");
-    if (!savedCustomer) return;
-
-    const parsed = JSON.parse(savedCustomer);
-    delete parsed.postalCode;
-
-    setCustomer((prev) => ({
-      ...prev,
-      ...parsed,
-    }));
-  }, []);
-
-  useEffect(() => {
-    if (!fulfillment) return;
-
-    if (fulfillment.type === "delivery") {
-      setCustomer((prev) => ({
-        ...prev,
-        postalCode:
-          fulfillment.postalCode || fulfillment.postal || fulfillment.zip || "",
-      }));
-    }
-  }, [fulfillment]);
-
-  const requiredFields = useMemo(() => {
-    if (fulfillment?.type === "pickup") {
-      return ["firstName", "lastName", "email", "phone"];
-    }
-    return ["firstName", "lastName", "email", "phone", "address", "postalCode"];
-  }, [fulfillment?.type]);
-
-  const validateForm = () => {
-    const newErrors = {};
-    requiredFields.forEach((field) => {
-      if (!customer[field]?.trim()) {
-        newErrors[field] = "This field is required";
-      }
-    });
-
-    if (customer.email && !/^\S+@\S+\.\S+$/.test(customer.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (customer.phone && !/^\d{8,}$/.test(customer.phone.replace(/\D/g, ""))) {
-      newErrors.phone = "Please enter a valid phone number";
-    }
-
-    if (fulfillment?.type === "delivery") {
-      if (
-        customer.postalCode &&
-        !/^\d{6}$/.test(customer.postalCode.replace(/\D/g, ""))
-      ) {
-        newErrors.postalCode = "Singapore postal code must be 6 digits";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-const wordingFee = useMemo(() => {
-  return items.reduce((sum, item) => {
-    const hasMessage =
-      item.cakeMessage && item.cakeMessage.trim() !== "";
-
-    return hasMessage ? sum + (5 * item.qty) : sum;
-  }, 0);
-}, [items]);
-
-// ⚠️ item.price already includes add-on cost — it's baked in when the item
-// is added to cart (see ProductDetail's addOnsTotal). Do NOT add add-on
-// price again here or it double-counts. Add-ons are shown below for
-// display purposes only.
-const subtotal = useMemo(() => {
-  return items.reduce((sum, item) => {
-    const basePrice = item.price * item.qty;
-
-    const wordingExtra =
-      item.cakeMessage && item.cakeMessage.trim() !== ""
-        ? 5 * item.qty
-        : 0;
-
-    return sum + basePrice + wordingExtra;
-  }, 0);
-}, [items]);
-
-/* Recomputed from the current subtotal rather than read from fulfillmentData,
-   which holds whatever was quoted when the postcode was entered. The server
-   calculates the same way and charges its own figure, so these must agree.
-   Thresholds mirror DELIVERY_RULES in the backend's routes/deliveryRoutes.js. */
-const deliveryFee =
-  fulfillment?.type === "delivery" ? (subtotal >= 60 ? 0 : 6.99) : 0;
-
-
-  const totalAmount = subtotal + deliveryFee;
-
-  const handleInputChange = (field, value) => {
-    setCustomer((prev) => ({ ...prev, [field]: value }));
-
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const placeOrder = async () => {
-    if (clickLock.current) return;
-    clickLock.current = true;
-    if (!validateForm()) {
-      clickLock.current = false;
-      setIsProcessing(false);
-      return;
-    }
-
-    // ✅ Stop a broken bundle BEFORE Stripe. The server would reject it too,
-    // but only after the customer has filled in the whole form and pressed pay.
-    const bundleProblem = firstIssueMessage(items);
-    if (bundleProblem) {
-      alert(bundleProblem);
-      clickLock.current = false;
-      setIsProcessing(false);
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-      const fulfillment = JSON.parse(
-        localStorage.getItem("fulfillmentData") || "{}",
-      );
-
-      if (!fulfillment?.type) {
-        alert("Fulfillment details missing, please go back");
-        setIsProcessing(false);
-        return;
-      }
-
-      const hasPreorderItem = items.some((i) => i.preorder?.enabled === true);
-      const orderType = hasPreorderItem ? "PREORDER" : "WALK_IN";
-      const branchId =
-        fulfillment?.branch?._id ||
-        fulfillment?.branch?.id ||
-        DEFAULT_BRANCH.id; // fallback only if missing
-
-      console.log("Sending branchId →", branchId);
-
-      console.log("FULFILLMENT DATA =", fulfillment);
-      console.log("FULFILLMENT BRANCH =", fulfillment?.branch);
-      console.log("FULFILLMENT BRANCH _id =", fulfillment?.branch?._id);
-
-      const payload = {
-        branch: branchId,
-        orderType,
-        fulfillmentType: fulfillment.type,
-        fulfillmentDate:
-          fulfillment.type === "pickup"
-            ? fulfillment.pickupDate
-            : fulfillment.deliveryDate,
-        fulfillmentTime:
-          fulfillment.type === "pickup"
-            ? fulfillment.pickupTime
-            : fulfillment.deliveryTime,
-        customer: {
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          email: customer.email,
-          company: customer.company,
-          phone: customer.phone,
-          address: fulfillment.type === "delivery" ? customer.address : "",
-          apartment: fulfillment.type === "delivery" ? customer.apartment : "",
-          postalCode:
-            fulfillment.type === "delivery" ? customer.postalCode : "",
-          message: orderNote,
-        },
-        deliveryAddress:
-          fulfillment.type === "delivery"
-            ? {
-                addressText: customer.address,
-                postalCode: customer.postalCode,
-              }
-            : null,
-        pickupLocation: {
-          name: fulfillment?.branch?.name || DEFAULT_BRANCH.name,
-          address: fulfillment?.branch?.address || DEFAULT_BRANCH.address,
-        },
-
-        items: [
-  ...items.map((i) => ({
-    productId: i.itemId,
-    name: i.name,
-    variant: i.variant,
-    price: i.price,
-    qty: i.qty,
-    addOns: i.addOns || [], 
-    cakeMessage: i.cakeMessage || "",
-cakeMessageFee:
-  i.cakeMessage && i.cakeMessage.trim() !== ""
-    ? 5
-    : 0,
-  })),
-  // ✅ append free promo item if unlocked
-  ...(freeItem
-    ? [
-        {
-          productId: freeItem._id,
-          name: freeItem.name,
-          variant: freeItem.variants?.[0]?.label || "Default",
-          price: 0,
-          qty: 1,
-          isFreePromo: true,
-        },
-      ]
-    : []),
-],
-        subtotal,
-        deliveryFee,
-        totalAmount: subtotal + deliveryFee,
-      };
-
-      if (paymentMethod === "stripe") {
-        const res = await axios.post(
-          `${BACKEND_URL}/api/payment/create-checkout-session`,
-          {
-            items: payload.items,
-            deliveryFee: payload.deliveryFee,
-            orderPayload: {
-              ...payload,
-              paymentMethod: "stripe",
-            },
-          },
-        );
-
-        if (!res.data?.url) {
-          alert("Stripe URL not received");
-          return;
-        }
-
-        localStorage.removeItem("promoFreeItem");
-        window.location.assign(res.data.url);
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || "Payment failed, try again");
-      setIsProcessing(false);
-      clickLock.current = false;
-    }
-  };
-
-  const goBack = () => {
-    if (location.state?.from) {
-      navigate(location.state.from);
-    } else {
-      navigate("/menu");
-    }
-  };
-
-  useEffect(() => {
-    const { postalCode, ...safeCustomer } = customer;
-    localStorage.setItem("checkoutCustomer", JSON.stringify(safeCustomer));
-  }, [customer]);
-
-  const handleNoteChange = (value) => {
-  setOrderNote(value);
-  localStorage.setItem("orderNote", value);
+const removeItem = (item) => {
+  const key = item._key;
+  setOrders((prev) => {
+    const copy = { ...prev };
+    delete copy[key];
+    return copy;
+  });
 };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-28">
-      {/* HEADER */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={goBack}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              aria-label="Go back"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900">
-                Checkout
-              </h1>
-              <p className="text-sm text-gray-500">
-                Complete your order details
-              </p>
+    <>
+      {/* OVERLAY */}
+      <div
+        className={`fixed inset-0 z-[9999] transition-all duration-300 ${
+          isOpen
+            ? "bg-black/50 backdrop-blur-sm"
+            : "bg-transparent pointer-events-none"
+        }`}
+        onClick={onClose}
+      />
+
+      {/* DRAWER */}
+      <div
+        className={`fixed top-0 right-0 h-full w-full sm:max-w-md bg-white z-[10000] shadow-2xl transition-transform duration-300 ease-out ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* HEADER */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-white sticky top-0 z-10">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span className="text-blue-600 font-semibold">
+                  {items.length}
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Your Cart</h2>
             </div>
+            <p className="text-sm text-gray-500">
+              {items.length === 0
+                ? "Your cart is empty"
+                : `${items.length} item${items.length > 1 ? "s" : ""} added`}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={24} className="text-gray-600" />
+          </button>
         </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Contact Information */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                1
+        {/* CONTENT */}
+        <div className="flex flex-col h-[calc(100%-140px)] sm:h-[calc(100%-160px)] overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+            {/* EMPTY STATE */}
+            {items.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center px-4 py-16 sm:py-24">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+                  <span className="text-4xl sm:text-5xl">🛒</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                  Your cart is empty
+                </h3>
+                <p className="text-gray-500 mb-8 max-w-sm">
+                  Looks like you haven't added any delicious items yet
+                </p>
+                <button
+                  onClick={() => {
+                    onClose();
+                    navigate("/menu");
+                  }}
+                  className="w-full max-w-xs bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-semibold shadow-lg"
+                >
+                  Go to Menu
+                </button>
               </div>
-              <h2 className="text-xl font-serif font-semibold text-gray-900">
-                Contact Information
-              </h2>
-            </div>
+            )}
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First name *
-                  </label>
-                  <input
-                    id="firstName"
-                    value={customer.firstName}
-                    onChange={(e) =>
-                      handleInputChange("firstName", e.target.value)
-                    }
-                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.firstName ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="John"
-                  />
-                  {errors.firstName && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.firstName}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last name *
-                  </label>
-                  <input
-                    id="lastName"
-                    value={customer.lastName}
-                    onChange={(e) =>
-                      handleInputChange("lastName", e.target.value)
-                    }
-                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.lastName ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="Doe"
-                  />
-                  {errors.lastName && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.lastName}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email address *
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={customer.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="example@gmail.com"
-                  />
-                  {errors.email && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone number *
-                  </label>
-                  <PhoneInput
-                    country="sg"
-                    preferredCountries={["sg"]}
-                    value={customer.phone}
-                    onChange={(value) => handleInputChange("phone", value)}
-                    enableSearch
-                    inputClass={`!w-full !h-[50px] !rounded-xl !pl-14 !border ${
-                      errors.phone ? "!border-red-500" : "!border-gray-300"
-                    }`}
-                    buttonClass="!border-gray-300 !rounded-l-xl"
-                    containerClass="w-full"
-                    dropdownClass="!rounded-xl"
-                  />
-
-                  {errors.phone && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.phone}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Delivery Address section */}
-          {fulfillment?.type === "delivery" && (
-            <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                  2
-                </div>
-                <h2 className="text-xl font-serif font-semibold text-gray-900">
-                  Delivery Address
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
+            {/* 🎀 🎀 🎀 🎀 FULFILLMENT SUMMARY 🎀  🎀 🎀 🎀 🎀 */}
+            {items.length > 0 && fulfillment && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-4 mb-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <MapPin
+                        size={20}
+                        className={
+                          fulfillment.type === "pickup"
+                            ? "text-blue-600"
+                            : "text-green-600"
+                        }
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-blue-900">
-                        Singapore Delivery
+                      <p className="text-sm font-medium text-gray-700 capitalize">
+                        {fulfillment.type}
                       </p>
-                      <p className="text-xs text-blue-700 mt-1">
-                        All orders are delivered within Singapore
+                      <p className="text-xs text-gray-500">
+                        {fulfillment.type === "pickup"
+                          ? "Store pickup"
+                          : "Home delivery"}
                       </p>
                     </div>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Address *
-                  </label>
-                  <input
-                    id="address"
-                    value={customer.address}
-                    onChange={(e) =>
-                      handleInputChange("address", e.target.value)
-                    }
-                    className={`w-full border rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none ${
-                      errors.address ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="123 Main Street"
-                  />
-                  {errors.address && (
-                    <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      {errors.address}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Apartment, suite, etc. (optional)
-                    </label>
-                    <input
-                      value={customer.apartment}
-                      onChange={(e) =>
-                        handleInputChange("apartment", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded-xl px-4 py-3 transition-all duration-200 focus:ring-2 focus:ring-black focus:border-transparent outline-none"
-                      placeholder="Apt 4B"
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <MapPin
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Postal Code *
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="postalCode"
-                        value={customer.postalCode || ""}
-                        disabled
-                        readOnly
-                        className="w-full border border-gray-300 bg-gray-100 rounded-xl px-4 py-3"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500">
+                        {fulfillment.type === "pickup"
+                          ? "Pickup from"
+                          : "Delivering to"}
+                      </p>
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.branch?.name
+                          : fulfillment.postalCode}
+                      </p>
+                      {fulfillment.type === "pickup" && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {fulfillment.branch?.address}
+                        </p>
+                      )}
                     </div>
-                    {fulfillment?.area && (
-                      <p className="mt-1.5 text-sm text-green-700">
-                        Delivering to {fulfillment.area}
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Calendar
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500">
+                        {fulfillment.type === "pickup"
+                          ? "Pickup date"
+                          : "Delivery date"}
                       </p>
-                    )}
-                    {errors.postalCode && (
-                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
-                        {errors.postalCode}
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.pickupDate
+                          : fulfillment.deliveryDate}
                       </p>
-                    )}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock
+                      size={16}
+                      className="text-gray-400 mt-0.5 flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-500">
+                        {fulfillment.type === "pickup"
+                          ? "Pickup time"
+                          : "Delivery time"}
+                      </p>
+                      <p className="font-semibold text-gray-900 text-sm">
+                        {fulfillment.type === "pickup"
+                          ? fulfillment.pickupTime
+                          : fulfillment.deliveryTime}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </section>
-          )}
+            )}
 
-          {/* Delivery Method */}
-          {fulfillment && (
-            <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                  {fulfillment?.type === "delivery" ? 3 : 2}
-                </div>
-                <h2 className="text-xl font-serif font-semibold text-gray-900">
-                  {fulfillment.type === "delivery"
-                    ? "Delivery Method"
-                    : "Pickup Details"}
-                </h2>
-              </div>
+            {/* CART ITEMS */}
+            {items.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-bold text-gray-900 text-lg">Order Items</h3>
 
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
+                {/* ✅ PROMO PROGRESS BAR (shows when < 4 eligible items) */}
+                {promoItems.length > 0 && !promoUnlocked && promoQty > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-sm font-medium text-amber-800">
+                        🎁 Add {4 - promoQty} more promo item
+                        {4 - promoQty > 1 ? "s" : ""} for a FREE one!
+                      </p>
+                      <span className="text-xs font-bold text-amber-700">
+                        {promoQty}/4
+                      </span>
+                    </div>
+                    <div className="w-full bg-amber-200 rounded-full h-2">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          fulfillment.type === "delivery"
-                            ? "bg-blue-100"
-                            : "bg-green-100"
-                        }`}
-                      >
-                        {fulfillment.type === "delivery" ? (
-                          <span className="text-2xl">🚚</span>
-                        ) : (
-                          <span className="text-2xl">🏬</span>
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {fulfillment.type === "delivery"
-                            ? "Home Delivery"
-                            : "Store Pickup"}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {fulfillment.type === "delivery"
-                            ? `${fulfillment.deliveryDate} • ${fulfillment.deliveryTime}`
-                            : `${fulfillment.branch?.name} • ${fulfillment.pickupDate} • ${fulfillment.pickupTime}`}
-                        </p>
-                      </div>
+                        className="bg-amber-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${(promoQty / 4) * 100}%` }}
+                      />
                     </div>
-                  </div>
-
-                  {fulfillment.type === "delivery" && (
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
-                        {deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee)}
-                      </p>
-                      <p className="text-xs text-gray-500">Delivery fee</p>
-                    </div>
-                  )}
-                </div>
-
-                {fulfillment.type === "delivery" && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-sm text-gray-600">
-                      Estimated delivery time: 30-45 minutes
-                    </p>
                   </div>
                 )}
-              </div>
-            </section>
-          )}
-        </div>
 
-        {/* RIGHT COLUMN - Payment & Order Summary */}
-        <div className="space-y-6">
-          {/* Payment Method */}
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div
+                      key={item._key}
+                      className="flex gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {item.name}
+                              </h4>
+                              {/* ✅ badge if promo-eligible */}
+                              {promoItemIds.has(item.itemId) && (
+                                <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full font-medium">
+                                  🎁 Promo
+                                </span>
+                              )}
+                            </div>
 
-          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
-  <div className="flex items-center gap-3 mb-4">
-    <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-      📝
-    </div>
-    <h2 className="text-xl font-serif font-semibold text-gray-900">
-      Order Notes
-    </h2>
-  </div>
-  <textarea
-    value={orderNote}
-    onChange={(e) => handleNoteChange(e.target.value)}
-    rows={3}
-    maxLength={300}
-    placeholder="Any special requests? (e.g. allergies, gift wrapping, delivery instructions...)"
-    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-black focus:border-transparent outline-none resize-none transition-all"
-  />
-  <p className="text-xs text-gray-400 text-right mt-1">{orderNote.length}/300</p>
-</section>
+                            {item.variant && (
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {item.variant}
+                              </p>
+                            )}
 
-          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center text-sm font-medium">
-                {fulfillment?.type === "delivery" ? 4 : 3}
-              </div>
-              <h2 className="text-xl font-serif font-semibold text-gray-900">
-                Payment Method
-              </h2>
-            </div>
+                            {/* ✅ Add-ons (with quantities when present) */}
+                            {item.addOns?.length > 0 && (
+                              <div className="mt-1.5 space-y-0.5">
+                                {item.addOns.map((addon, i) => (
+                                  <p
+                                    key={i}
+                                    className="text-xs text-gray-500 flex justify-between gap-2"
+                                  >
+                                    <span>
+                                      + {addon.label}
+                                      {addon.quantity ? ` × ${addon.quantity}` : ""}
+                                    </span>
+                                    {addon.price > 0 && (
+                                      <span className="text-gray-400 flex-shrink-0">
+                                        +
+                                        {formatPrice(
+                                          addon.price * (addon.quantity || 1),
+                                        )}
+                                      </span>
+                                    )}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
 
-            <div className="space-y-3">
-              
+                            {/* ⚠️ Bundle doesn't add up */}
+                            {getIssues(item).map((issue, ii) => (
+                              <p
+                                key={ii}
+                                className="mt-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1"
+                              >
+                                ⚠ {issue.actual} of {issue.expected} pieces —
+                                remove and add again to pick flavours
+                              </p>
+                            ))}
 
-              <label
-                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition ${
-                  paymentMethod === "stripe"
-                    ? "border-black bg-gray-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="stripe"
-                  checked={paymentMethod === "stripe"}
-                  onChange={() => setPaymentMethod("stripe")}
-                  className="w-5 h-5"
-                />
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">Secure Online Payment</p>
-<p className="text-sm text-gray-600">
-  PayNow / Card / Wallet (via Stripe)
-</p>
-                </div>
-                <span className="text-xl">💳</span>
-              </label>
-            </div>
-          </section>
-
-          {/* Order Summary */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 shadow-sm lg:sticky lg:top-24">
-            <h2 className="text-xl font-serif font-semibold text-gray-900 mb-6">
-              Order Summary
-            </h2>
-
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-              {items.map((item) => (
-                <div
-                  key={`${item.itemId}_${item.variant}_${(item.addOns || [])
-                    .map((a) => `${a.label}${a.quantity ? `x${a.quantity}` : ""}`)
-                    .join("_")}`}
-                  className="flex gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors"
-                >
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                    <span className="absolute -top-2 -right-2 bg-black text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-                      {item.qty}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">
-                      {item.name}
-                    </p>
-                    {item.variant && (
-  <p className="text-sm text-gray-500">{item.variant}</p>
-)}
-
-{/* 🎂 Cake Message */}
-{item.cakeMessage && item.cakeMessage.trim() !== "" && (
-  <div className="mt-1 space-y-1">
+                           {item.cakeMessage && item.cakeMessage.trim() !== "" && (
+  <div className="mt-2 space-y-1">
     <p className="text-xs text-pink-600 italic">
       🎂 "{item.cakeMessage}"
     </p>
 
     <p className="text-xs text-orange-600 font-medium">
-      Wording fee +{formatPrice(5)}
+      Custom wording +{formatPrice(5)}
     </p>
   </div>
 )}
-
-{/* ⚠️ Bundle quantities don't add up */}
-{getIssues(item).map((issue, ii) => (
-  <p
-    key={ii}
-    className="mt-1 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1"
-  >
-    ⚠ {issue.actual} of {issue.expected} pieces selected — please remove
-    this item and add it again
-  </p>
-))}
-
-{/* ✅ Show chosen add-ons (with quantities when present) */}
-{item.addOns?.length > 0 && (
-  <div className="mt-1 space-y-0.5">
-    {item.addOns.map((addon, i) => (
-      <p key={i} className="text-xs text-gray-500 flex justify-between gap-2">
-        <span>
-          + {addon.label}
-          {addon.quantity ? ` × ${addon.quantity}` : ""}
-        </span>
-        {addon.price > 0 && (
-          <span className="text-gray-400 flex-shrink-0">
-            +{formatPrice(addon.price * (addon.quantity || 1))}
-          </span>
-        )}
-      </p>
-    ))}
-  </div>
-)}
-
-<p className="text-sm text-gray-600">
-  {formatPrice(item.price)} each
-</p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      {formatPrice(item.price * item.qty)}
-                    </p>
-                  </div>
+                            <p className="font-bold text-gray-900 text-lg mt-2">
+                              {formatPrice(item.price * item.qty)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeItem(item)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                          >
+                            <Trash2
+                              size={18}
+                              className="text-gray-400 hover:text-red-500"
+                            />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQty(item, "dec")}
+                              className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+                            >
+                              <Minus size={16} className="text-gray-600" />
+                            </button>
+                            <span className="w-8 text-center font-semibold text-gray-900">
+                              {item.qty}
+                            </span>
+                            <button
+                              onClick={() => updateQty(item, "inc")}
+                              className="w-8 h-8 sm:w-10 sm:h-10 border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+                            >
+                              <Plus size={16} className="text-gray-600" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            {formatPrice(item.price)} each
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {/* ✅ Free promo item in summary */}
-{freeItem && (
-  <div className="flex gap-4 p-3 bg-green-50 rounded-xl border border-green-100">
-    <div className="relative flex-shrink-0">
-      <img
-        src={freeItem.images?.[0]}
-        alt={freeItem.name}
-        className="w-16 h-16 rounded-lg object-cover"
-      />
-      <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-        1
-      </span>
-    </div>
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2">
-        <p className="font-medium text-gray-900 truncate">{freeItem.name}</p>
-        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-          🎁 Free
-        </span>
-      </div>
-      <p className="text-sm text-gray-500">{freeItem.variants?.[0]?.label || "Default"}</p>
-    </div>
-    <div className="text-right">
-      <p className="font-semibold text-green-600">FREE</p>
-    </div>
-  </div>
-)}
-            </div>
 
-            <div className="mt-6 pt-6 border-t space-y-3">
-             {wordingFee > 0 && (
-  <div className="flex justify-between items-center">
-    <span className="text-gray-600">
+                {/* ✅ FREE ITEM PICKER — only when promo unlocked */}
+                {promoUnlocked && (
+                  <FreeItemPicker
+                    promoItems={promoItems}
+                    selectedFreeItem={freeItem}
+                    onSelect={setFreeItem}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* FOOTER */}
+          {items.length > 0 && (
+            <div className="border-t border-gray-100 bg-white p-4 sm:p-6 space-y-4">
+              <div className="space-y-2">
+               <div className="flex justify-between">
+  <span className="text-gray-600">Items subtotal</span>
+  <span>
+    {formatPrice(subtotal - wordingFee)}
+  </span>
+</div>
+
+{wordingFee > 0 && (
+  <div className="flex justify-between">
+    <span className="text-orange-600">
       Cake wording
     </span>
 
@@ -840,80 +569,97 @@ cakeMessageFee:
     </span>
   </div>
 )}
+                {/* ✅ show free item saving */}
+                {freeItem && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      <Gift size={14} /> Free item ({freeItem.name})
+                    </span>
+                    <span className="font-medium">- FREE</span>
+                  </div>
+                )}
+                {/* Only show a delivery line once delivery is actually chosen.
+                    It used to render "Free" for every cart — including before
+                    a fulfillment method was picked, and for pickup orders —
+                    which promised free delivery on a $49 cart that would in
+                    fact be charged $8.99. */}
+                {fulfillment?.type === "delivery" && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Delivery</span>
+                    <span
+                      className={`font-medium ${
+                        deliveryFee === 0 ? "text-green-600" : ""
+                      }`}
+                    >
+                      {deliveryFee === 0 ? "Free" : formatPrice(deliveryFee)}
+                    </span>
+                  </div>
+                )}
 
-              {fulfillment?.type === "delivery" && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Delivery</span>
-                  <span
-                    className={`font-medium ${
-                      deliveryFee === 0 ? "text-green-600" : "text-gray-900"
-                    }`}
-                  >
-                    {deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee)}
-                  </span>
-                </div>
-              )}
-
-              {freeItem && (
-  <div className="flex justify-between items-center text-green-600">
-    <span>🎁 Free item</span>
-    <span className="font-medium">- FREE</span>
-  </div>
-)}
-
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">
-                    Total
-                  </span>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatPrice(totalAmount)}
+                {fulfillment?.type === "delivery" &&
+                  subtotal >= 30 &&
+                  subtotal < 80 && (
+                    <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                      Add {formatPrice(80 - subtotal)} more for free delivery
                     </p>
-                    <p className="text-xs text-gray-500">Including GST</p>
+                  )}
+                <div className="border-t pt-2">
+                  <div className="flex justify-between font-bold">
+                    <span>Total</span>
+                    <span>{formatPrice(total)}</span>
                   </div>
                 </div>
               </div>
+
+              <button
+  onClick={() => {
+    // ✅ FIX: the fulfillment modal used to be opened with a global event that
+    // ONLY pages/Menu.jsx listened for. From any other page (product page,
+    // home, best sellers, category) this button silently did nothing — the
+    // drawer just closed. The modal is now rendered by the drawer itself, so
+    // checkout works from everywhere.
+    // ✅ don't let a broken bundle reach checkout
+    if (hasIssues(items)) return;
+
+    // ✅ delivery has a $30 minimum
+    if (belowDeliveryMinimum) return;
+
+    if (!fulfillment) {
+      setShowFulfillment(true);
+      return;
+    }
+    trackInitiateCheckout({ items, value: total });
+    onClose();
+    navigate("/checkout");
+  }}
+  disabled={hasIssues(items) || belowDeliveryMinimum}
+  className="w-full bg-[#1E3A8A] text-white py-4 px-6 rounded-xl font-bold disabled:bg-gray-300 disabled:cursor-not-allowed"
+>
+  {hasIssues(items)
+    ? "Fix the highlighted item to continue"
+    : belowDeliveryMinimum
+      ? `Add ${formatPrice(30 - subtotal)} more for delivery`
+      : fulfillment
+        ? `Proceed to Checkout · ${formatPrice(total)}`
+        : "Proceed to Checkout"}
+</button>
             </div>
-          </section>
+          )}
         </div>
       </div>
 
-      {/* Floating Payment Button - Mobile Responsive */}
-<div style={{position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50}} 
-  className="bg-white border-t shadow-xl">
-  <div className="max-w-6xl mx-auto px-4 py-3">
-    <div className="flex items-center justify-between gap-3">
-      <div>
-        <p className="text-xs text-gray-500">Total</p>
-        <p className="text-xl font-bold text-gray-900">
-          {formatPrice(totalAmount)}
-        </p>
-      </div>
-
-      <button
-        onClick={() => { if (isProcessing) return; placeOrder(); }}
-        disabled={isProcessing || items.length === 0}
-        className="flex-1 max-w-xs bg-black hover:bg-gray-900 text-white py-3 px-6 rounded-full text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isProcessing ? (
-          <div className="flex items-center justify-center gap-2">
-            <Loader className="w-4 h-4 animate-spin" />
-            Processing...
-          </div>
-        ) : (
-          <span>Pay Now • {formatPrice(totalAmount)}</span>
-        )}
-      </button>
-    </div>
-
-    <p className="text-center text-xs text-gray-400 mt-2">
-      By placing your order, you agree to our Terms & Conditions
-    </p>
-  </div>
-</div>
-    </div>
+      {/* ✅ Fulfillment modal now lives with the drawer, so "Proceed to
+          Checkout" works on every page. On save it navigates to /checkout. */}
+      <FulfillmentModal
+        open={showFulfillment}
+        onClose={() => {
+          setShowFulfillment(false);
+          onClose(); // close the drawer too, so it isn't left over the checkout page
+        }}
+        redirectToCheckout
+      />
+    </>
   );
 };
 
-export default Checkout;
+export default CartDrawer;

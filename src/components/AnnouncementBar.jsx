@@ -6,12 +6,12 @@ import { useState } from "react";
    The thin strip above the header. To change the wording or turn it off,
    edit MESSAGE below — set it to an empty string to hide the bar entirely.
 
-   ⚠️ The $60 here is a marketing claim, not the rule that gets applied.
+   ⚠️ The $80 here is a marketing claim, not the rule that gets applied.
    The real threshold lives in DELIVERY_RULES in the backend's
    routes/deliveryRoutes.js. If that changes, change this text too or the
    site will promise something it doesn't do.
    ========================================================================== */
-const MESSAGE = "Free Islandwide Delivery For Orders $60 and Above";
+const MESSAGE = "Free Islandwide Delivery For Orders $80 and Above";
 
 const AnnouncementBar = () => {
   const [dismissed, setDismissed] = useState(false);

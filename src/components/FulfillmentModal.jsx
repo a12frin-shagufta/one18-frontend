@@ -23,8 +23,16 @@ const branches = [
   },
 ];
 
-const timeSlots = [
+// Pickup and delivery had a single shared list. They're separate now because
+// delivery no longer offers the 07:30 slot (client request, 19 Sep 2026) while
+// pickup still does.
+const pickupTimeSlots = [
   "07:30", "08:30", "09:30", "10:30", "11:30", "12:30",
+  "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:00",
+];
+
+const deliveryTimeSlots = [
+  "08:30", "09:30", "10:30", "11:30", "12:30",
   "13:30", "14:30", "15:30", "16:30", "17:30", "18:30", "19:00",
 ];
 
@@ -468,7 +476,7 @@ setShowAccessError?.(false);
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Select time slot</option>
-                  {timeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {pickupTimeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
                 {pickupTimeError && <p className="text-xs text-red-600">{pickupTimeError}</p>}
               </div>
@@ -541,7 +549,7 @@ setShowAccessError?.(false);
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-base disabled:bg-gray-100 disabled:cursor-not-allowed focus:border-blue-500 focus:outline-none"
                 >
                   <option value="">Select time slot</option>
-                  {timeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {deliveryTimeSlots.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
                 {deliveryTimeError && <p className="text-xs text-red-600">{deliveryTimeError}</p>}
               </div>

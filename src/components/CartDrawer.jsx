@@ -191,13 +191,13 @@ const subtotal = useMemo(
 );
   /* The fee in fulfillmentData was quoted when the customer entered their
      postcode. If the cart changed since, that figure is stale — a $45 cart
-     quoted $6.99 kept paying $6.99 even after growing past the $60 free
+     quoted $8.99 kept paying $8.99 even after growing past the $80 free
      threshold. Recompute from the CURRENT subtotal so the cart shows what the
      server will actually charge. Keep these numbers in step with
      DELIVERY_RULES in the backend's routes/deliveryRoutes.js. */
   const deliveryFee = useMemo(() => {
     if (fulfillment?.type !== "delivery") return 0;
-    return subtotal >= 60 ? 0 : 6.99;
+    return subtotal >= 80 ? 0 : 8.99;
   }, [fulfillment?.type, subtotal]);
 
   const total = subtotal + deliveryFee;
@@ -582,7 +582,7 @@ const removeItem = (item) => {
                     It used to render "Free" for every cart — including before
                     a fulfillment method was picked, and for pickup orders —
                     which promised free delivery on a $49 cart that would in
-                    fact be charged $6.99. */}
+                    fact be charged $8.99. */}
                 {fulfillment?.type === "delivery" && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Delivery</span>
@@ -598,9 +598,9 @@ const removeItem = (item) => {
 
                 {fulfillment?.type === "delivery" &&
                   subtotal >= 30 &&
-                  subtotal < 60 && (
+                  subtotal < 80 && (
                     <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-                      Add {formatPrice(60 - subtotal)} more for free delivery
+                      Add {formatPrice(80 - subtotal)} more for free delivery
                     </p>
                   )}
                 <div className="border-t pt-2">
