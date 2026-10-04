@@ -45,10 +45,32 @@ function App() {
     gtmPageView(location.pathname);
   }, [location.pathname]);
 
+  /* The 826 Tampines outlet closed on 4 Oct 2026. Returning customers still
+     have its id saved in their browser from a previous visit, so without this
+     they'd keep browsing — and ordering — against a closed outlet. Reset any
+     stored reference to it, and clear a fulfillment choice that points there. */
+  const CLOSED_BRANCH_IDS = ["696b2592f5f3ced6b3de4974"]; // 826 Tampines St 81
+
   useEffect(() => {
     const savedBranch = localStorage.getItem("selectedBranch");
-    if (!savedBranch) {
+
+    if (!savedBranch || CLOSED_BRANCH_IDS.includes(savedBranch)) {
       localStorage.setItem("selectedBranch", DEFAULT_BRANCH.id);
+      localStorage.removeItem("selectedBranchData");
+    }
+
+    try {
+      const fulfillment = JSON.parse(
+        localStorage.getItem("fulfillmentData") || "null",
+      );
+      const branchId = fulfillment?.branch?._id || fulfillment?.branch?.id;
+      if (branchId && CLOSED_BRANCH_IDS.includes(branchId)) {
+        // Forces the customer to pick again rather than silently
+        // collecting from a shop that isn't open.
+        localStorage.removeItem("fulfillmentData");
+      }
+    } catch {
+      localStorage.removeItem("fulfillmentData");
     }
   }, []);
 

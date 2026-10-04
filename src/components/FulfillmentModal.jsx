@@ -4,15 +4,18 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../context/CartContext";
 
+/* 826 Tampines Street 81 removed — outlet closed 4 Oct 2026 (client request).
+   Kept commented rather than deleted in case it reopens. The branch still
+   exists in the database, so past orders keep their branch name. */
 const branches = [
-  {
-    id: "tampines",
-    _id: "696b2592f5f3ced6b3de4974",
-    name: "One18 Bakery Tampines",
-    address: "826 Tampines Street 81, Singapore 520826",
-    lat: 1.3526,
-    lng: 103.9448,
-  },
+  // {
+  //   id: "tampines",
+  //   _id: "696b2592f5f3ced6b3de4974",
+  //   name: "One18 Bakery Tampines",
+  //   address: "826 Tampines Street 81, Singapore 520826",
+  //   lat: 1.3526,
+  //   lng: 103.9448,
+  // },
   {
     id: "northbridge",
     _id: "696b25f8f5f3ced6b3de4982",

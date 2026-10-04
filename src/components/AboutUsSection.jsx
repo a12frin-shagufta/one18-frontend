@@ -7,12 +7,12 @@ const outlets = [
     image: "/images/o1.png",
     maps: "https://maps.google.com/?q=757+North+Bridge+Road+Singapore+198725",
   },
-  {
-    name: "One18 Bakery – Tampines 81",
-    address: "826 Tampines St 81, #01-118, Singapore 520826",
-    image: "/images/o2.png",
-    maps: "https://maps.google.com/?q=826+Tampines+Street+81+%2301-118+Singapore+520826",
-  },
+  // {
+  //   name: "One18 Bakery – Tampines 81",
+  //   address: "826 Tampines St 81, #01-118, Singapore 520826",
+  //   image: "/images/o2.png",
+  //   maps: "https://maps.google.com/?q=826+Tampines+Street+81+%2301-118+Singapore+520826",
+  // },
   {
     name: "One18 Bakery – Tampines 23",
     address: "Tampines St 23, #01-64, Singapore 527201",
