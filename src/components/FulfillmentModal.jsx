@@ -74,13 +74,37 @@ const getMinDate = () => {
 // ✅ Blocked dates — customers cannot select these
 const BLOCKED_DATES = ["2026-05-27"];
 
-const getTileDates = (count = 30) => {
+/* How far ahead customers can pre-order.
+   ------------------------------------------------------------------
+   This used to be a count of days (30), which quietly ran out and had to be
+   bumped. It's a date now, so the window is explicit: extend it by changing
+   this one line. Format YYYY-MM-DD, inclusive. */
+const PREORDER_UNTIL = "2027-01-31";
+
+/* If PREORDER_UNTIL is never extended, a hard cut-off would leave the date
+   picker completely empty once that day passes — nobody could order at all.
+   So once the window has expired we fall back to a rolling 60 days. Orders
+   keep flowing; the only cost is the window quietly being different from
+   what was configured. */
+const ROLLING_FALLBACK_DAYS = 60;
+
+const getTileDates = (maxCount = 400) => {
   const dates = [];
   const base = new Date();
   base.setDate(base.getDate() + 3);
-  for (let i = 0; i < count; i++) {
+
+  let end = new Date(`${PREORDER_UNTIL}T23:59:59`);
+  if (Number.isNaN(end.getTime()) || end < base) {
+    end = new Date(base);
+    end.setDate(end.getDate() + ROLLING_FALLBACK_DAYS);
+  }
+
+  for (let i = 0; i < maxCount; i++) {
     const d = new Date(base);
     d.setDate(base.getDate() + i);
+
+    // Stop at the configured last pre-order date
+    if (d > end) break;
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
@@ -270,7 +294,7 @@ const TileDatePicker = ({
   showAccessError,
   setShowAccessError
 }) => {
-    const tiles = getTileDates(30);
+    const tiles = getTileDates();
     return (
       <div className={`space-y-2 ${
   showAccessError ? "border border-red-400 bg-red-50 p-2 rounded-lg" : ""
